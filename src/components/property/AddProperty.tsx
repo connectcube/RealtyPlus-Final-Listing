@@ -124,10 +124,10 @@ const AddProperty = () => {
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             List Your Property
           </h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 mb-6 sm:mb-8">
             Fill in the details below to list your property on RealtyZambia
           </p>
 
@@ -135,14 +135,36 @@ const AddProperty = () => {
             {/* Main Form */}
             <div className="lg:col-span-2">
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid grid-cols-3 md:grid-cols-5 mb-6 md:mb-8 overflow-x-auto">
-                      <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                      <TabsTrigger value="location">Location</TabsTrigger>
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="features">Features</TabsTrigger>
-                      <TabsTrigger value="images">Images</TabsTrigger>
+                    <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 mb-6 md:mb-8 overflow-x-auto">
+                      <TabsTrigger value="basic" className="text-xs sm:text-sm">
+                        Basic Info
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="location"
+                        className="text-xs sm:text-sm"
+                      >
+                        Location
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="details"
+                        className="text-xs sm:text-sm"
+                      >
+                        Details
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="features"
+                        className="text-xs sm:text-sm"
+                      >
+                        Features
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="images"
+                        className="text-xs sm:text-sm"
+                      >
+                        Images
+                      </TabsTrigger>
                     </TabsList>
 
                     {/* Basic Info Tab */}
@@ -375,7 +397,7 @@ const AddProperty = () => {
                     {/* Details Tab */}
                     <TabsContent value="details">
                       <div className="space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                           <div>
                             <Label
                               htmlFor="bedrooms"
@@ -653,7 +675,7 @@ const AddProperty = () => {
                             images)
                           </p>
 
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
                             <input
                               type="file"
                               id="images"
@@ -671,11 +693,11 @@ const AddProperty = () => {
                                   : ""
                               }`}
                             >
-                              <Upload className="h-12 w-12 text-gray-400 mb-2" />
-                              <span className="text-gray-600 font-medium">
+                              <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-2" />
+                              <span className="text-gray-600 font-medium text-sm sm:text-base">
                                 Click to upload images
                               </span>
-                              <span className="text-gray-500 text-sm mt-1">
+                              <span className="text-gray-500 text-xs sm:text-sm mt-1">
                                 or drag and drop files here
                               </span>
                             </label>
@@ -692,14 +714,14 @@ const AddProperty = () => {
                                     <img
                                       src={image}
                                       alt={`Property image ${index + 1}`}
-                                      className="w-full h-24 object-cover rounded-md"
+                                      className="w-full h-20 sm:h-24 object-cover rounded-md"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => removeImage(index)}
                                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
-                                      <X className="h-4 w-4" />
+                                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
                                     </button>
                                   </div>
                                 ))}
@@ -711,23 +733,29 @@ const AddProperty = () => {
                     </TabsContent>
                   </Tabs>
 
-                  <div className="flex justify-between mt-8">
+                  <div className="flex justify-between mt-6 sm:mt-8">
                     <Button
                       variant="outline"
                       onClick={prevTab}
                       disabled={activeTab === "basic"}
+                      className="text-xs sm:text-sm px-2 sm:px-4"
                     >
                       Previous
                     </Button>
                     {activeTab === "images" ? (
                       <Button
                         onClick={handleSubmit}
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm px-2 sm:px-4"
                       >
                         Submit Listing
                       </Button>
                     ) : (
-                      <Button onClick={nextTab}>Next</Button>
+                      <Button
+                        onClick={nextTab}
+                        className="text-xs sm:text-sm px-2 sm:px-4"
+                      >
+                        Next
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -735,7 +763,7 @@ const AddProperty = () => {
             </div>
 
             {/* Sidebar */}
-            <div>
+            <div className="hidden lg:block">
               <div className="sticky top-24">
                 <Card>
                   <CardContent className="p-6">

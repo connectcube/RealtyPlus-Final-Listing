@@ -218,22 +218,31 @@ const SearchFilters = ({
           </div>
 
           {!compact && (
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-xs"
+                className="text-xs w-full sm:w-auto"
               >
                 {showAdvanced ? "Hide" : "Show"} Advanced Filters
                 <Filter className="ml-1 h-3 w-3" />
               </Button>
 
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset}>
+              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="flex-1 sm:flex-none"
+                >
                   Reset
                 </Button>
-                <Button size="sm" onClick={handleSearch}>
+                <Button
+                  size="sm"
+                  onClick={handleSearch}
+                  className="flex-1 sm:flex-none"
+                >
                   Search
                   <Search className="ml-1 h-3 w-3" />
                 </Button>
@@ -363,7 +372,7 @@ const SearchFilters = ({
                   ].map((amenity) => (
                     <div key={amenity} className="flex items-center space-x-2">
                       <Checkbox
-                        id={amenity.toLowerCase().replace(" ", "-")}
+                        id={`buy-${amenity.toLowerCase().replace(" ", "-")}`}
                         checked={filters.amenities.includes(amenity)}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -382,7 +391,7 @@ const SearchFilters = ({
                         }}
                       />
                       <label
-                        htmlFor={amenity.toLowerCase().replace(" ", "-")}
+                        htmlFor={`buy-${amenity.toLowerCase().replace(" ", "-")}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {amenity}
@@ -478,22 +487,31 @@ const SearchFilters = ({
           </div>
 
           {!compact && (
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-xs"
+                className="text-xs w-full sm:w-auto"
               >
                 {showAdvanced ? "Hide" : "Show"} Advanced Filters
                 <Filter className="ml-1 h-3 w-3" />
               </Button>
 
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset}>
+              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="flex-1 sm:flex-none"
+                >
                   Reset
                 </Button>
-                <Button size="sm" onClick={handleSearch}>
+                <Button
+                  size="sm"
+                  onClick={handleSearch}
+                  className="flex-1 sm:flex-none"
+                >
                   Search
                   <Search className="ml-1 h-3 w-3" />
                 </Button>
@@ -621,9 +639,12 @@ const SearchFilters = ({
                     "Staff Quarters",
                     "Gym",
                   ].map((amenity) => (
-                    <div key={amenity} className="flex items-center space-x-2">
+                    <div
+                      key={`rent-${amenity}`}
+                      className="flex items-center space-x-2"
+                    >
                       <Checkbox
-                        id={`${amenity.toLowerCase().replace(" ", "-")}-rent`}
+                        id={`rent-${amenity.toLowerCase().replace(" ", "-")}`}
                         checked={filters.amenities.includes(amenity)}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -642,7 +663,7 @@ const SearchFilters = ({
                         }}
                       />
                       <label
-                        htmlFor={`${amenity.toLowerCase().replace(" ", "-")}-rent`}
+                        htmlFor={`rent-${amenity.toLowerCase().replace(" ", "-")}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {amenity}
