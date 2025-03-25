@@ -131,13 +131,13 @@ const AddProperty = () => {
             Fill in the details below to list your property on RealtyZambia
           </p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Main Form */}
             <div className="lg:col-span-2">
               <Card>
                 <CardContent className="p-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid grid-cols-5 mb-8">
+                    <TabsList className="grid grid-cols-3 md:grid-cols-5 mb-6 md:mb-8 overflow-x-auto">
                       <TabsTrigger value="basic">Basic Info</TabsTrigger>
                       <TabsTrigger value="location">Location</TabsTrigger>
                       <TabsTrigger value="details">Details</TabsTrigger>
@@ -184,7 +184,7 @@ const AddProperty = () => {
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <div>
                             <Label
                               htmlFor="price"
@@ -375,7 +375,7 @@ const AddProperty = () => {
                     {/* Details Tab */}
                     <TabsContent value="details">
                       <div className="space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                           <div>
                             <Label
                               htmlFor="bedrooms"
@@ -503,7 +503,7 @@ const AddProperty = () => {
                           Select all the features that apply to your property
                         </p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="swimmingPool"
@@ -686,7 +686,7 @@ const AddProperty = () => {
                               <h4 className="text-base font-medium mb-3">
                                 Uploaded Images
                               </h4>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                                 {uploadedImages.map((image, index) => (
                                   <div key={index} className="relative group">
                                     <img

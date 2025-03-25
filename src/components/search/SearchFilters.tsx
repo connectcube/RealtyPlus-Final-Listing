@@ -135,7 +135,7 @@ const SearchFilters = ({
         </TabsList>
 
         <TabsContent value="buy" className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <div className="flex-1">
               <Label htmlFor="location">Location</Label>
               <div className="relative">
@@ -243,7 +243,7 @@ const SearchFilters = ({
 
           {showAdvanced && !compact && (
             <div className="pt-4 space-y-4 border-t mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div>
                   <Label htmlFor="bedrooms">Bedrooms</Label>
                   <Select
@@ -350,7 +350,7 @@ const SearchFilters = ({
 
               <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     "Swimming Pool",
                     "Garden",
@@ -396,7 +396,7 @@ const SearchFilters = ({
         </TabsContent>
 
         <TabsContent value="rent" className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <div className="flex-1">
               <Label htmlFor="location-rent">Location</Label>
               <div className="relative">
@@ -503,7 +503,7 @@ const SearchFilters = ({
 
           {showAdvanced && !compact && (
             <div className="pt-4 space-y-4 border-t mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div>
                   <Label htmlFor="bedrooms-rent">Bedrooms</Label>
                   <Select
@@ -610,7 +610,7 @@ const SearchFilters = ({
 
               <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     "Swimming Pool",
                     "Garden",

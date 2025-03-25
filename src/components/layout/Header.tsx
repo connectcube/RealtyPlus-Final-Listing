@@ -86,13 +86,13 @@ const Header = ({ className }: HeaderProps = {}) => {
               <img
                 src="/realtyplus-logo.svg"
                 alt="RealtyPlus Logo"
-                className="h-10 w-auto"
+                className="h-8 sm:h-10 w-auto"
                 onError={(e) => {
                   e.currentTarget.src =
                     "https://api.dicebear.com/7.x/initials/svg?seed=RP";
                 }}
               />
-              <span className="ml-2 text-xl font-bold text-realtyplus hidden sm:inline">
+              <span className="ml-2 text-lg sm:text-xl font-bold text-realtyplus hidden sm:inline">
                 RealtyPlus
               </span>
             </Link>
@@ -158,7 +158,7 @@ const Header = ({ className }: HeaderProps = {}) => {
                 <Input
                   type="text"
                   placeholder="Search properties..."
-                  className="w-64 pl-10 pr-4 py-2 rounded-full border-gray-300 focus:border-realtyplus focus:ring focus:ring-realtyplus/20 focus:ring-opacity-50"
+                  className="w-full sm:w-64 pl-10 pr-4 py-2 rounded-full border-gray-300 focus:border-realtyplus focus:ring focus:ring-realtyplus/20 focus:ring-opacity-50"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               </div>

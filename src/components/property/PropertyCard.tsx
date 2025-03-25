@@ -88,7 +88,7 @@ const PropertyCard = ({
           </div>
         )}
 
-        <div className="h-48 overflow-hidden">
+        <div className="h-40 sm:h-48 overflow-hidden">
           <img
             src={imageUrl}
             alt={title}

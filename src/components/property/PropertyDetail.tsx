@@ -391,7 +391,7 @@ const PropertyDetail = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Image Gallery */}
@@ -400,7 +400,7 @@ const PropertyDetail = () => {
                 <CarouselContent>
                   {property.images.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="h-[400px] w-full relative">
+                      <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
                         <img
                           src={image}
                           alt={`${property.title} - Image ${index + 1}`}
@@ -418,7 +418,7 @@ const PropertyDetail = () => {
             {/* Property Details Tabs */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
               <Tabs defaultValue="details" onValueChange={setActiveTab}>
-                <TabsList className="w-full grid grid-cols-5 bg-gray-100">
+                <TabsList className="w-full grid grid-cols-3 md:grid-cols-5 bg-gray-100 overflow-x-auto">
                   <TabsTrigger value="details" className="py-3">
                     Details
                   </TabsTrigger>
@@ -438,7 +438,7 @@ const PropertyDetail = () => {
 
                 {/* Details Tab */}
                 <TabsContent value="details" className="p-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
                     <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
                       <Bed className="h-6 w-6 text-realtyplus mb-1" />
                       <span className="text-sm text-gray-500">Bedrooms</span>
@@ -465,7 +465,7 @@ const PropertyDetail = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                     <div className="flex items-center">
                       <Home className="h-5 w-5 text-realtyplus mr-2" />
                       <div>
@@ -547,7 +547,7 @@ const PropertyDetail = () => {
                 {/* Location Tab */}
                 <TabsContent value="nearby" className="p-6">
                   <h3 className="text-xl font-semibold mb-4">Nearby Places</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                     {property.nearbyPlaces.map((place, index) => (
                       <div
                         key={index}
@@ -760,7 +760,7 @@ const PropertyDetail = () => {
         {/* Similar Properties */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {similarProperties.map((property) => (
               <PropertyCard
                 key={property.id}

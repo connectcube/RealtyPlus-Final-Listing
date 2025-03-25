@@ -24,7 +24,7 @@ const CallToAction = ({
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl font-bold mb-6">{title}</h2>
         <p className="text-xl mb-8 max-w-2xl mx-auto">{description}</p>
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
           <Button className="bg-white text-realtyplus hover:bg-gray-100 text-lg py-6 px-8">
             <Link to={primaryButtonLink} className="w-full">
               {primaryButtonText}

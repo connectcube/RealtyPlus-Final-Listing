@@ -18,15 +18,15 @@ const HeroSection = ({
     >
       <div className="absolute inset-0 bg-black bg-opacity-60"></div>
       <div className="container mx-auto px-4 h-full flex flex-col justify-center items-center relative z-10 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
+        <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6 text-white">
           Find Your Perfect Property in Zambia
         </h1>
-        <p className="text-xl md:text-2xl mb-10 max-w-3xl mx-auto text-white">
+        <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-10 max-w-3xl mx-auto text-white">
           Your trusted partner for buying, selling, and renting properties
           across Zambia
         </p>
-        <div className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-6">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+        <div className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-4 sm:p-6">
+          <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 mb-4 md:mb-6">
             <Button className="flex-1 h-12 text-lg bg-realtyplus hover:bg-realtyplus-dark">
               <Link
                 to="/buy"

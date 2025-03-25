@@ -22,7 +22,7 @@ const Footer = ({ className }: FooterProps = {}) => {
       className={cn("bg-slate-900 text-white py-8 px-4 md:px-8", className)}
     >
       <div className="container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {/* Company Info */}
           <div>
             <h3 className="text-xl font-bold mb-4">RealtyZambia</h3>

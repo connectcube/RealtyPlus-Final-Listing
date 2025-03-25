@@ -18,9 +18,9 @@ const AgencyLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
-      <div className="flex-grow container mx-auto py-6 px-4 md:px-6 flex flex-col md:flex-row gap-6">
+      <div className="flex-grow container mx-auto py-4 sm:py-6 px-3 sm:px-4 md:px-6 flex flex-col md:flex-row gap-4 md:gap-6">
         {/* Sidebar */}
-        <aside className="w-full md:w-64 shrink-0">
+        <aside className="w-full md:w-64 shrink-0 mb-4 md:mb-0">
           <div className="bg-white rounded-lg shadow-sm p-4 sticky top-24">
             <h2 className="font-semibold text-lg mb-4">Agency Dashboard</h2>
             <nav className="space-y-1">
