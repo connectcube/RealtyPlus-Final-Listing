@@ -38,6 +38,16 @@ const BuyProperties = lazy(() => import("./components/property/BuyProperties"));
 const AboutPage = lazy(() => import("./components/about/AboutPage"));
 const ContactPage = lazy(() => import("./components/contact/ContactPage"));
 
+// Admin pages
+const AdminDashboard = lazy(() => import("./components/admin/AdminDashboard"));
+const UsersPage = lazy(() => import("./components/admin/UsersPage"));
+const PropertiesPage = lazy(() => import("./components/admin/PropertiesPage"));
+const AdminAgentsPage = lazy(() => import("./components/admin/AgentsPage"));
+const AgenciesPage = lazy(() => import("./components/admin/AgenciesPage"));
+const AdminManagementPage = lazy(
+  () => import("./components/admin/AdminManagementPage"),
+);
+
 function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
@@ -69,6 +79,17 @@ function App() {
           />
           <Route path="/agent/dashboard" element={<AgentDashboard />} />
           <Route path="/agency/dashboard" element={<AgencyDashboard />} />
+
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<UsersPage />} />
+          <Route path="/admin/properties" element={<PropertiesPage />} />
+          <Route path="/admin/agents" element={<AdminAgentsPage />} />
+          <Route path="/admin/agencies" element={<AgenciesPage />} />
+          <Route
+            path="/admin/admin-management"
+            element={<AdminManagementPage />}
+          />
         </Routes>
         {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
       </>
