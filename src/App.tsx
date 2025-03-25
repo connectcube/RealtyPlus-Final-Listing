@@ -26,12 +26,17 @@ const AgentsPage = lazy(() => import("./components/agent/AgentsPage"));
 // User authentication components
 const UserLogin = lazy(() => import("./components/auth/UserLogin"));
 const UserSignup = lazy(() => import("./components/auth/UserSignup"));
+const ForgotPassword = lazy(() => import("./components/auth/ForgotPassword"));
 
 // Property listing pages
 const RentProperties = lazy(
   () => import("./components/property/RentProperties"),
 );
 const BuyProperties = lazy(() => import("./components/property/BuyProperties"));
+
+// Static pages
+const AboutPage = lazy(() => import("./components/about/AboutPage"));
+const ContactPage = lazy(() => import("./components/contact/ContactPage"));
 
 function App() {
   return (
@@ -46,10 +51,13 @@ function App() {
           <Route path="/rent" element={<RentProperties />} />
           <Route path="/mortgage-calculator" element={<MortgageCalculator />} />
           <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* User authentication routes */}
           <Route path="/login" element={<UserLogin />} />
           <Route path="/register" element={<UserSignup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Agent routes */}
           <Route path="/agent/signup" element={<AgentSignup />} />
