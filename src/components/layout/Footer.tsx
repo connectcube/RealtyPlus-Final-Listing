@@ -81,6 +81,38 @@ const Footer = ({ className }: FooterProps = {}) => {
               </li>
               <li>
                 <Link
+                  to="/agent/signup"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  Agent Signup
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/agent/dashboard"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  Agent Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/agent/subscription"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  Subscription Packages
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/mortgage-calculator"
+                  className="text-slate-300 hover:text-white transition-colors"
+                >
+                  Mortgage Calculator
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/about"
                   className="text-slate-300 hover:text-white transition-colors"
                 >

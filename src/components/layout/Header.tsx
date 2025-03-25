@@ -129,6 +129,11 @@ const Header = ({ className }: HeaderProps = {}) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem>
+                    <Link to="/agent/subscription" className="w-full">
+                      Subscription Packages
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
                     <Link to="/mortgage-calculator" className="w-full">
                       Mortgage Calculator
                     </Link>
@@ -197,6 +202,12 @@ const Header = ({ className }: HeaderProps = {}) => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
+                    <Link to="/agent/signup" className="w-full">
+                      Register as Agent/Agency
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
                     <Link
                       to="/saved-properties"
                       className="w-full flex items-center"
@@ -213,8 +224,13 @@ const Header = ({ className }: HeaderProps = {}) => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Link to="/dashboard" className="w-full">
-                      My Dashboard
+                    <Link to="/agent/dashboard" className="w-full">
+                      Agent Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link to="/agent/subscription" className="w-full">
+                      Subscription Packages
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -295,10 +311,22 @@ const Header = ({ className }: HeaderProps = {}) => {
                   Register
                 </Link>
                 <Link
-                  to="/dashboard"
+                  to="/agent/signup"
                   className="text-gray-700 hover:text-realtyplus font-medium py-2"
                 >
-                  My Dashboard
+                  Register as Agent/Agency
+                </Link>
+                <Link
+                  to="/agent/dashboard"
+                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                >
+                  Agent Dashboard
+                </Link>
+                <Link
+                  to="/agent/subscription"
+                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                >
+                  Subscription Packages
                 </Link>
                 <div className="relative mt-2">
                   <Input
