@@ -31,6 +31,8 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
+import agentAndAgenciesSignUp from "./helpers/agentAndAgencies/signUp";
+import { toast } from "react-toastify";
 
 const formSchema = z
   .object({
@@ -90,11 +92,22 @@ const AgentSignup = () => {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    // Here you would typically send the data to your backend
-    // For now, we'll just navigate to the subscription page
-    navigate("/agent/subscription");
+  const onSubmit = async (data: FormValues) => {
+    try {
+      if (!data.termsAccepted) {
+        alert("Kindly accept terms of usage.")
+      } else {
+        const user = await agentAndAgenciesSignUp(data);
+        if (user) {
+          toast.success("Signin successfull");
+          navigate('/agent/subscription');
+        }
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
+      toast.error("Error during registration");
+      // Handle error appropriately (show error message to user)
+    }
   };
 
   return (
@@ -132,7 +145,6 @@ const AgentSignup = () => {
                             <SelectItem value="individual">
                               Individual Agent
                             </SelectItem>
-                            <SelectItem value="agency">Agency</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

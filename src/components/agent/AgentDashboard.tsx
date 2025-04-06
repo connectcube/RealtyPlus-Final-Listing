@@ -10,6 +10,7 @@ import {
   Grid,
   User,
   LogOut,
+  Camera,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Progress } from "../ui/progress";
+import { useZustand } from "@/lib/zustand";
 
 const mockProperties = [
   {
@@ -74,17 +76,18 @@ const mockProperties = [
 ];
 
 const AgentDashboard = () => {
+  const { user } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
 
   // Mock subscription data
   const subscription = {
-    plan: "SME Package",
-    listingsTotal: 50,
-    listingsUsed: 4,
+    plan: user.subscription.plan,
+    listingsTotal: user.subscription.listingsTotal,
+    listingsUsed: user.subscription.listingsUsed,
     renewalDate: new Date(
       Date.now() + 25 * 24 * 60 * 60 * 1000,
     ).toLocaleDateString(),
-    isActive: true,
+    isActive: user.subscription.status,
   };
 
   return (
@@ -113,7 +116,7 @@ const AgentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{mockProperties.length}</div>
+            <div className="text-3xl font-bold">{user.listings.length}</div>
             <p className="text-xs text-gray-500 mt-1">+2 from last month</p>
           </CardContent>
         </Card>
@@ -126,7 +129,7 @@ const AgentDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {mockProperties.reduce((sum, prop) => sum + prop.views, 0)}
+              {user.views}
             </div>
             <p className="text-xs text-green-500 mt-1">+15% from last month</p>
           </CardContent>
@@ -140,7 +143,7 @@ const AgentDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {mockProperties.reduce((sum, prop) => sum + prop.inquiries, 0)}
+              {user.enquiries || 5}
             </div>
             <p className="text-xs text-green-500 mt-1">+8% from last month</p>
           </CardContent>
@@ -154,6 +157,7 @@ const AgentDashboard = () => {
               <TabsTrigger value="properties">My Properties</TabsTrigger>
               <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="profile">Profile</TabsTrigger>
             </TabsList>
 
             <TabsContent value="properties" className="space-y-4">
@@ -301,6 +305,146 @@ const AgentDashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Agent Profile</CardTitle>
+                  <CardDescription>
+                    Manage your personal and professional information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Profile Header with Avatar */}
+                  <div className="flex items-center space-x-4">
+                    <div className="relative h-24 w-24">
+                      <img
+                        src={user.pfp || "https://via.placeholder.com/96"}
+                        alt="Profile"
+                        className="rounded-full object-cover w-full h-full"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute bottom-0 right-0"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">{`${user.firstName} ${user.lastName} `}</h2>
+                      <p className="text-gray-500">Real Estate Agent</p>
+                    </div>
+                  </div>
+
+                  {/* Personal Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg">Personal Information</h3>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-sm text-gray-500">Full Name</label>
+                          <input
+                            type="text"
+                            defaultValue={`${user.firstName} ${user.lastName}`}
+                            className="w-full mt-1 px-3 py-2 border rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-500">Email Address</label>
+                          <input
+                            type="email"
+                            defaultValue={user.email}
+                            className="w-full mt-1 px-3 py-2 border rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-500">Phone Number</label>
+                          <input
+                            type="tel"
+                            defaultValue={user.phone}
+                            className="w-full mt-1 px-3 py-2 border rounded-md"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Professional Information */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg">Professional Information</h3>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-sm text-gray-500">License Number</label>
+                          <input
+                            type="text"
+                            defaultValue={user.licenseNumber}
+                            className="w-full mt-1 px-3 py-2 border rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-500">Agency</label>
+                          <input
+                            type="text"
+                            defaultValue={user.agency}
+                            className="w-full mt-1 px-3 py-2 border rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-500">Years of Experience</label>
+                          <input
+                            type="number"
+                            defaultValue={user.experience}
+                            className="w-full mt-1 px-3 py-2 border rounded-md"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-500">Bio</label>
+                    <textarea
+                      defaultValue={user.bio}
+                      rows={4}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Tell potential clients about yourself..."
+                    />
+                  </div>
+
+                  {/* Social Links */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Social Links</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-500">LinkedIn</label>
+                        <input
+                          type="url"
+                          defaultValue={user.social?.linkedin}
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">Twitter</label>
+                        <input
+                          type="url"
+                          defaultValue={user.social?.twitter}
+                          className="w-full mt-1 px-3 py-2 border rounded-md"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3">
+                    <Button variant="outline">Cancel</Button>
+                    <Button className="bg-realtyplus hover:bg-realtyplus-dark">
+                      Save Changes
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
           </Tabs>
         </div>
 

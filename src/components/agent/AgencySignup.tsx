@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -82,6 +82,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 const AgencySignup = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -103,12 +105,19 @@ const AgencySignup = () => {
       termsAccepted: false,
     },
   });
+  const onSubmit = async (data: FormValues) => {
+    setIsLoading(true);
+    setError(null);
 
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    // Here you would typically send the data to your backend
-    // For now, we'll just navigate to the subscription page
-    navigate("/agent/subscription");
+    try {
+      // 3. Show success message and navigate
+      navigate('/agent/subscription');
+    } catch (error: any) {
+      setError(error.message || 'An error occurred during registration');
+      console.error('Registration error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

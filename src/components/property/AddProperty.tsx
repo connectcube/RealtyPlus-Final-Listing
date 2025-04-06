@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,11 +27,15 @@ import {
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
-
+interface NearbyPlace {
+  name: string;
+  distance: string;
+  type: string;
+}
 const AddProperty = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -59,8 +63,28 @@ const AddProperty = () => {
       fittedKitchen: false,
       parking: false,
     },
+    nearby_places: [] as NearbyPlace[]
   });
-
+  const addNearbyPlace = () => {
+    setFormData(prev => ({
+      ...prev,
+      nearby_places: [...prev.nearby_places, { name: '', distance: '', type: '' }]
+    }));
+  };
+  const updateNearbyPlace = (index: number, field: keyof NearbyPlace, value: string) => {
+    setFormData(prev => {
+      const updatedPlaces = [...prev.nearby_places];
+      updatedPlaces[index] = {
+        ...updatedPlaces[index],
+        [field]: value
+      };
+      return {
+        ...prev,
+        nearby_places: updatedPlaces
+      };
+    });
+    console.log("form data", formData)
+  };
   const handleInputChange = (field: string, value: any) => {
     setFormData({
       ...formData,
@@ -78,17 +102,37 @@ const AddProperty = () => {
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = e.target.files;
+      if (!files) return;
 
-    // In a real app, you would upload these to a server
-    // Here we're just creating local URLs for preview
-    const newImages = Array.from(files).map((file) =>
-      URL.createObjectURL(file),
-    );
-    setUploadedImages([...uploadedImages, ...newImages]);
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      // Convert FileList to array and validate
+      const validFiles = Array.from(files).filter(file => {
+        if (!allowedTypes.includes(file.type)) {
+          alert(`File ${file.name} is not a supported image type`);
+          return false;
+        }
+        if (file.size > maxSize) {
+          alert(`File ${file.name} is too large. Max size is 5MB`);
+          return false;
+        }
+        return true;
+      });
+
+      setUploadedImages([...uploadedImages, ...validFiles]);
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      alert('Error handling image upload');
+    }
   };
+
+
+
+
 
   const removeImage = (index: number) => {
     const newImages = [...uploadedImages];
@@ -96,14 +140,10 @@ const AddProperty = () => {
     setUploadedImages(newImages);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    console.log("Uploaded images:", uploadedImages);
-    // In a real app, you would send this data to your backend
-    alert("Property listing submitted successfully!");
-    navigate("/");
   };
+
 
   const nextTab = () => {
     if (activeTab === "basic") setActiveTab("location");
@@ -390,6 +430,57 @@ const AddProperty = () => {
                             This address will not be displayed publicly. It will
                             be used for verification purposes only.
                           </p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <div className="mb-4 flex flex-col gap-4">
+                          <Label
+                            htmlFor="nearbyPlaces"
+                            className="text-base font-medium"
+                          >
+                            Nearby Places
+                          </Label>
+
+                          {/* Display existing places */}
+                          {formData.nearby_places.map((place, index) => (
+                            <div key={index} className="flex gap-4 mb-2">
+                              <input
+                                type="text"
+                                placeholder="Place name"
+                                value={place.name}
+                                onChange={(e) => updateNearbyPlace(index, 'name', e.target.value)}
+                                className="border rounded px-2 py-1"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Distance (km)"
+                                value={place.distance}
+                                onChange={(e) => updateNearbyPlace(index, 'distance', e.target.value)}
+                                className="border rounded px-2 py-1"
+                              />
+                              <select
+                                value={place.type}
+                                onChange={(e) => updateNearbyPlace(index, 'type', e.target.value)}
+                                className="border rounded px-2 py-1"
+                              >
+                                <option value="">Select type</option>
+                                <option value="school">School</option>
+                                <option value="hospital">Hospital</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="restaurant">Restaurant</option>
+                                <option value="park">Park</option>
+                              </select>
+                            </div>
+                          ))}
+
+                          {/* Add new place button */}
+                          <button
+                            type="button"
+                            onClick={addNearbyPlace}
+                            className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+                          >
+                            Add a place
+                          </button>
                         </div>
                       </div>
                     </TabsContent>
@@ -687,11 +778,10 @@ const AddProperty = () => {
                             />
                             <label
                               htmlFor="images"
-                              className={`flex flex-col items-center justify-center cursor-pointer ${
-                                uploadedImages.length >= 10
-                                  ? "opacity-50 cursor-not-allowed"
-                                  : ""
-                              }`}
+                              className={`flex flex-col items-center justify-center cursor-pointer ${uploadedImages.length >= 10
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                                }`}
                             >
                               <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-2" />
                               <span className="text-gray-600 font-medium text-sm sm:text-base">
@@ -710,20 +800,7 @@ const AddProperty = () => {
                               </h4>
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                                 {uploadedImages.map((image, index) => (
-                                  <div key={index} className="relative group">
-                                    <img
-                                      src={image}
-                                      alt={`Property image ${index + 1}`}
-                                      className="w-full h-20 sm:h-24 object-cover rounded-md"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeImage(index)}
-                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    </button>
-                                  </div>
+                                  <ImagePreview key={index} file={image} onRemove={removeImage} />
                                 ))}
                               </div>
                             </div>
@@ -809,7 +886,7 @@ const AddProperty = () => {
                         <p className="font-medium">
                           {formData.propertyType
                             ? formData.propertyType.charAt(0).toUpperCase() +
-                              formData.propertyType.slice(1)
+                            formData.propertyType.slice(1)
                             : "Not specified yet"}
                         </p>
                       </div>
@@ -842,8 +919,8 @@ const AddProperty = () => {
                       <div className="space-y-2">
                         <div className="flex items-center">
                           {formData.title &&
-                          formData.price &&
-                          formData.propertyType ? (
+                            formData.price &&
+                            formData.propertyType ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
@@ -852,8 +929,8 @@ const AddProperty = () => {
                         </div>
                         <div className="flex items-center">
                           {formData.province &&
-                          formData.city &&
-                          formData.neighborhood ? (
+                            formData.city &&
+                            formData.neighborhood ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
@@ -862,8 +939,8 @@ const AddProperty = () => {
                         </div>
                         <div className="flex items-center">
                           {formData.bedrooms &&
-                          formData.bathrooms &&
-                          formData.area ? (
+                            formData.bathrooms &&
+                            formData.area ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
@@ -898,6 +975,33 @@ const AddProperty = () => {
         </div>
       </main>
       <Footer />
+    </div>
+  );
+};
+const ImagePreview = ({ file, onRemove, key }: { file: File; onRemove: (index: number) => void; key: number }) => {
+  const [preview, setPreview] = useState<string>('');
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+
+    // Clean up
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div className="relative group">
+      <img
+        src={preview}
+        alt="Preview"
+        className="w-full h-24 object-cover rounded-md"
+      />
+      <button
+        onClick={() => onRemove(key)}
+        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 };

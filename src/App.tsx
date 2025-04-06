@@ -4,7 +4,7 @@ import Home from "./components/home";
 import PropertyDetail from "./components/property/PropertyDetail";
 import AddProperty from "./components/property/AddProperty";
 import routes from "tempo-routes";
-
+import { ToastContainer } from 'react-toastify';
 // Lazy load agent and subscription components
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
 const AgencySignup = lazy(() => import("./components/agent/AgencySignup"));
@@ -44,14 +44,13 @@ const UsersPage = lazy(() => import("./components/admin/UsersPage"));
 const PropertiesPage = lazy(() => import("./components/admin/PropertiesPage"));
 const AdminAgentsPage = lazy(() => import("./components/admin/AgentsPage"));
 const AgenciesPage = lazy(() => import("./components/admin/AgenciesPage"));
-const AdminManagementPage = lazy(
-  () => import("./components/admin/AdminManagementPage"),
-);
+const AdminManagementPage = lazy(() => import("./components/admin/AdminManagementPage"),);
 
 function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <>
+        <ToastContainer />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/property/:id" element={<PropertyDetail />} />

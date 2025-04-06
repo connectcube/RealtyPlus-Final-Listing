@@ -203,7 +203,13 @@ const Header = ({ className }: HeaderProps = {}) => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <Link to="/agent/signup" className="w-full">
-                      Register as Agent/Agency
+                      Register as Agent
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Link to="/agency/signup" className="w-full">
+                      Register as Agency
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
