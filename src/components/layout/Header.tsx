@@ -21,14 +21,75 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth, fireDataBase } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 interface HeaderProps {
   className?: string;
 }
-
+interface User {
+  uid: string;
+  email: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+  role?: "user" | "agent" | "admin";
+  phoneNumber?: string;
+}
 const Header = ({ className }: HeaderProps = {}) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [user, setUser] = React.useState<User | null>(null);
+
+  React.useEffect(() => {
+    const checkLogin = () => {
+      // Firebase provides a listener for auth state changes
+      const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+        if (authUser) {
+          try {
+            // Fetch additional user data from Firestore
+            const userDoc = await getDoc(
+              doc(fireDataBase, "users", authUser.uid)
+            );
+
+            if (userDoc.exists()) {
+              // Combine auth user data with Firestore data
+              setUser({
+                uid: authUser.uid,
+                email: authUser.email,
+                displayName: authUser.displayName,
+                photoURL: authUser.photoURL,
+                ...userDoc.data(), // Spread in additional Firestore data
+              });
+            } else {
+              // If no Firestore document exists, just use auth data
+              setUser({
+                uid: authUser.uid,
+                email: authUser.email,
+                displayName: authUser.displayName,
+                photoURL: authUser.photoURL,
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+            // Still set basic user data even if Firestore fetch fails
+            setUser({
+              uid: authUser.uid,
+              email: authUser.email,
+            });
+          }
+        } else {
+          // User is signed out
+          setUser(null);
+        }
+      });
+
+      // Cleanup subscription on unmount
+      return () => unsubscribe();
+    };
+
+    checkLogin();
+  }, []);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -41,7 +102,15 @@ const Header = ({ className }: HeaderProps = {}) => {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
-
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // You can add navigation here if needed
+      // navigate('/');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
   return (
     <>
       {/* Top Bar */}
@@ -76,7 +145,7 @@ const Header = ({ className }: HeaderProps = {}) => {
         className={cn(
           "w-full bg-white sticky top-0 z-50 transition-all duration-300",
           isScrolled ? "shadow-md py-2" : "shadow-sm py-4",
-          className,
+          className
         )}
       >
         <div className="container mx-auto px-4">
@@ -190,16 +259,48 @@ const Header = ({ className }: HeaderProps = {}) => {
                     </p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link to="/login" className="w-full">
-                      Login
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/register" className="w-full">
-                      Register
-                    </Link>
-                  </DropdownMenuItem>
+
+                  {!user ? (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/login" className="w-full">
+                          Login
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/register" className="w-full">
+                          Register
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem>
+                        <div className="flex items-center gap-2 w-full">
+                          <img
+                            src={user.photoURL || "/default-avatar.png"}
+                            alt="Profile"
+                            className="w-6 h-6 rounded-full"
+                          />
+                          <span>{user.displayName || user.email}</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/agent/signup" className="w-full">
+                          Register as Agent
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full text-left text-red-600 hover:text-red-700"
+                        >
+                          Sign Out
+                        </button>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <Link to="/agent/signup" className="w-full">

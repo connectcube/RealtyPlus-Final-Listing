@@ -7,7 +7,7 @@ import routes from "tempo-routes";
 import { ToastContainer } from 'react-toastify';
 // Lazy load agent and subscription components
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
-const AgencySignup = lazy(() => import("./components/agent/AgencySignup"));
+const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
 const SubscriptionPage = lazy(
   () => import("./components/subscription/SubscriptionPage"),
 );
@@ -71,7 +71,7 @@ function App() {
           {/* Agent routes */}
           <Route path="/agent/signup" element={<AgentSignup />} />
           <Route path="/agency/signup" element={<AgencySignup />} />
-          <Route path="/agent/subscription" element={<SubscriptionPage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
           <Route
             path="/agent/subscription/success"
             element={<SubscriptionSuccess />}

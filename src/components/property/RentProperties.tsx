@@ -126,7 +126,7 @@ const RentProperties = () => {
           </p>
         </div>
 
-        <SearchFilters />
+        <SearchFilters type="rent" />
 
         <div className="flex justify-between items-center my-6">
           <div className="text-gray-600">

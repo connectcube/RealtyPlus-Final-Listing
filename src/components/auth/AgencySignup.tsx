@@ -33,6 +33,9 @@ import {
 import { Checkbox } from "../ui/checkbox";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import agencySignUp from "./helpers/agentAndAgencies/agencySignUp";
+import { toast } from "react-toastify";
+import { Loader } from "lucide-react";
 
 const formSchema = z
   .object({
@@ -106,17 +109,24 @@ const AgencySignup = () => {
     },
   });
   const onSubmit = async (data: FormValues) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // 3. Show success message and navigate
-      navigate('/agent/subscription');
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during registration');
-      console.error('Registration error:', error);
-    } finally {
+   try {
+      if (!data.termsAccepted) {
+        alert("Kindly accept terms of usage.")
+      } else {
+        setIsLoading(true)
+        console.log("Data from component",data)
+        const user = await agencySignUp(data);
+        if (user) {
+          toast.success("Signin successfull");
+          setIsLoading(false);
+          navigate('/subscription');
+        }
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
       setIsLoading(false);
+      toast.error("Error during registration");
+      // Handle error appropriately (show error message to user)
     }
   };
 
@@ -473,7 +483,7 @@ const AgencySignup = () => {
                     type="submit"
                     className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
                   >
-                    Register Agency & Continue to Subscription
+                    {isLoading ? <span className="flex gap-2 items-center justify-center">Registering you in... <Loader className="animate-spin"/> </span> : "Register Agency & Continue to Subscription"}
                   </Button>
                 </CardFooter>
               </form>

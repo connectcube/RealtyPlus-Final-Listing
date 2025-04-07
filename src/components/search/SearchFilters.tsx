@@ -36,6 +36,7 @@ interface SearchFiltersProps {
   onSearch?: (filters: SearchFilters) => void;
   className?: string;
   compact?: boolean;
+  type?:string;
 }
 
 interface SearchFilters {
@@ -56,6 +57,7 @@ const SearchFilters = ({
   onSearch,
   className,
   compact = false,
+  type,
 }: SearchFiltersProps = {}) => {
   // Set different price ranges based on listing type
   const priceRanges = {
@@ -74,7 +76,7 @@ const SearchFilters = ({
     bathrooms: "",
     garage: "",
     amenities: [],
-    listingType: "buy",
+    listingType: type,
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -128,7 +130,7 @@ const SearchFilters = ({
 
   return (
     <div className={cn("bg-white p-4 rounded-lg shadow-md", className)}>
-      <Tabs defaultValue="buy" onValueChange={handleListingTypeChange}>
+      <Tabs defaultValue={type} onValueChange={handleListingTypeChange}>
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="buy">Buy</TabsTrigger>
           <TabsTrigger value="rent">Rent</TabsTrigger>

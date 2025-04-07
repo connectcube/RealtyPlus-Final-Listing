@@ -57,18 +57,21 @@ const UserLogin = () => {
       const userType = await signIn(data, updateProfile);
       if (userType === "agent") {
         navigate("/agent/dashboard");
+      } else if (userType === "admin") {
+        navigate("/admin/dashboard");
+      } else if (userType === "agency") {
+        navigate("/agency/dashboard");
       } else {
         navigate("/");
       }
     } catch (error: any) {
-      console.error('Error signing in:', error.message);
+      console.error("Error signing in:", error.message);
       // You might want to show an error message to the user
       // For example, using a toast notification
     } finally {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -156,7 +159,6 @@ const UserLogin = () => {
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
-
               </form>
             </Form>
 

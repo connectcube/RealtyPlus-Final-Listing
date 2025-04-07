@@ -2,7 +2,7 @@ import { auth, fireDataBase } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
-export default async function agentAndAgenciesSignUp(credentials) {
+export default async function agentSignUp(credentials) {
   const {
     companyName,
     firstName,

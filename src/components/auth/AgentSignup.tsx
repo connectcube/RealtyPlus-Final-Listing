@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -31,8 +31,9 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
-import agentAndAgenciesSignUp from "./helpers/agentAndAgencies/signUp";
 import { toast } from "react-toastify";
+import agentSignUp from "./helpers/agentAndAgencies/agentSignUp";
+import { Loader } from "lucide-react";
 
 const formSchema = z
   .object({
@@ -72,6 +73,8 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 const AgentSignup = () => {
+  
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -94,13 +97,15 @@ const AgentSignup = () => {
 
   const onSubmit = async (data: FormValues) => {
     try {
+      setIsLoading(true);
       if (!data.termsAccepted) {
         alert("Kindly accept terms of usage.")
       } else {
-        const user = await agentAndAgenciesSignUp(data);
+        const user = await agentSignUp(data);
         if (user) {
           toast.success("Signin successfull");
-          navigate('/agent/subscription');
+          setIsLoading(false);
+          navigate('/subscription');
         }
       }
     } catch (error) {
@@ -371,7 +376,8 @@ const AgentSignup = () => {
                   type="submit"
                   className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
                 >
-                  Register & Continue to Subscription
+                  {!isLoading ? <span className="flex gap-2 items-center justify-center">Registering you in... <Loader className="animate-spin"/> </span> : "Register & Continue to Subscription"}
+                  
                 </Button>
               </CardFooter>
             </form>

@@ -126,7 +126,7 @@ const BuyProperties = () => {
           </p>
         </div>
 
-        <SearchFilters />
+        <SearchFilters type="buy"/>
 
         <div className="flex justify-between items-center my-6">
           <div className="text-gray-600">

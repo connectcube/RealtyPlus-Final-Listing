@@ -29,6 +29,24 @@ export default async function signIn(credentials, updateProfile) {
     updateProfile(agentData);
     return "agent";
   }
-
+// check agency
+  const agencyDocRef = doc(fireDataBase, "agencies", user.uid);
+  const agencyDocSnap = await getDoc(agencyDocRef);
+  const agencyData = agencyDocSnap.data() as User;
+  if (agencyDocSnap.exists()) {
+    toast.success("Signed in successfully!, taking you to the destination");
+    updateProfile(agencyData);
+    return "agency";
+  }
+  //check admin
+  // check agency
+  const adminsDocRef = doc(fireDataBase, "admins", user.uid);
+  const adminsDocSnap = await getDoc(adminsDocRef);
+  const adminsData = adminsDocSnap.data() as User;
+  if (adminsDocSnap.exists()) {
+    toast.success("Signed in successfully!, taking you to the destination");
+    updateProfile(adminsData);
+    return "admin";
+  }
   throw new Error("User not found in either collection");
 }
