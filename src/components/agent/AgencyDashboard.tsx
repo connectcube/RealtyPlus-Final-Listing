@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Home,
@@ -9,7 +9,6 @@ import {
   List,
   Grid,
   User,
-  Users,
   LogOut,
   Search,
   Filter,
@@ -20,6 +19,8 @@ import {
   Building,
   Mail,
   Phone,
+  Loader2,
+  Globe,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -61,6 +62,22 @@ import {
 import { Label } from "../ui/label";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import { useZustand } from "@/lib/zustand";
+import {
+  arrayUnion,
+  collection,
+  doc,
+  DocumentReference,
+  getDoc,
+  getDocs,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import debounce from "lodash.debounce";
+import { set } from "date-fns";
 
 // Mock agent data
 const mockAgents = [
@@ -152,7 +169,7 @@ const mockProperties = [
     inquiries: 8,
     agent: "Mary Banda",
     image:
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=75",
+      "https://images.unsplash.com/photo-1522708323590-d24fireDataBaseb6b0267?w=600&q=75",
   },
   {
     id: "3",
@@ -181,15 +198,66 @@ const mockProperties = [
       "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=75",
   },
 ];
-
+interface Agency {
+  id: string;
+  address: string;
+  authProvider: string;
+  businessRegistrationNumber: string;
+  businessType: string;
+  city: string;
+  companyDescription: string;
+  companyName: string;
+  createdAt: Timestamp;
+  email: string;
+  firstName: string;
+  isSubcribed: boolean;
+  lastName: string;
+  myAgents: DocumentReference[];
+  numberOfAgents: string;
+  phone: string;
+  position: string;
+  website: string;
+}
 const AgencyDashboard = () => {
+  const { user } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [agentView, setAgentView] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [agents, setAgents] = useState(mockAgents);
+  const [agency, setAgency] = useState<Agency | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAgencyData = async () => {
+      console.log("user", user);
+      setIsLoading(true);
+      try {
+        const agencyRef = doc(fireDataBase, "agencies", user.uid);
+        const agencyDoc = await getDoc(agencyRef);
+
+        if (agencyDoc.exists()) {
+          setAgency({
+            id: agencyDoc.id,
+            ...agencyDoc.data(),
+          } as Agency);
+        } else {
+          setError("Agency not found");
+        }
+      } catch (err) {
+        setError("Failed to fetch agency data");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAgencyData();
+  }, [user?.uid]);
 
   // Filter agents based on search term and status
-  const filteredAgents = mockAgents.filter((agent) => {
+  const filteredAgents = agents.filter((agent) => {
     const matchesSearch =
       agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       agent.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -206,7 +274,7 @@ const AgencyDashboard = () => {
     listingsTotal: 100,
     listingsUsed: 38,
     renewalDate: new Date(
-      Date.now() + 25 * 24 * 60 * 60 * 1000,
+      Date.now() + 25 * 24 * 60 * 60 * 1000
     ).toLocaleDateString(),
     isActive: true,
   };
@@ -239,75 +307,114 @@ const AgencyDashboard = () => {
                   <UserPlus className="mr-2 h-4 w-4" /> Add Agent
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Agent</DialogTitle>
-                  <DialogDescription>
-                    Create a new agent account for your agency.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="Full name"
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Email address"
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">
-                      Phone
-                    </Label>
-                    <Input
-                      id="phone"
-                      placeholder="Phone number"
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="role" className="text-right">
-                      Role
-                    </Label>
-                    <Select>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="senior">Senior Agent</SelectItem>
-                        <SelectItem value="agent">Agent</SelectItem>
-                        <SelectItem value="junior">Junior Agent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="submit"
-                    className="bg-realtyplus hover:bg-realtyplus-dark"
-                  >
-                    Add Agent
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
+              <AddAgentDialog />
             </Dialog>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <Card className="mb-6 col-span-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-bold">
+                Agency Profile
+              </CardTitle>
+              <Button variant="outline" size="sm">
+                <Link to="/agent/profile">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Company Information */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xl font-semibold">
+                      {agency?.companyName}
+                    </h3>
+                    <Badge variant="outline" className="mt-1">
+                      {agency?.businessType.replace(/_/g, " ").toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Company Description</p>
+                    <p className="text-sm">{agency?.companyDescription}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Registration Number</p>
+                    <p className="text-sm">
+                      {agency?.businessRegistrationNumber}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Subscription Status</p>
+                    <Badge
+                      variant={agency?.isSubcribed ? "success" : "secondary"}
+                    >
+                      {agency?.isSubcribed ? "Subscribed" : "Not Subscribed"}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Contact Person</h4>
+                    <p className="text-sm">
+                      {agency?.firstName} {agency?.lastName}
+                    </p>
+                    <p className="text-sm">{agency?.position}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 text-gray-500 mr-2" />
+                      <span className="text-sm">{agency?.email}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                      <span className="text-sm">{agency?.phone}</span>
+                    </div>
+                    {agency?.website && (
+                      <div className="flex items-center">
+                        <Globe className="h-4 w-4 text-gray-500 mr-2" />
+                        <a
+                          href={agency.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {agency.website}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Location</h4>
+                    <div className="flex items-start">
+                      <Building className="h-4 w-4 text-gray-500 mr-2 mt-1" />
+                      <div>
+                        <p className="text-sm">{agency?.address}</p>
+                        <p className="text-sm capitalize">{agency?.city}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Member Since</p>
+                    <p className="text-sm">
+                      {agency?.createdAt?.toDate().toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">
@@ -315,8 +422,9 @@ const AgencyDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{mockAgents.length}</div>
-              <p className="text-xs text-green-500 mt-1">+2 from last month</p>
+              <div className="text-3xl font-bold">
+                {agency?.myAgents?.length || 0}
+              </div>
             </CardContent>
           </Card>
 
@@ -442,7 +550,11 @@ const AgencyDashboard = () => {
                               </div>
                             </div>
                             <Badge
-                              className={`${agent.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+                              className={`${
+                                agent.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
                             >
                               {agent.status === "active"
                                 ? "Active"
@@ -475,7 +587,7 @@ const AgencyDashboard = () => {
                                 <p className="text-xs text-gray-500">Joined</p>
                                 <p className="text-sm">
                                   {new Date(
-                                    agent.joinDate,
+                                    agent.joinDate
                                   ).toLocaleDateString()}
                                 </p>
                               </div>
@@ -564,7 +676,11 @@ const AgencyDashboard = () => {
                               </div>
                               <div className="flex items-start">
                                 <Badge
-                                  className={`${agent.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"} ml-2`}
+                                  className={`${
+                                    agent.status === "active"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  } ml-2`}
                                 >
                                   {agent.status === "active"
                                     ? "Active"
@@ -695,7 +811,11 @@ const AgencyDashboard = () => {
                               </div>
                               <div className="text-right">
                                 <span
-                                  className={`inline-block px-2 py-1 rounded text-xs font-medium ${property.status === "Active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                                  className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                    property.status === "Active"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                  }`}
                                 >
                                   {property.status}
                                 </span>
@@ -931,6 +1051,266 @@ const AgencyDashboard = () => {
       </main>
       <Footer />
     </div>
+  );
+};
+// Assume this hook provides current agency auth info
+
+interface Agent {
+  id: string;
+  lastName: string;
+  firstName: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+}
+const AddAgentDialog = () => {
+  const { user: agency } = useZustand();
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+
+  // Fetch all agents on component mount
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = async (searchQuery: string = "") => {
+    setIsLoading(true);
+    try {
+      const agentsRef = collection(fireDataBase, "agents");
+
+      if (searchQuery) {
+        // Create compound queries for multiple fields
+        const [emailResults, firstNameResults, lastNameResults, phoneResults] =
+          await Promise.all([
+            getDocs(
+              query(
+                agentsRef,
+                where("email", ">=", searchQuery.toLowerCase()),
+                where("email", "<=", searchQuery.toLowerCase() + "\uf8ff")
+              )
+            ),
+            getDocs(
+              query(
+                agentsRef,
+                where("firstName", ">=", searchQuery.toLowerCase()),
+                where("firstName", "<=", searchQuery.toLowerCase() + "\uf8ff")
+              )
+            ),
+            getDocs(
+              query(
+                agentsRef,
+                where("lastName", ">=", searchQuery.toLowerCase()),
+                where("lastName", "<=", searchQuery.toLowerCase() + "\uf8ff")
+              )
+            ),
+            getDocs(
+              query(
+                agentsRef,
+                where("phone", ">=", searchQuery),
+                where("phone", "<=", searchQuery + "\uf8ff")
+              )
+            ),
+          ]);
+
+        // Combine and deduplicate results
+        const agentsMap = new Map();
+
+        [emailResults, firstNameResults, lastNameResults, phoneResults].forEach(
+          (querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              if (!agentsMap.has(doc.id)) {
+                agentsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          }
+        );
+
+        setAgents(Array.from(agentsMap.values()) as Agent[]);
+      } else {
+        // If no search query, fetch all agents
+        const querySnapshot = await getDocs(agentsRef);
+        const agentsData: Agent[] = [];
+        querySnapshot.forEach((doc) => {
+          agentsData.push({ id: doc.id, ...doc.data() } as Agent);
+        });
+        setAgents(agentsData);
+      }
+    } catch (err) {
+      setError("Failed to fetch agents");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Debounced search handler
+  const handleSearch = debounce((searchValue: string) => {
+    setSearchTerm(searchValue);
+    fetchAgents(searchValue);
+  }, 500);
+
+  const handleAddAgent = async () => {
+    if (!selectedAgentId || !selectedRole) {
+      setError("Please select an agent and role");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const agencyRef = doc(fireDataBase, "agencies", agency.uid);
+      const agentRef = doc(fireDataBase, "agents", selectedAgentId);
+      console.log({ selectedAgentId, selectedRole, agentRef });
+      await updateDoc(agencyRef, {
+        myAgents: arrayUnion({
+          ref: agentRef,
+          position: selectedRole,
+        }),
+      });
+
+      // Reset selection
+      setSelectedAgentId(null);
+      setSelectedRole("");
+
+      // Show success notification (you can implement this)
+      // showNotification({ type: 'success', message: 'Agent added successfully' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add agent");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <DialogContent className="sm:max-w-[800px]">
+      <DialogHeader>
+        <DialogTitle>Add New Agent</DialogTitle>
+        <DialogDescription>
+          Select an agent to add to your agency.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4">
+        {/* Search Input */}
+        <div className="flex items-center space-x-2">
+          <Search className="w-4 h-4 text-gray-500" />
+          <Input
+            placeholder="Search by name, email, or phone..."
+            value={searchTerm || ""}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+
+        {/* No Results State */}
+        {!isLoading && agents.length === 0 && (
+          <div className="text-center py-4 text-gray-500">No agents found</div>
+        )}
+
+        {/* Agents List */}
+        {!isLoading && agents.length > 0 && (
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                    Select
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                    Name
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                    Email
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                    Phone
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {agents.map((agent) => (
+                  <tr
+                    key={agent?.id || Math.random()}
+                    className={`hover:bg-gray-50 ${
+                      selectedAgentId === agent?.id ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-2">
+                      <input
+                        type="radio"
+                        name="selectedAgent"
+                        checked={selectedAgentId === agent?.id}
+                        onChange={() => setSelectedAgentId(agent?.id || null)}
+                        className="rounded-full"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      {`${agent?.firstName || ""} ${agent?.lastName || ""}`}
+                    </td>
+                    <td className="px-4 py-2">{agent?.email || "N/A"}</td>
+                    <td className="px-4 py-2">{agent?.phone || "N/A"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Role Selection */}
+        {selectedAgentId && (
+          <div className="flex items-center space-x-4">
+            <Label htmlFor="role">Assign Role:</Label>
+            <Select
+              value={selectedRole || ""}
+              onValueChange={(value) => setSelectedRole(value || "")}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="senior">Senior Agent</SelectItem>
+                <SelectItem value="agent">Agent</SelectItem>
+                <SelectItem value="junior">Junior Agent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && <div className="text-red-500 text-sm">{error}</div>}
+      </div>
+
+      <DialogFooter>
+        <Button
+          type="button"
+          onClick={handleAddAgent}
+          disabled={isLoading || !selectedAgentId || !selectedRole}
+          className="bg-realtyplus hover:bg-realtyplus-dark"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Adding...
+            </>
+          ) : (
+            "Add to Agency"
+          )}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 };
 

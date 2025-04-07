@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   User,
@@ -24,6 +24,7 @@ import { Badge } from "../ui/badge";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, fireDataBase } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { useZustand } from "@/lib/zustand";
 
 interface HeaderProps {
   className?: string;
@@ -33,64 +34,15 @@ interface User {
   email: string | null;
   displayName?: string | null;
   photoURL?: string | null;
-  role?: "user" | "agent" | "admin";
+  role?: "user" | "agent" | "admin" | "agency";
   phoneNumber?: string;
 }
 const Header = ({ className }: HeaderProps = {}) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const [user, setUser] = React.useState<User | null>(null);
-
-  React.useEffect(() => {
-    const checkLogin = () => {
-      // Firebase provides a listener for auth state changes
-      const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-        if (authUser) {
-          try {
-            // Fetch additional user data from Firestore
-            const userDoc = await getDoc(
-              doc(fireDataBase, "users", authUser.uid)
-            );
-
-            if (userDoc.exists()) {
-              // Combine auth user data with Firestore data
-              setUser({
-                uid: authUser.uid,
-                email: authUser.email,
-                displayName: authUser.displayName,
-                photoURL: authUser.photoURL,
-                ...userDoc.data(), // Spread in additional Firestore data
-              });
-            } else {
-              // If no Firestore document exists, just use auth data
-              setUser({
-                uid: authUser.uid,
-                email: authUser.email,
-                displayName: authUser.displayName,
-                photoURL: authUser.photoURL,
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching user data:", error);
-            // Still set basic user data even if Firestore fetch fails
-            setUser({
-              uid: authUser.uid,
-              email: authUser.email,
-            });
-          }
-        } else {
-          // User is signed out
-          setUser(null);
-        }
-      });
-
-      // Cleanup subscription on unmount
-      return () => unsubscribe();
-    };
-
-    checkLogin();
-  }, []);
-
+  const { user, clearUser } = useZustand();
+  const navigate = useNavigate();
+  console.log(user);
   React.useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -105,8 +57,9 @@ const Header = ({ className }: HeaderProps = {}) => {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      clearUser();
       // You can add navigation here if needed
-      // navigate('/');
+      navigate("/");
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -276,24 +229,24 @@ const Header = ({ className }: HeaderProps = {}) => {
                   ) : (
                     <>
                       <DropdownMenuItem>
-                        <div className="flex items-center gap-2 w-full">
+                        <div className="flex flex-col items-center gap-2 w-full">
                           <img
                             src={user.photoURL || "/default-avatar.png"}
                             alt="Profile"
                             className="w-6 h-6 rounded-full"
                           />
-                          <span>{user.displayName || user.email}</span>
+                          <span>
+                            {`${user.firstName} ${user.lastName}` || user.email}
+                          </span>
+
+                          <span className="">{user.email}</span>
                         </div>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link to="/agent/signup" className="w-full">
-                          Register as Agent
-                        </Link>
-                      </DropdownMenuItem>
+
                       <DropdownMenuItem>
                         <button
                           onClick={handleSignOut}
-                          className="w-full text-left text-red-600 hover:text-red-700"
+                          className=" mx-auto  text-left text-red-600 hover:text-red-700"
                         >
                           Sign Out
                         </button>
@@ -302,17 +255,21 @@ const Header = ({ className }: HeaderProps = {}) => {
                   )}
 
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link to="/agent/signup" className="w-full">
-                      Register as Agent
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link to="/agency/signup" className="w-full">
-                      Register as Agency
-                    </Link>
-                  </DropdownMenuItem>
+                  {user === null && (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/agent/signup" className="w-full">
+                          Register as Agent
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <Link to="/agency/signup" className="w-full">
+                          Register as Agency
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <Link
@@ -330,24 +287,29 @@ const Header = ({ className }: HeaderProps = {}) => {
                       <Bell className="mr-2 h-4 w-4" /> Notifications
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/agent/dashboard" className="w-full">
-                      Agent Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/agent/subscription" className="w-full">
-                      Subscription Packages
-                    </Link>
-                  </DropdownMenuItem>
+                  {user !== null && user.userType === "agent" && (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/agent/dashboard" className="w-full">
+                          Agent Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/agent/subscription" className="w-full">
+                          Subscription Packages
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <Button className="bg-realtyplus hover:bg-realtyplus-dark text-white">
-                <Link to="/list-property" className="text-white">
-                  List Property
-                </Link>
-              </Button>
+              {user !== null && user.userType !== "user" && (
+                <Button className="bg-realtyplus hover:bg-realtyplus-dark text-white">
+                  <Link to="/list-property" className="text-white">
+                    List Property
+                  </Link>
+                </Button>
+              )}
             </div>
 
             {/* Mobile Menu Button */}

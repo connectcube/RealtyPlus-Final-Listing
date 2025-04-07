@@ -16,7 +16,7 @@ export default async function signIn(credentials, updateProfile) {
   const userData = userDocSnap.data() as User;
   if (userDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
-    updateProfile(userData);
+    updateProfile({uid:user.uid ,...userData});
     return "user";
   }
 
@@ -26,7 +26,7 @@ export default async function signIn(credentials, updateProfile) {
   const agentData = agentDocSnap.data() as User;
   if (agentDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
-    updateProfile(agentData);
+    updateProfile({uid:user.uid ,...agentData});
     return "agent";
   }
 // check agency
@@ -35,7 +35,7 @@ export default async function signIn(credentials, updateProfile) {
   const agencyData = agencyDocSnap.data() as User;
   if (agencyDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
-    updateProfile(agencyData);
+    updateProfile({uid:user.uid ,...agencyData});
     return "agency";
   }
   //check admin
@@ -45,7 +45,7 @@ export default async function signIn(credentials, updateProfile) {
   const adminsData = adminsDocSnap.data() as User;
   if (adminsDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
-    updateProfile(adminsData);
+    updateProfile({uid:user.uid ,...adminsData});
     return "admin";
   }
   throw new Error("User not found in either collection");

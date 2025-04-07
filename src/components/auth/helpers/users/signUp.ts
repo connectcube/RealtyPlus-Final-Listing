@@ -13,6 +13,7 @@ interface UserCredentials {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  userType: string;
 }
 
 export default async function userSignUp(
@@ -35,6 +36,7 @@ export default async function userSignUp(
           firstName: user.displayName?.split(" ")[0] || "",
           lastName: user.displayName?.split(" ")[1] || "",
           phone: user.phoneNumber || "",
+          userType: "user",
           createdAt: new Date(),
           authProvider: "google",
         });
@@ -72,6 +74,7 @@ export default async function userSignUp(
         firstName,
         lastName,
         phone,
+        userType: "user",
         createdAt: new Date(),
         authProvider: "email",
       });
