@@ -4,22 +4,23 @@ import Home from "./components/home";
 import PropertyDetail from "./components/property/PropertyDetail";
 import AddProperty from "./components/property/AddProperty";
 import routes from "tempo-routes";
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
+import AgencyProfile from "./components/agent/AgencyProfile";
 // Lazy load agent and subscription components
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
 const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
 const SubscriptionPage = lazy(
-  () => import("./components/subscription/SubscriptionPage"),
+  () => import("./components/subscription/SubscriptionPage")
 );
 const SubscriptionSuccess = lazy(
-  () => import("./components/subscription/SubscriptionSuccess"),
+  () => import("./components/subscription/SubscriptionSuccess")
 );
 const AgentDashboard = lazy(() => import("./components/agent/AgentDashboard"));
 const AgencyDashboard = lazy(
-  () => import("./components/agent/AgencyDashboard"),
+  () => import("./components/agent/AgencyDashboard")
 );
 const MortgageCalculator = lazy(
-  () => import("./components/mortgage/MortgageCalculator"),
+  () => import("./components/mortgage/MortgageCalculator")
 );
 const AgentsPage = lazy(() => import("./components/agent/AgentsPage"));
 
@@ -30,7 +31,7 @@ const ForgotPassword = lazy(() => import("./components/auth/ForgotPassword"));
 
 // Property listing pages
 const RentProperties = lazy(
-  () => import("./components/property/RentProperties"),
+  () => import("./components/property/RentProperties")
 );
 const BuyProperties = lazy(() => import("./components/property/BuyProperties"));
 
@@ -44,7 +45,9 @@ const UsersPage = lazy(() => import("./components/admin/UsersPage"));
 const PropertiesPage = lazy(() => import("./components/admin/PropertiesPage"));
 const AdminAgentsPage = lazy(() => import("./components/admin/AgentsPage"));
 const AgenciesPage = lazy(() => import("./components/admin/AgenciesPage"));
-const AdminManagementPage = lazy(() => import("./components/admin/AdminManagementPage"),);
+const AdminManagementPage = lazy(
+  () => import("./components/admin/AdminManagementPage")
+);
 
 function App() {
   return (
@@ -78,7 +81,7 @@ function App() {
           />
           <Route path="/agent/dashboard" element={<AgentDashboard />} />
           <Route path="/agency/dashboard" element={<AgencyDashboard />} />
-
+          <Route path="/agency/profile" element={<AgencyProfile />} />
           {/* Admin routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UsersPage />} />

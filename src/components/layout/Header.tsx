@@ -64,6 +64,17 @@ const Header = ({ className }: HeaderProps = {}) => {
       console.error("Error signing out:", error);
     }
   };
+  const handleRedirections = () => {
+    if (user?.role === "user") {
+      navigate("/user/dashboard");
+    } else if (user?.role === "agent") {
+      navigate("/agent/dashboard");
+    } else if (user?.role === "agency") {
+      navigate("/agency/dashboard");
+    } else {
+      navigate("/login");
+    }
+  };
   return (
     <>
       {/* Top Bar */}
@@ -229,7 +240,10 @@ const Header = ({ className }: HeaderProps = {}) => {
                   ) : (
                     <>
                       <DropdownMenuItem>
-                        <div className="flex flex-col items-center gap-2 w-full">
+                        <div
+                          className="flex flex-col items-center gap-2 w-full"
+                          onClick={handleRedirections}
+                        >
                           <img
                             src={user.photoURL || "/default-avatar.png"}
                             alt="Profile"

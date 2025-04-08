@@ -37,6 +37,7 @@ export default async function agentSignUp(credentials) {
     bio,
     createdAt: new Date(),
     authProvider: "email",
+    role:"agent"
   });
 
   return user;

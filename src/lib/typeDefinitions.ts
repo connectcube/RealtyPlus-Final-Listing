@@ -1,7 +1,7 @@
-import { SubscriptionPackage } from "@/types/Subscription";
+import { DocumentReference, Timestamp } from "firebase/firestore";
 
-// Define the user interface
 export type User = {
+  // Existing user properties
   pfp?: string;
   firstname?: string;
   lastname?: string;
@@ -25,7 +25,23 @@ export type User = {
   views: number;
   experience: string;
   agency: string;
+
+  // Agency-specific properties
+  authProvider: string;
+  businessRegistrationNumber?: string;
+  businessType?: string;
+  companyDescription?: string;
+  createdAt?: Timestamp;
+  isSubcribed?: boolean;
+  myAgents?: myAgents[];
+  numberOfAgents?: string;
+  position?: string;
+  website?: string;
 };
+interface myAgents {
+  position: string;
+  ref: DocumentReference;
+}
 export type Subscription = {
   listingsUsed: number;
   plan: string;

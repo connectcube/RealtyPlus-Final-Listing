@@ -6,7 +6,7 @@ import { User } from "./typeDefinitions";
 interface UserState {
   user: User | null;
   isAuthenticated: boolean;
-  updateProfile: (profile: User) => void;
+  setUser: (profile: User) => void;
   clearUser: () => void;
 }
 
@@ -16,7 +16,7 @@ export const useZustand = create<UserState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      updateProfile: (profile) =>
+      setUser: (profile) =>
         set(() => ({
           user: profile,
           isAuthenticated: true,

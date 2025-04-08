@@ -78,6 +78,7 @@ import {
 import { fireDataBase } from "@/lib/firebase";
 import debounce from "lodash.debounce";
 import { set } from "date-fns";
+import checkAuth from "@/helpers/checkAuth";
 
 // Mock agent data
 const mockAgents = [
@@ -230,6 +231,9 @@ const AgencyDashboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const isUserValid = checkAuth();
+  });
+  useEffect(() => {
     const fetchAgencyData = async () => {
       console.log("user", user);
       setIsLoading(true);
@@ -313,108 +317,6 @@ const AgencyDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card className="mb-6 col-span-4">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-bold">
-                Agency Profile
-              </CardTitle>
-              <Button variant="outline" size="sm">
-                <Link to="/agent/profile">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Company Information */}
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-semibold">
-                      {agency?.companyName}
-                    </h3>
-                    <Badge variant="outline" className="mt-1">
-                      {agency?.businessType.replace(/_/g, " ").toUpperCase()}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Company Description</p>
-                    <p className="text-sm">{agency?.companyDescription}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Registration Number</p>
-                    <p className="text-sm">
-                      {agency?.businessRegistrationNumber}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Subscription Status</p>
-                    <Badge
-                      variant={agency?.isSubcribed ? "success" : "secondary"}
-                    >
-                      {agency?.isSubcribed ? "Subscribed" : "Not Subscribed"}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Contact Person</h4>
-                    <p className="text-sm">
-                      {agency?.firstName} {agency?.lastName}
-                    </p>
-                    <p className="text-sm">{agency?.position}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Mail className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm">{agency?.email}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm">{agency?.phone}</span>
-                    </div>
-                    {agency?.website && (
-                      <div className="flex items-center">
-                        <Globe className="h-4 w-4 text-gray-500 mr-2" />
-                        <a
-                          href={agency.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          {agency.website}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Location</h4>
-                    <div className="flex items-start">
-                      <Building className="h-4 w-4 text-gray-500 mr-2 mt-1" />
-                      <div>
-                        <p className="text-sm">{agency?.address}</p>
-                        <p className="text-sm capitalize">{agency?.city}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Member Since</p>
-                    <p className="text-sm">
-                      {agency?.createdAt?.toDate().toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">
@@ -1014,19 +916,19 @@ const AgencyDashboard = () => {
                     <Plus className="mr-2 h-4 w-4" /> Add New Property
                   </Link>
                   <Link
-                    to="/agent/profile"
+                    to="/agency/profile"
                     className="flex items-center text-gray-700 hover:text-realtyplus py-2"
                   >
                     <Building className="mr-2 h-4 w-4" /> Agency Profile
                   </Link>
                   <Link
-                    to="/agent/settings"
+                    to="/agency/settings"
                     className="flex items-center text-gray-700 hover:text-realtyplus py-2"
                   >
                     <Settings className="mr-2 h-4 w-4" /> Account Settings
                   </Link>
                   <Link
-                    to="/agent/reports"
+                    to="/agency/reports"
                     className="flex items-center text-gray-700 hover:text-realtyplus py-2"
                   >
                     <BarChart2 className="mr-2 h-4 w-4" /> Reports

@@ -36,9 +36,9 @@ export default async function userSignUp(
           firstName: user.displayName?.split(" ")[0] || "",
           lastName: user.displayName?.split(" ")[1] || "",
           phone: user.phoneNumber || "",
-          userType: "user",
           createdAt: new Date(),
           authProvider: "google",
+          role:"user"
         });
 
         return user;
@@ -74,7 +74,7 @@ export default async function userSignUp(
         firstName,
         lastName,
         phone,
-        userType: "user",
+        role:"user",
         createdAt: new Date(),
         authProvider: "email",
       });
