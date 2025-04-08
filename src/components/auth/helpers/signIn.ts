@@ -1,5 +1,5 @@
 import { auth, fireDataBase } from "@/lib/firebase";
-import { User } from "@/lib/typeDefinitions";
+import { USER } from "@/lib/typeDefinitions";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
@@ -13,7 +13,7 @@ export default async function signIn(credentials, updateProfile) {
   // Check users collection
   const userDocRef = doc(fireDataBase, "users", user.uid);
   const userDocSnap = await getDoc(userDocRef);
-  const userData = userDocSnap.data() as User;
+  const userData = userDocSnap.data() as USER;
   if (userDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...userData});
@@ -23,7 +23,7 @@ export default async function signIn(credentials, updateProfile) {
   // Check agents collection
   const agentDocRef = doc(fireDataBase, "agents", user.uid);
   const agentDocSnap = await getDoc(agentDocRef);
-  const agentData = agentDocSnap.data() as User;
+  const agentData = agentDocSnap.data() as USER;
   if (agentDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...agentData});
@@ -32,7 +32,7 @@ export default async function signIn(credentials, updateProfile) {
 // check agency
   const agencyDocRef = doc(fireDataBase, "agencies", user.uid);
   const agencyDocSnap = await getDoc(agencyDocRef);
-  const agencyData = agencyDocSnap.data() as User;
+  const agencyData = agencyDocSnap.data() as USER;
   if (agencyDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...agencyData});
@@ -42,7 +42,7 @@ export default async function signIn(credentials, updateProfile) {
   // check agency
   const adminsDocRef = doc(fireDataBase, "admins", user.uid);
   const adminsDocSnap = await getDoc(adminsDocRef);
-  const adminsData = adminsDocSnap.data() as User;
+  const adminsData = adminsDocSnap.data() as USER;
   if (adminsDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...adminsData});

@@ -38,7 +38,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const UserLogin = () => {
-  const { updateProfile } = useZustand();
+  const { setUser } = useZustand();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ const UserLogin = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       setIsLoading(true);
-      const userType = await signIn(data, updateProfile);
+      const userType = await signIn(data, setUser);
       if (userType === "agent") {
         navigate("/agent/dashboard");
       } else if (userType === "admin") {
