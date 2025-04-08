@@ -40,15 +40,43 @@ export type USER = {
   myListings?: myListings[];
 };
 export type LISTING={
- id: string;
-  postedBy: string;
-  // Add other property fields you expect from Firestore
-  title?: string;
-  price?: number;
-  location?: string; 
+ title: string;
+    description: string;
+    price: string;
+    propertyType: string;
+    listingType: string;
+    bedrooms: string;
+    bathrooms: string;
+    area: string;
+    garageSpaces: string;
+    yearBuilt: string;
+    isFurnished: false,
+    province: string;
+    city: string;
+    neighborhood: string;
+    address: string;
+    features: FEATURES,
+    nearby_places:NearbyPlace[]
+}
+interface FEATURES{
+  swimmingPool: boolean;
+  garden: boolean;
+  securitySystem: boolean;
+  backupPower: boolean;
+  borehole: boolean;
+  airConditioning: boolean;
+  servantsQuarters: boolean;
+  fittedKitchen: boolean;
+  parking: boolean;
+
+}
+export interface NearbyPlace {
+  name: string;
+  distance: string;
+  type: string;
 }
 interface myListings{
-  position: string;
+  posted: string;
   ref: DocumentReference;
 }
 interface myAgents {

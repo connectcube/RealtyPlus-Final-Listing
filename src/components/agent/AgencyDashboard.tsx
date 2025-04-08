@@ -413,7 +413,7 @@ const AgencyDashboard = () => {
                         {filteredAgents.map((agent) => (
                           <Card
                             key={agent.id}
-                            className="overflow-y-auto flex flex-col justify-between items-stretch"
+                            className="overflow-y-auto flex flex-col justify-between items-stretch group"
                           >
                             <CardContent className="p-0 h-full flex flex-col justify-between items-stretch">
                               <div className="bg-black/10 p-4 flex justify-between items-start">
@@ -435,9 +435,9 @@ const AgencyDashboard = () => {
                                 <Badge
                                   className={`${
                                     agent.status === "active"
-                                      ? "bg-green-100 text-green-800"
+                                      ? "bg-green-100 text-green-800 group-hover:bg-green-800 group-hover:text-green-100"
                                       : "bg-gray-100 text-gray-800"
-                                  }`}
+                                  } `}
                                 >
                                   {agent.status === "active"
                                     ? "Active"

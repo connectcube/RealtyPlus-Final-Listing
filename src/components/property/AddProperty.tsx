@@ -27,12 +27,22 @@ import {
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
-interface NearbyPlace {
-  name: string;
-  distance: string;
-  type: string;
-}
+import { NearbyPlace } from "@/lib/typeDefinitions";
+import { useZustand } from "@/lib/zustand";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { ref } from "firebase/storage";
+import { toast } from "react-toastify";
+
 const AddProperty = () => {
+  const { user, setUser } = useZustand();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
@@ -63,28 +73,8 @@ const AddProperty = () => {
       fittedKitchen: false,
       parking: false,
     },
-    nearby_places: [] as NearbyPlace[]
+    nearby_places: [] as NearbyPlace[],
   });
-  const addNearbyPlace = () => {
-    setFormData(prev => ({
-      ...prev,
-      nearby_places: [...prev.nearby_places, { name: '', distance: '', type: '' }]
-    }));
-  };
-  const updateNearbyPlace = (index: number, field: keyof NearbyPlace, value: string) => {
-    setFormData(prev => {
-      const updatedPlaces = [...prev.nearby_places];
-      updatedPlaces[index] = {
-        ...updatedPlaces[index],
-        [field]: value
-      };
-      return {
-        ...prev,
-        nearby_places: updatedPlaces
-      };
-    });
-    console.log("form data", formData)
-  };
   const handleInputChange = (field: string, value: any) => {
     setFormData({
       ...formData,
@@ -107,11 +97,11 @@ const AddProperty = () => {
       const files = e.target.files;
       if (!files) return;
 
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
       const maxSize = 5 * 1024 * 1024; // 5MB
 
       // Convert FileList to array and validate
-      const validFiles = Array.from(files).filter(file => {
+      const validFiles = Array.from(files).filter((file) => {
         if (!allowedTypes.includes(file.type)) {
           alert(`File ${file.name} is not a supported image type`);
           return false;
@@ -125,14 +115,10 @@ const AddProperty = () => {
 
       setUploadedImages([...uploadedImages, ...validFiles]);
     } catch (error) {
-      console.error('Error handling image upload:', error);
-      alert('Error handling image upload');
+      console.error("Error handling image upload:", error);
+      alert("Error handling image upload");
     }
   };
-
-
-
-
 
   const removeImage = (index: number) => {
     const newImages = [...uploadedImages];
@@ -142,8 +128,65 @@ const AddProperty = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  };
+    try {
+      console.log(user);
+      // Get the poster's document reference
+      const posterDocRef = doc(fireDataBase, user.userType, user.uid);
 
+      // First, create a new listing document in the "listings" collection
+      const listingsCollectionRef = collection(fireDataBase, "listings");
+      const newListingRef = await addDoc(listingsCollectionRef, {
+        ...formData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        postedBy: posterDocRef, // Using the document reference instead of just UID
+        userType: user.userType,
+        status: "active",
+        images: [], // This will be updated after uploading images
+      });
+
+      // Upload images to Firebase Storage and get their URLs
+      /* const imageUrls = await Promise.all(
+      //  uploadedImages.map(async (image) => {
+          const storageRef = ref(
+            storage,
+            `listings/${newListingRef.id}/${image.name}`
+          );
+          const uploadResult = await uploadBytes(storageRef, image);
+          return await getDownloadURL(uploadResult.ref);
+        })
+      );
+
+      // Update the listing document with image URLs
+      await updateDoc(newListingRef, {
+        images: imageUrls,
+      });*/
+
+      // Update the user's document with the reference to this listing
+      const posterDocSnap = await getDoc(posterDocRef);
+
+      if (posterDocSnap.exists()) {
+        const existingListings = posterDocSnap.data().listings || [];
+        await updateDoc(posterDocRef, {
+          listings: [
+            ...existingListings,
+            {
+              position: user.userType,
+              ref: newListingRef.id,
+            },
+          ],
+        });
+      }
+
+      // Show success message and redirect
+      toast.success("Property listed successfully!");
+
+      navigate("/dashboard/properties");
+    } catch (error) {
+      console.error("Error submitting property:", error);
+      toast.error("Failed to list property. Please try again.");
+    }
+  };
 
   const nextTab = () => {
     if (activeTab === "basic") setActiveTab("location");
@@ -432,7 +475,7 @@ const AddProperty = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="mt-6">
+                      {/*<div className="mt-6">
                         <div className="mb-4 flex flex-col gap-4">
                           <Label
                             htmlFor="nearbyPlaces"
@@ -441,26 +484,44 @@ const AddProperty = () => {
                             Nearby Places
                           </Label>
 
-                          {/* Display existing places */}
+                          
                           {formData.nearby_places.map((place, index) => (
                             <div key={index} className="flex gap-4 mb-2">
                               <input
                                 type="text"
                                 placeholder="Place name"
                                 value={place.name}
-                                onChange={(e) => updateNearbyPlace(index, 'name', e.target.value)}
+                                onChange={(e) =>
+                                  updateNearbyPlace(
+                                    index,
+                                    "name",
+                                    e.target.value
+                                  )
+                                }
                                 className="border rounded px-2 py-1"
                               />
                               <input
                                 type="text"
                                 placeholder="Distance (km)"
                                 value={place.distance}
-                                onChange={(e) => updateNearbyPlace(index, 'distance', e.target.value)}
+                                onChange={(e) =>
+                                  updateNearbyPlace(
+                                    index,
+                                    "distance",
+                                    e.target.value
+                                  )
+                                }
                                 className="border rounded px-2 py-1"
                               />
                               <select
                                 value={place.type}
-                                onChange={(e) => updateNearbyPlace(index, 'type', e.target.value)}
+                                onChange={(e) =>
+                                  updateNearbyPlace(
+                                    index,
+                                    "type",
+                                    e.target.value
+                                  )
+                                }
                                 className="border rounded px-2 py-1"
                               >
                                 <option value="">Select type</option>
@@ -473,7 +534,7 @@ const AddProperty = () => {
                             </div>
                           ))}
 
-                          {/* Add new place button */}
+                          
                           <button
                             type="button"
                             onClick={addNearbyPlace}
@@ -482,7 +543,7 @@ const AddProperty = () => {
                             Add a place
                           </button>
                         </div>
-                      </div>
+                      </div>*/}
                     </TabsContent>
 
                     {/* Details Tab */}
@@ -543,7 +604,7 @@ const AddProperty = () => {
                               onChange={(e) =>
                                 handleInputChange(
                                   "garageSpaces",
-                                  e.target.value,
+                                  e.target.value
                                 )
                               }
                             />
@@ -624,7 +685,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "swimmingPool",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -638,7 +699,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "garden",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -652,7 +713,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "securitySystem",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -668,7 +729,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "backupPower",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -682,7 +743,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "borehole",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -696,7 +757,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "airConditioning",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -712,7 +773,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "servantsQuarters",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -728,7 +789,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "fittedKitchen",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -744,7 +805,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "parking",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -778,10 +839,11 @@ const AddProperty = () => {
                             />
                             <label
                               htmlFor="images"
-                              className={`flex flex-col items-center justify-center cursor-pointer ${uploadedImages.length >= 10
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                                }`}
+                              className={`flex flex-col items-center justify-center cursor-pointer ${
+                                uploadedImages.length >= 10
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
                             >
                               <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-2" />
                               <span className="text-gray-600 font-medium text-sm sm:text-base">
@@ -800,7 +862,11 @@ const AddProperty = () => {
                               </h4>
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                                 {uploadedImages.map((image, index) => (
-                                  <ImagePreview key={index} file={image} onRemove={removeImage} />
+                                  <ImagePreview
+                                    key={index}
+                                    file={image}
+                                    onRemove={removeImage}
+                                  />
                                 ))}
                               </div>
                             </div>
@@ -886,7 +952,7 @@ const AddProperty = () => {
                         <p className="font-medium">
                           {formData.propertyType
                             ? formData.propertyType.charAt(0).toUpperCase() +
-                            formData.propertyType.slice(1)
+                              formData.propertyType.slice(1)
                             : "Not specified yet"}
                         </p>
                       </div>
@@ -919,8 +985,8 @@ const AddProperty = () => {
                       <div className="space-y-2">
                         <div className="flex items-center">
                           {formData.title &&
-                            formData.price &&
-                            formData.propertyType ? (
+                          formData.price &&
+                          formData.propertyType ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
@@ -929,8 +995,8 @@ const AddProperty = () => {
                         </div>
                         <div className="flex items-center">
                           {formData.province &&
-                            formData.city &&
-                            formData.neighborhood ? (
+                          formData.city &&
+                          formData.neighborhood ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
@@ -939,8 +1005,8 @@ const AddProperty = () => {
                         </div>
                         <div className="flex items-center">
                           {formData.bedrooms &&
-                            formData.bathrooms &&
-                            formData.area ? (
+                          formData.bathrooms &&
+                          formData.area ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
                             <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
@@ -949,7 +1015,7 @@ const AddProperty = () => {
                         </div>
                         <div className="flex items-center">
                           {Object.values(formData.features).some(
-                            (value) => value,
+                            (value) => value
                           ) ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
@@ -978,8 +1044,16 @@ const AddProperty = () => {
     </div>
   );
 };
-const ImagePreview = ({ file, onRemove, key }: { file: File; onRemove: (index: number) => void; key: number }) => {
-  const [preview, setPreview] = useState<string>('');
+const ImagePreview = ({
+  file,
+  onRemove,
+  key,
+}: {
+  file: File;
+  onRemove: (index: number) => void;
+  key: number;
+}) => {
+  const [preview, setPreview] = useState<string>("");
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
