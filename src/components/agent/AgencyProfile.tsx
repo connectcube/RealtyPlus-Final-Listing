@@ -185,9 +185,9 @@ export default function AgencyProfile() {
                       {user?.companyName}
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="text-sm"></Badge>
+                      <Badge className="text-sm"></Badge>
                       {user?.businessType?.replace(/_/g, " ")}
-                      <Badge variant="outline" className="text-sm"></Badge>
+                      <Badge className="text-sm"></Badge>
                       {user?.numberOfAgents} Agents
                     </div>
                     <p className="text-sm text-gray-600">

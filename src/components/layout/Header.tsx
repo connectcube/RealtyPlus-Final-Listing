@@ -21,9 +21,8 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth, fireDataBase } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useZustand } from "@/lib/zustand";
 
 interface HeaderProps {
@@ -34,7 +33,7 @@ interface User {
   email: string | null;
   displayName?: string | null;
   photoURL?: string | null;
-  role?: "user" | "agent" | "admin" | "agency";
+  userType?: "user" | "agent" | "admin" | "agency";
   phoneNumber?: string;
 }
 const Header = ({ className }: HeaderProps = {}) => {
@@ -65,11 +64,11 @@ const Header = ({ className }: HeaderProps = {}) => {
     }
   };
   const handleRedirections = () => {
-    if (user?.role === "user") {
+    if (user?.userType === "user") {
       navigate("/user/dashboard");
-    } else if (user?.role === "agent") {
+    } else if (user?.userType === "agent") {
       navigate("/agent/dashboard");
-    } else if (user?.role === "agency") {
+    } else if (user?.userType === "agency") {
       navigate("/agency/dashboard");
     } else {
       navigate("/login");
@@ -245,7 +244,7 @@ const Header = ({ className }: HeaderProps = {}) => {
                           onClick={handleRedirections}
                         >
                           <img
-                            src={user.photoURL || "/default-avatar.png"}
+                            src={user.pfp || "/default-avatar.png"}
                             alt="Profile"
                             className="w-6 h-6 rounded-full"
                           />

@@ -44,7 +44,7 @@ export default async function agencySignUp(credentials) {
     isSubcribed:false,
     createdAt: new Date(),
     authProvider: "email",
-    role:"agency"
+    userType:"agency"
   });
 
   return user;

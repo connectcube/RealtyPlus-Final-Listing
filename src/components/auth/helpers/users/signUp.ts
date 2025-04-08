@@ -74,7 +74,7 @@ export default async function userSignUp(
         firstName,
         lastName,
         phone,
-        role:"user",
+        userType:"user",
         createdAt: new Date(),
         authProvider: "email",
       });
