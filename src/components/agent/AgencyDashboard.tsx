@@ -20,7 +20,6 @@ import {
   Mail,
   Phone,
   Loader2,
-  Globe,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -70,15 +69,16 @@ import {
   DocumentReference,
   getDoc,
   getDocs,
+  limit,
+  onSnapshot,
   query,
-  Timestamp,
   updateDoc,
   where,
 } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import debounce from "lodash.debounce";
-import { set } from "date-fns";
 import checkAuth from "@/helpers/checkAuth";
+import { USER } from "@/lib/typeDefinitions";
 
 // Mock agent data
 const mockAgents = [
@@ -199,34 +199,13 @@ const mockProperties = [
       "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=75",
   },
 ];
-interface Agency {
-  id: string;
-  address: string;
-  authProvider: string;
-  businessRegistrationNumber: string;
-  businessType: string;
-  city: string;
-  companyDescription: string;
-  companyName: string;
-  createdAt: Timestamp;
-  email: string;
-  firstName: string;
-  isSubcribed: boolean;
-  lastName: string;
-  myAgents: DocumentReference[];
-  numberOfAgents: string;
-  phone: string;
-  position: string;
-  website: string;
-}
 const AgencyDashboard = () => {
-  const { user } = useZustand();
+  const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [agentView, setAgentView] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [agents, setAgents] = useState(mockAgents);
-  const [agency, setAgency] = useState<Agency | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -234,30 +213,34 @@ const AgencyDashboard = () => {
     const isUserValid = checkAuth();
   });
   useEffect(() => {
-    const fetchAgencyData = async () => {
-      console.log("user", user);
-      setIsLoading(true);
-      try {
-        const agencyRef = doc(fireDataBase, "agencies", user.uid);
-        const agencyDoc = await getDoc(agencyRef);
+    if (!user?.uid) return;
 
-        if (agencyDoc.exists()) {
-          setAgency({
-            id: agencyDoc.id,
-            ...agencyDoc.data(),
-          } as Agency);
+    // Set up real-time listener for agency data
+    const agencyRef = doc(fireDataBase, "agencies", user.uid);
+
+    const unsubscribe = onSnapshot(
+      agencyRef,
+      (doc) => {
+        if (doc.exists()) {
+          setUser({
+            uid: doc.id,
+            ...doc.data(),
+          } as USER);
+          setIsLoading(false);
         } else {
           setError("Agency not found");
+          setIsLoading(false);
         }
-      } catch (err) {
+      },
+      (error) => {
         setError("Failed to fetch agency data");
-        console.error(err);
-      } finally {
+        console.error("Error fetching agency data:", error);
         setIsLoading(false);
       }
-    };
+    );
 
-    fetchAgencyData();
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, [user?.uid]);
 
   // Filter agents based on search term and status
@@ -325,7 +308,7 @@ const AgencyDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {agency?.myAgents?.length || 0}
+                {user?.myAgents?.length || 0}
               </div>
             </CardContent>
           </Card>
@@ -337,7 +320,7 @@ const AgencyDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{mockProperties.length}</div>
+              <div className="text-3xl font-bold">{user.myListings.length}</div>
               <p className="text-xs text-gray-500 mt-1">+1 from last month</p>
             </CardContent>
           </Card>
@@ -349,9 +332,7 @@ const AgencyDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
-                {mockAgents.reduce((sum, agent) => sum + agent.sales, 0)}
-              </div>
+              <div className="text-3xl font-bold">{user.totalSales}</div>
               <p className="text-xs text-green-500 mt-1">
                 +15% from last month
               </p>
@@ -969,91 +950,139 @@ interface Agent {
 const AddAgentDialog = () => {
   const { user: agency } = useZustand();
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [addedAgents, setAddedAgents] = useState<
+    { agent: Agent; position: string }[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
 
-  // Fetch all agents on component mount
+  // Only fetch added agents on mount
   useEffect(() => {
-    fetchAgents();
+    fetchAddedAgents();
   }, []);
 
-  const fetchAgents = async (searchQuery: string = "") => {
-    setIsLoading(true);
+  const fetchAddedAgents = async () => {
+    setIsFetching(true);
     try {
-      const agentsRef = collection(fireDataBase, "agents");
+      const agencyRef = doc(fireDataBase, "agencies", agency.uid);
+      const agencyDoc = await getDoc(agencyRef);
 
-      if (searchQuery) {
-        // Create compound queries for multiple fields
-        const [emailResults, firstNameResults, lastNameResults, phoneResults] =
-          await Promise.all([
-            getDocs(
-              query(
-                agentsRef,
-                where("email", ">=", searchQuery.toLowerCase()),
-                where("email", "<=", searchQuery.toLowerCase() + "\uf8ff")
-              )
-            ),
-            getDocs(
-              query(
-                agentsRef,
-                where("firstName", ">=", searchQuery.toLowerCase()),
-                where("firstName", "<=", searchQuery.toLowerCase() + "\uf8ff")
-              )
-            ),
-            getDocs(
-              query(
-                agentsRef,
-                where("lastName", ">=", searchQuery.toLowerCase()),
-                where("lastName", "<=", searchQuery.toLowerCase() + "\uf8ff")
-              )
-            ),
-            getDocs(
-              query(
-                agentsRef,
-                where("phone", ">=", searchQuery),
-                where("phone", "<=", searchQuery + "\uf8ff")
-              )
-            ),
-          ]);
-
-        // Combine and deduplicate results
-        const agentsMap = new Map();
-
-        [emailResults, firstNameResults, lastNameResults, phoneResults].forEach(
-          (querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-              if (!agentsMap.has(doc.id)) {
-                agentsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
+      if (agencyDoc.exists() && agencyDoc.data().myAgents) {
+        const myAgents = agencyDoc.data().myAgents;
+        const agentPromises = myAgents.map(
+          async (agentData: { ref: DocumentReference; position: string }) => {
+            const agentDoc = await getDoc(agentData.ref);
+            if (agentDoc.exists()) {
+              return {
+                agent: { id: agentDoc.id, ...agentDoc.data() } as Agent,
+                position: agentData.position,
+              };
+            }
+            return null;
           }
         );
 
-        setAgents(Array.from(agentsMap.values()) as Agent[]);
-      } else {
-        // If no search query, fetch all agents
-        const querySnapshot = await getDocs(agentsRef);
-        const agentsData: Agent[] = [];
-        querySnapshot.forEach((doc) => {
-          agentsData.push({ id: doc.id, ...doc.data() } as Agent);
-        });
-        setAgents(agentsData);
+        const resolvedAgents = (await Promise.all(agentPromises)).filter(
+          (agent) => agent !== null
+        );
+        setAddedAgents(resolvedAgents);
       }
+    } catch (err) {
+      console.error("Error fetching added agents:", err);
+      setError("Failed to fetch added agents");
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const fetchAgents = async (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      setAgents([]);
+      return;
+    }
+
+    setIsFetching(true);
+    setError(null);
+    try {
+      const agentsRef = collection(fireDataBase, "agents");
+      const searchLower = searchQuery.toLowerCase();
+
+      // Create compound queries for multiple fields
+      const [emailResults, firstNameResults, lastNameResults, phoneResults] =
+        await Promise.all([
+          getDocs(
+            query(
+              agentsRef,
+              where("email", ">=", searchLower),
+              where("email", "<=", searchLower + "\uf8ff"),
+              limit(5) // Limit results per field
+            )
+          ),
+          getDocs(
+            query(
+              agentsRef,
+              where("firstName", ">=", searchLower),
+              where("firstName", "<=", searchLower + "\uf8ff"),
+              limit(5)
+            )
+          ),
+          getDocs(
+            query(
+              agentsRef,
+              where("lastName", ">=", searchLower),
+              where("lastName", "<=", searchLower + "\uf8ff"),
+              limit(5)
+            )
+          ),
+          getDocs(
+            query(
+              agentsRef,
+              where("phone", ">=", searchQuery),
+              where("phone", "<=", searchQuery + "\uf8ff"),
+              limit(5)
+            )
+          ),
+        ]);
+
+      const agentsMap = new Map();
+
+      // Filter out already added agents while combining results
+      [emailResults, firstNameResults, lastNameResults, phoneResults].forEach(
+        (querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            const isAlreadyAdded = addedAgents.some(
+              ({ agent }) => agent.id === doc.id
+            );
+
+            if (!agentsMap.has(doc.id) && !isAlreadyAdded) {
+              agentsMap.set(doc.id, { id: doc.id, ...doc.data() });
+            }
+          });
+        }
+      );
+
+      setAgents(Array.from(agentsMap.values()) as Agent[]);
     } catch (err) {
       setError("Failed to fetch agents");
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsFetching(false);
     }
   };
 
-  // Debounced search handler
   const handleSearch = debounce((searchValue: string) => {
     setSearchTerm(searchValue);
-    fetchAgents(searchValue);
+    if (searchValue.length >= 2) {
+      // Only search if at least 2 characters
+      fetchAgents(searchValue);
+    } else {
+      setAgents([]); // Clear results if search term is too short
+    }
   }, 500);
 
   const handleAddAgent = async () => {
@@ -1064,11 +1093,12 @@ const AddAgentDialog = () => {
 
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const agencyRef = doc(fireDataBase, "agencies", agency.uid);
       const agentRef = doc(fireDataBase, "agents", selectedAgentId);
-      console.log({ selectedAgentId, selectedRole, agentRef });
+
       await updateDoc(agencyRef, {
         myAgents: arrayUnion({
           ref: agentRef,
@@ -1076,12 +1106,18 @@ const AddAgentDialog = () => {
         }),
       });
 
-      // Reset selection
+      // Refresh added agents list
+      await fetchAddedAgents();
+
+      // Reset selection and search
       setSelectedAgentId(null);
       setSelectedRole("");
+      setSearchTerm("");
+      setAgents([]);
+      setSuccess("Agent added successfully!");
 
-      // Show success notification (you can implement this)
-      // showNotification({ type: 'success', message: 'Agent added successfully' });
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add agent");
     } finally {
@@ -1094,36 +1130,65 @@ const AddAgentDialog = () => {
       <DialogHeader>
         <DialogTitle>Add New Agent</DialogTitle>
         <DialogDescription>
-          Select an agent to add to your agency.
+          Search and select an agent to add to your agency.
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
-        {/* Search Input */}
-        <div className="flex items-center space-x-2">
-          <Search className="w-4 h-4 text-gray-500" />
-          <Input
-            placeholder="Search by name, email, or phone..."
-            value={searchTerm || ""}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="flex-1"
-          />
+        {/* Added Agents Section */}
+        <div className="border rounded-lg p-4">
+          <h3 className="font-semibold mb-2">Current Agency Agents</h3>
+          {isFetching ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : addedAgents.length > 0 ? (
+            <div className="space-y-2">
+              {addedAgents.map(({ agent, position }) => (
+                <div
+                  key={agent.id}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                >
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span>{`${agent.firstName} ${agent.lastName}`}</span>
+                    <span className="text-gray-500 text-sm">{agent.email}</span>
+                  </div>
+                  <Badge>{position}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No agents added yet</p>
+          )}
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
+        {/* Search Input */}
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Search className="w-4 h-4 text-gray-500" />
+            <Input
+              placeholder="Search by name, email, or phone... (min. 2 characters)"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+          {searchTerm.length > 0 && searchTerm.length < 2 && (
+            <p className="text-sm text-gray-500">
+              Please enter at least 2 characters to search
+            </p>
+          )}
+        </div>
+
+        {/* Search Results */}
+        {isFetching ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
-        )}
-
-        {/* No Results State */}
-        {!isLoading && agents.length === 0 && (
+        ) : searchTerm.length >= 2 && agents.length === 0 ? (
           <div className="text-center py-4 text-gray-500">No agents found</div>
-        )}
-
-        {/* Agents List */}
-        {!isLoading && agents.length > 0 && (
+        ) : agents.length > 0 ? (
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -1145,40 +1210,37 @@ const AddAgentDialog = () => {
               <tbody className="divide-y divide-gray-200">
                 {agents.map((agent) => (
                   <tr
-                    key={agent?.id || Math.random()}
+                    key={agent.id}
                     className={`hover:bg-gray-50 ${
-                      selectedAgentId === agent?.id ? "bg-blue-50" : ""
+                      selectedAgentId === agent.id ? "bg-blue-50" : ""
                     }`}
                   >
                     <td className="px-4 py-2">
                       <input
                         type="radio"
                         name="selectedAgent"
-                        checked={selectedAgentId === agent?.id}
-                        onChange={() => setSelectedAgentId(agent?.id || null)}
+                        checked={selectedAgentId === agent.id}
+                        onChange={() => setSelectedAgentId(agent.id)}
                         className="rounded-full"
                       />
                     </td>
                     <td className="px-4 py-2">
-                      {`${agent?.firstName || ""} ${agent?.lastName || ""}`}
+                      {`${agent.firstName} ${agent.lastName}`}
                     </td>
-                    <td className="px-4 py-2">{agent?.email || "N/A"}</td>
-                    <td className="px-4 py-2">{agent?.phone || "N/A"}</td>
+                    <td className="px-4 py-2">{agent.email}</td>
+                    <td className="px-4 py-2">{agent.phone}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
+        ) : null}
 
         {/* Role Selection */}
         {selectedAgentId && (
           <div className="flex items-center space-x-4">
             <Label htmlFor="role">Assign Role:</Label>
-            <Select
-              value={selectedRole || ""}
-              onValueChange={(value) => setSelectedRole(value || "")}
-            >
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
@@ -1191,8 +1253,19 @@ const AddAgentDialog = () => {
           </div>
         )}
 
+        {/* Success Message */}
+        {success && (
+          <div className="bg-green-50 text-green-600 p-2 rounded text-sm">
+            {success}
+          </div>
+        )}
+
         {/* Error Message */}
-        {error && <div className="text-red-500 text-sm">{error}</div>}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-2 rounded text-sm">
+            {error}
+          </div>
+        )}
       </div>
 
       <DialogFooter>

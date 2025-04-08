@@ -1,6 +1,6 @@
 import { DocumentReference, Timestamp } from "firebase/firestore";
 
-export type User = {
+export type USER = {
   // Existing user properties
   pfp?: string;
   firstname?: string;
@@ -37,7 +37,12 @@ export type User = {
   numberOfAgents?: string;
   position?: string;
   website?: string;
+  myListings?: myListings[];
 };
+interface myListings{
+  position: string;
+  ref: DocumentReference;
+}
 interface myAgents {
   position: string;
   ref: DocumentReference;
