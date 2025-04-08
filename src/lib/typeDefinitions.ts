@@ -39,6 +39,14 @@ export type USER = {
   website?: string;
   myListings?: myListings[];
 };
+export type LISTING={
+ id: string;
+  postedBy: string;
+  // Add other property fields you expect from Firestore
+  title?: string;
+  price?: number;
+  location?: string; 
+}
 interface myListings{
   position: string;
   ref: DocumentReference;
