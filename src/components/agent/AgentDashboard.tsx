@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Home,
@@ -24,10 +24,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Progress } from "../ui/progress";
 import { useZustand } from "@/lib/zustand";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { formatFirebaseTimestamp } from "@/helpers/firebaseTimestampConversion";
 import { LISTING, USER } from "@/lib/typeDefinitions";
+import { toast } from "react-toastify";
 
 const AgentDashboard = () => {
   const { user, setUser } = useZustand();
@@ -343,153 +344,13 @@ const AgentDashboard = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* Profile Header with Avatar */}
-                      <div className="flex items-center space-x-4">
-                        <div className="relative h-24 w-24">
-                          <img
-                            src={user.pfp || "https://via.placeholder.com/96"}
-                            alt="Profile"
-                            className="rounded-full object-cover w-full h-full"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="absolute bottom-0 right-0"
-                          >
-                            <Camera className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-semibold">{`${user.firstName} ${user.lastName} `}</h2>
-                          <p className="text-gray-500">Real Estate Agent</p>
-                        </div>
-                      </div>
-
-                      {/* Personal Information */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <h3 className="font-semibold text-lg">
-                            Personal Information
-                          </h3>
-                          <div className="space-y-2">
-                            <div>
-                              <label className="text-sm text-gray-500">
-                                Full Name
-                              </label>
-                              <input
-                                type="text"
-                                defaultValue={`${user.firstName} ${user.lastName}`}
-                                className="w-full mt-1 px-3 py-2 border rounded-md"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm text-gray-500">
-                                Email Address
-                              </label>
-                              <input
-                                type="email"
-                                defaultValue={user.email}
-                                className="w-full mt-1 px-3 py-2 border rounded-md"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm text-gray-500">
-                                Phone Number
-                              </label>
-                              <input
-                                type="tel"
-                                defaultValue={user.phone}
-                                className="w-full mt-1 px-3 py-2 border rounded-md"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Professional Information */}
-                        <div className="space-y-4">
-                          <h3 className="font-semibold text-lg">
-                            Professional Information
-                          </h3>
-                          <div className="space-y-2">
-                            <div>
-                              <label className="text-sm text-gray-500">
-                                License Number
-                              </label>
-                              <input
-                                type="text"
-                                defaultValue={user.licenseNumber}
-                                className="w-full mt-1 px-3 py-2 border rounded-md"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm text-gray-500">
-                                Agency
-                              </label>
-                              <input
-                                type="text"
-                                defaultValue={user.agency}
-                                className="w-full mt-1 px-3 py-2 border rounded-md"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm text-gray-500">
-                                Years of Experience
-                              </label>
-                              <input
-                                type="number"
-                                defaultValue={user.experience}
-                                className="w-full mt-1 px-3 py-2 border rounded-md"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bio */}
-                      <div className="space-y-2">
-                        <label className="text-sm text-gray-500">Bio</label>
-                        <textarea
-                          defaultValue={user.bio}
-                          rows={4}
-                          className="w-full px-3 py-2 border rounded-md"
-                          placeholder="Tell potential clients about yourself..."
-                        />
-                      </div>
-
-                      {/* Social Links */}
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Social Links</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm text-gray-500">
-                              LinkedIn
-                            </label>
-                            <input
-                              type="url"
-                              defaultValue={user.social?.linkedin}
-                              className="w-full mt-1 px-3 py-2 border rounded-md"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm text-gray-500">
-                              Twitter
-                            </label>
-                            <input
-                              type="url"
-                              defaultValue={user.social?.twitter}
-                              className="w-full mt-1 px-3 py-2 border rounded-md"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex justify-end space-x-3">
-                        <Button variant="outline">Cancel</Button>
-                        <Button className="bg-realtyplus hover:bg-realtyplus-dark">
-                          Save Changes
-                        </Button>
-                      </div>
+                      <ProfileForm
+                        user={user}
+                        onUpdateSuccess={() => {
+                          // Handle successful update (e.g., show a toast notification)
+                          toast.success("Profile updated successfully");
+                        }}
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -603,6 +464,289 @@ const AgentDashboard = () => {
         </>
       )}
     </div>
+  );
+};
+
+interface ProfileFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  agency: string;
+  bio: string;
+  social: {
+    linkedin: string;
+    twitter: string;
+  };
+}
+
+const ProfileForm = ({ user, onUpdateSuccess }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<ProfileFormData>({
+    firstName: user.firstName || "",
+    lastName: user.lastName || "",
+    email: user.email || "",
+    phone: user.phone || "",
+    licenseNumber: user.licenseNumber || "",
+    agency: user.agency || "",
+    bio: user.bio || "",
+    social: {
+      linkedin: user.social?.linkedin || "",
+      twitter: user.social?.twitter || "",
+    },
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    if (name.includes(".")) {
+      const [parent, child] = name.split(".");
+      setFormData((prev) => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value,
+        },
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const userRef = doc(fireDataBase, "agents", user.uid);
+      const flattenedData = {
+        ...formData,
+        "social.linkedin": formData.social.linkedin,
+        "social.twitter": formData.social.twitter,
+      };
+      delete flattenedData.social;
+      await updateDoc(userRef, flattenedData);
+      onUpdateSuccess?.();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Profile Header with Avatar */}
+      <div className="flex items-center space-x-4">
+        <div className="relative h-24 w-24">
+          <img
+            src={user.pfp || "https://via.placeholder.com/96"}
+            alt="Profile"
+            className="rounded-full object-cover w-full h-full"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="absolute bottom-0 right-0"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold">
+            {`${formData.firstName} ${formData.lastName}`}
+          </h2>
+          <p className="text-gray-500">Real Estate Agent</p>
+        </div>
+      </div>
+
+      {/* Personal Information */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Personal Information</h3>
+          <div className="space-y-2">
+            <div>
+              <label htmlFor="firstName" className="text-sm text-gray-500">
+                First Name
+              </label>
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                className="w-full mt-1 px-3 py-2 border rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="lastName" className="text-sm text-gray-500">
+                Last Name
+              </label>
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                className="w-full mt-1 px-3 py-2 border rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className="text-sm text-gray-500">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full mt-1 px-3 py-2 border rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="phone" className="text-sm text-gray-500">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full mt-1 px-3 py-2 border rounded-md"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Professional Information */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Professional Information</h3>
+          <div className="space-y-2">
+            <div>
+              <label htmlFor="licenseNumber" className="text-sm text-gray-500">
+                License Number
+              </label>
+              <input
+                id="licenseNumber"
+                name="licenseNumber"
+                type="text"
+                value={formData.licenseNumber}
+                onChange={handleInputChange}
+                className="w-full mt-1 px-3 py-2 border rounded-md"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="agency" className="text-sm text-gray-500">
+                Agency
+              </label>
+              <input
+                id="agency"
+                name="agency"
+                type="text"
+                value={formData.agency}
+                onChange={handleInputChange}
+                className="w-full mt-1 px-3 py-2 border rounded-md"
+                required
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bio */}
+      <div className="space-y-2">
+        <label htmlFor="bio" className="text-sm text-gray-500">
+          Bio
+        </label>
+        <textarea
+          id="bio"
+          name="bio"
+          value={formData.bio}
+          onChange={handleInputChange}
+          rows={4}
+          className="w-full px-3 py-2 border rounded-md"
+          placeholder="Tell potential clients about yourself..."
+        />
+      </div>
+
+      {/* Social Links */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">Social Links</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="linkedin" className="text-sm text-gray-500">
+              LinkedIn
+            </label>
+            <input
+              id="linkedin"
+              name="social.linkedin"
+              type="url"
+              value={formData.social.linkedin}
+              onChange={handleInputChange}
+              className="w-full mt-1 px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div>
+            <label htmlFor="twitter" className="text-sm text-gray-500">
+              Twitter
+            </label>
+            <input
+              id="twitter"
+              name="social.twitter"
+              type="url"
+              value={formData.social.twitter}
+              onChange={handleInputChange}
+              className="w-full mt-1 px-3 py-2 border rounded-md"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() =>
+            setFormData({
+              firstName: user.firstName || "",
+              lastName: user.lastName || "",
+              email: user.email || "",
+              phone: user.phone || "",
+              licenseNumber: user.licenseNumber || "",
+              agency: user.agency || "",
+              bio: user.bio || "",
+              social: {
+                linkedin: user.social?.linkedin || "",
+                twitter: user.social?.twitter || "",
+              },
+            })
+          }
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          className="bg-realtyplus hover:bg-realtyplus-dark"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
   );
 };
 
