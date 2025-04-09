@@ -505,7 +505,7 @@ const AgentDashboard = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Plan</span>
-                      <span className="font-medium">
+                      <span className="font-medium capitalize">
                         {user.subscription.plan}
                       </span>
                     </div>

@@ -34,6 +34,7 @@ import {
   collection,
   doc,
   getDoc,
+  increment,
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
@@ -168,18 +169,18 @@ const AddProperty = () => {
       // Update the user's document with the reference to this listing
       const posterDocSnap = await getDoc(posterDocRef);
 
-      if (posterDocSnap.exists()) {
-        const existingListings = posterDocSnap.data().listings || [];
-        await updateDoc(posterDocRef, {
-          myListings: [
-            ...existingListings,
-            {
-              position: user.userType,
-              ref: newListingRef,
-            },
-          ],
-        });
-      }
+      const existingListings = await posterDocSnap.data().myListings;
+
+      await updateDoc(posterDocRef, {
+        myListings: [
+          ...existingListings,
+          {
+            position: user.userType,
+            ref: newListingRef,
+          },
+        ],
+        "subscription.listingsUsed": increment(1),
+      });
 
       toast.success("Property listed successfully!");
       setIsSubmitting(false);
