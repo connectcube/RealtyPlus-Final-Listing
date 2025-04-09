@@ -41,7 +41,6 @@ const Header = ({ className }: HeaderProps = {}) => {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const { user, clearUser } = useZustand();
   const navigate = useNavigate();
-  console.log(user);
   React.useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -64,14 +63,23 @@ const Header = ({ className }: HeaderProps = {}) => {
     }
   };
   const handleRedirections = () => {
-    if (user?.userType === "user") {
+    if (user?.userType === "users") {
       navigate("/user/dashboard");
-    } else if (user?.userType === "agent") {
+    } else if (user?.userType === "agents") {
       navigate("/agent/dashboard");
-    } else if (user?.userType === "agency") {
+    } else if (user?.userType === "agencies") {
       navigate("/agency/dashboard");
     } else {
       navigate("/login");
+    }
+  };
+  const getUserType = () => {
+    if (user?.userType === "agents") {
+      return "an Agent";
+    } else if (user?.userType === "agencies") {
+      return "an Agency";
+    } else {
+      return "a User";
     }
   };
   return (
@@ -220,6 +228,9 @@ const Header = ({ className }: HeaderProps = {}) => {
                     <p className="text-sm font-medium">
                       Welcome to RealtyZambia
                     </p>
+                    <p className="text-sm font-medium">
+                      {user && `You are ${getUserType()}`}
+                    </p>
                   </div>
                   <DropdownMenuSeparator />
 
@@ -252,7 +263,9 @@ const Header = ({ className }: HeaderProps = {}) => {
                             {`${user.firstName} ${user.lastName}` || user.email}
                           </span>
 
-                          <span className="">{user.email}</span>
+                          <span className="text-center overflow-hidden">
+                            {user.email}
+                          </span>
                         </div>
                       </DropdownMenuItem>
 

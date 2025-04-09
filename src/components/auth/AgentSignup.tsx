@@ -73,7 +73,6 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 const AgentSignup = () => {
-  
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const form = useForm<FormValues>({
@@ -99,17 +98,17 @@ const AgentSignup = () => {
     try {
       setIsLoading(true);
       if (!data.termsAccepted) {
-        alert("Kindly accept terms of usage.")
+        alert("Kindly accept terms of usage.");
       } else {
         const user = await agentSignUp(data);
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
-          navigate('/subscription');
+          navigate("/subscription");
         }
       }
     } catch (error) {
-      console.error('Error during registration:', error);
+      console.error("Error during registration:", error);
       toast.error("Error during registration");
       // Handle error appropriately (show error message to user)
     }
@@ -376,8 +375,13 @@ const AgentSignup = () => {
                   type="submit"
                   className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
                 >
-                  {!isLoading ? <span className="flex gap-2 items-center justify-center">Registering you in... <Loader className="animate-spin"/> </span> : "Register & Continue to Subscription"}
-                  
+                  {isLoading ? (
+                    <span className="flex gap-2 items-center justify-center">
+                      Registering you in... <Loader className="animate-spin" />{" "}
+                    </span>
+                  ) : (
+                    "Register & Continue to Subscription"
+                  )}
                 </Button>
               </CardFooter>
             </form>

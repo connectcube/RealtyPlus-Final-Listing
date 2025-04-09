@@ -116,7 +116,7 @@ const AgentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{user.listings.length}</div>
+            <div className="text-3xl font-bold">{user.myListings.length}</div>
             {/*<p className="text-xs text-gray-500 mt-1">+2 from last month</p>*/}
           </CardContent>
         </Card>

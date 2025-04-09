@@ -44,7 +44,14 @@ export default async function agencySignUp(credentials) {
     isSubcribed:false,
     createdAt: new Date(),
     authProvider: "email",
-    userType:"agency"
+    userType:"agencies",
+    myListings: [],
+    subscription: {
+      listingsUsed: 0,
+      plan: "free",
+      status: "active",
+      listingsTotal: 0,
+    },
   });
 
   return user;

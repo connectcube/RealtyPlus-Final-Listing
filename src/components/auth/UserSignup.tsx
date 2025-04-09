@@ -82,7 +82,7 @@ const UserSignup = () => {
         email: data.email,
         phone: data.phone,
         password: data.password,
-        userType: "user",
+        userType: "users",
       };
 
       // Call the userSignUp helper function with email signup type
@@ -111,7 +111,7 @@ const UserSignup = () => {
         email: "",
         phone: "",
         password: "",
-        userType: "user",
+        userType: "users",
       },
       "google"
     );

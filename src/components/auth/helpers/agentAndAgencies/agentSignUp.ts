@@ -37,7 +37,15 @@ export default async function agentSignUp(credentials) {
     bio,
     createdAt: new Date(),
     authProvider: "email",
-    userType:"agent"
+    userType:"agents",
+    myListings: [],
+    myAgents: [],
+    subscription: {
+      listingsUsed: 0,
+      plan: "free",
+      status: "active",
+      listingsTotal: 0,
+    },
   });
 
   return user;

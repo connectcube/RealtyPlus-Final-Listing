@@ -17,7 +17,7 @@ export default async function signIn(credentials, updateProfile) {
   if (userDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...userData});
-    return "user";
+    return "users";
   }
 
   // Check agents collection
@@ -27,7 +27,7 @@ export default async function signIn(credentials, updateProfile) {
   if (agentDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...agentData});
-    return "agent";
+    return "agents";
   }
 // check agency
   const agencyDocRef = doc(fireDataBase, "agencies", user.uid);
@@ -36,7 +36,7 @@ export default async function signIn(credentials, updateProfile) {
   if (agencyDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...agencyData});
-    return "agency";
+    return "agencies";
   }
   //check admin
   // check agency
@@ -46,7 +46,7 @@ export default async function signIn(credentials, updateProfile) {
   if (adminsDocSnap.exists()) {
     toast.success("Signed in successfully!, taking you to the destination");
     updateProfile({uid:user.uid ,...adminsData});
-    return "admin";
+    return "admins";
   }
   throw new Error("User not found in either collection");
 }

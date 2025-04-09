@@ -76,7 +76,7 @@ export interface NearbyPlace {
   type: string;
 }
 interface myListings{
-  posted: string;
+  position: string;
   ref: DocumentReference;
 }
 interface myAgents {
