@@ -85,7 +85,7 @@ const AgentDashboard = () => {
     listingsTotal: user.subscription.listingsTotal,
     listingsUsed: user.subscription.listingsUsed,
     renewalDate: new Date(
-      Date.now() + 25 * 24 * 60 * 60 * 1000,
+      Date.now() + 25 * 24 * 60 * 60 * 1000
     ).toLocaleDateString(),
     isActive: user.subscription.status,
   };
@@ -117,7 +117,7 @@ const AgentDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{user.listings.length}</div>
-            <p className="text-xs text-gray-500 mt-1">+2 from last month</p>
+            {/*<p className="text-xs text-gray-500 mt-1">+2 from last month</p>*/}
           </CardContent>
         </Card>
 
@@ -128,10 +128,8 @@ const AgentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {user.views}
-            </div>
-            <p className="text-xs text-green-500 mt-1">+15% from last month</p>
+            <div className="text-3xl font-bold">{user.views}</div>
+            {/*<p className="text-xs text-green-500 mt-1">+15% from last month</p>*/}
           </CardContent>
         </Card>
 
@@ -142,9 +140,7 @@ const AgentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {user.enquiries || 5}
-            </div>
+            <div className="text-3xl font-bold">{user.enquiries || 5}</div>
             <p className="text-xs text-green-500 mt-1">+8% from last month</p>
           </CardContent>
         </Card>
@@ -243,7 +239,11 @@ const AgentDashboard = () => {
                             </div>
                             <div className="text-right">
                               <span
-                                className={`inline-block px-2 py-1 rounded text-xs font-medium ${property.status === "Active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                                className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                  property.status === "Active"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
                               >
                                 {property.status}
                               </span>
@@ -339,10 +339,14 @@ const AgentDashboard = () => {
                   {/* Personal Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Personal Information</h3>
+                      <h3 className="font-semibold text-lg">
+                        Personal Information
+                      </h3>
                       <div className="space-y-2">
                         <div>
-                          <label className="text-sm text-gray-500">Full Name</label>
+                          <label className="text-sm text-gray-500">
+                            Full Name
+                          </label>
                           <input
                             type="text"
                             defaultValue={`${user.firstName} ${user.lastName}`}
@@ -350,7 +354,9 @@ const AgentDashboard = () => {
                           />
                         </div>
                         <div>
-                          <label className="text-sm text-gray-500">Email Address</label>
+                          <label className="text-sm text-gray-500">
+                            Email Address
+                          </label>
                           <input
                             type="email"
                             defaultValue={user.email}
@@ -358,7 +364,9 @@ const AgentDashboard = () => {
                           />
                         </div>
                         <div>
-                          <label className="text-sm text-gray-500">Phone Number</label>
+                          <label className="text-sm text-gray-500">
+                            Phone Number
+                          </label>
                           <input
                             type="tel"
                             defaultValue={user.phone}
@@ -370,10 +378,14 @@ const AgentDashboard = () => {
 
                     {/* Professional Information */}
                     <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Professional Information</h3>
+                      <h3 className="font-semibold text-lg">
+                        Professional Information
+                      </h3>
                       <div className="space-y-2">
                         <div>
-                          <label className="text-sm text-gray-500">License Number</label>
+                          <label className="text-sm text-gray-500">
+                            License Number
+                          </label>
                           <input
                             type="text"
                             defaultValue={user.licenseNumber}
@@ -381,7 +393,9 @@ const AgentDashboard = () => {
                           />
                         </div>
                         <div>
-                          <label className="text-sm text-gray-500">Agency</label>
+                          <label className="text-sm text-gray-500">
+                            Agency
+                          </label>
                           <input
                             type="text"
                             defaultValue={user.agency}
@@ -389,7 +403,9 @@ const AgentDashboard = () => {
                           />
                         </div>
                         <div>
-                          <label className="text-sm text-gray-500">Years of Experience</label>
+                          <label className="text-sm text-gray-500">
+                            Years of Experience
+                          </label>
                           <input
                             type="number"
                             defaultValue={user.experience}
@@ -416,7 +432,9 @@ const AgentDashboard = () => {
                     <h3 className="font-semibold text-lg">Social Links</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-gray-500">LinkedIn</label>
+                        <label className="text-sm text-gray-500">
+                          LinkedIn
+                        </label>
                         <input
                           type="url"
                           defaultValue={user.social?.linkedin}
@@ -444,7 +462,6 @@ const AgentDashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-
           </Tabs>
         </div>
 
