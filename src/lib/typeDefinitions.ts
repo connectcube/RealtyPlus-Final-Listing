@@ -86,6 +86,8 @@ interface myAgents {
 export type Subscription = {
   listingsUsed: number;
   plan: string;
-  status: string;
+  isActive: boolean;
   listingsTotal: number;
+  agentsUsed:number;
+  agentsTotal:number;
 };

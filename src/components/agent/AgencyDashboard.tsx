@@ -88,8 +88,6 @@ const AgencyDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [agents, setAgents] = useState([]);
-
-  // First, add these states at the beginning of the AgencyDashboard component
   const [properties, setProperties] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -234,7 +232,7 @@ const AgencyDashboard = () => {
 
   // Mock subscription data
   const subscription = {
-    plan: "Elite Package",
+    plan: user?.subscription.plan || "",
     agentsTotal: 10,
     agentsUsed: 5,
     listingsTotal: 100,
@@ -961,7 +959,6 @@ const AgencyDashboard = () => {
     </div>
   );
 };
-// Assume this hook provides current agency auth info
 
 interface Agent {
   id: string;

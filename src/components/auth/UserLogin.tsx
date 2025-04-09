@@ -55,12 +55,16 @@ const UserLogin = () => {
     try {
       setIsLoading(true);
       const userType = await signIn(data, setUser);
-      if (userType === "agents") {
-        navigate("/agent/dashboard");
-      } else if (userType === "admins") {
+      if (typeof userType === "object" && userType.role === "agents") {
+        userType.isActive
+          ? navigate("/agent/dashboard")
+          : navigate("/subscription");
+      } else if (typeof userType === "object" && userType.role === "admins") {
         navigate("/admin/dashboard");
-      } else if (userType === "agencies") {
-        navigate("/agency/dashboard");
+      } else if (typeof userType === "object" && userType.role === "agencies") {
+        userType.isActive
+          ? navigate("/agency/dashboard")
+          : navigate("/subscription");
       } else {
         navigate("/");
       }

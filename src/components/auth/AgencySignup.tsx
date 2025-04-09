@@ -43,11 +43,9 @@ const formSchema = z
       .string()
       .min(2, { message: "Company name must be at least 2 characters." }),
     businessType: z.enum(["real_estate_agency", "property_developer", "other"]),
-    businessRegistrationNumber: z
-      .string()
-      .min(5, {
-        message: "Registration number must be at least 5 characters.",
-      }),
+    businessRegistrationNumber: z.string().min(5, {
+      message: "Registration number must be at least 5 characters.",
+    }),
     firstName: z
       .string()
       .min(2, { message: "First name must be at least 2 characters." }),
@@ -109,21 +107,21 @@ const AgencySignup = () => {
     },
   });
   const onSubmit = async (data: FormValues) => {
-   try {
+    try {
       if (!data.termsAccepted) {
-        alert("Kindly accept terms of usage.")
+        alert("Kindly accept terms of usage.");
       } else {
-        setIsLoading(true)
-        console.log("Data from component",data)
+        setIsLoading(true);
+        console.log("Data from component", data);
         const user = await agencySignUp(data);
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
-          navigate('/subscription');
+          navigate("/login");
         }
       }
     } catch (error) {
-      console.error('Error during registration:', error);
+      console.error("Error during registration:", error);
       setIsLoading(false);
       toast.error("Error during registration");
       // Handle error appropriately (show error message to user)
@@ -483,7 +481,14 @@ const AgencySignup = () => {
                     type="submit"
                     className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
                   >
-                    {isLoading ? <span className="flex gap-2 items-center justify-center">Registering you in... <Loader className="animate-spin"/> </span> : "Register Agency & Continue to Subscription"}
+                    {isLoading ? (
+                      <span className="flex gap-2 items-center justify-center">
+                        Registering you in...{" "}
+                        <Loader className="animate-spin" />{" "}
+                      </span>
+                    ) : (
+                      "Register Agency & Continue to Subscription"
+                    )}
                   </Button>
                 </CardFooter>
               </form>

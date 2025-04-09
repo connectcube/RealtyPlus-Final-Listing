@@ -104,7 +104,7 @@ const AgentSignup = () => {
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
-          navigate("/subscription");
+          navigate("/login");
         }
       }
     } catch (error) {

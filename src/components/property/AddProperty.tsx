@@ -175,7 +175,7 @@ const AddProperty = () => {
             ...existingListings,
             {
               position: user.userType,
-              ref: newListingRef.id,
+              ref: newListingRef,
             },
           ],
         });
