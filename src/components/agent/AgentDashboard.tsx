@@ -24,66 +24,17 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Progress } from "../ui/progress";
 import { useZustand } from "@/lib/zustand";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { formatFirebaseTimestamp } from "@/helpers/firebaseTimestampConversion";
-
-const mockProperties = [
-  {
-    id: "1",
-    title: "Modern 3 Bedroom House in Kabulonga",
-    price: "K2,500,000",
-    location: "Kabulonga, Lusaka",
-    type: "For Sale",
-    status: "Active",
-    views: 245,
-    inquiries: 12,
-    image:
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=75",
-  },
-  {
-    id: "2",
-    title: "Luxury Apartment in Sunningdale",
-    price: "K15,000",
-    location: "Sunningdale, Lusaka",
-    type: "For Rent",
-    status: "Active",
-    views: 187,
-    inquiries: 8,
-    image:
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=75",
-  },
-  {
-    id: "3",
-    title: "Commercial Space in Cairo Road",
-    price: "K25,000",
-    location: "Cairo Road, Lusaka",
-    type: "For Rent",
-    status: "Pending",
-    views: 56,
-    inquiries: 2,
-    image:
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600&q=75",
-  },
-  {
-    id: "4",
-    title: "4 Bedroom House in Ibex Hill",
-    price: "K3,200,000",
-    location: "Ibex Hill, Lusaka",
-    type: "For Sale",
-    status: "Active",
-    views: 132,
-    inquiries: 5,
-    image:
-      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=75",
-  },
-];
+import { LISTING, USER } from "@/lib/typeDefinitions";
 
 const AgentDashboard = () => {
   const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [properties, setProperties] = useState([]);
   const LoadingState = ({ message = "Loading dashboard data..." }) => (
     <div className="flex items-center justify-center h-64">
       <div className="flex flex-col items-center space-y-4">
@@ -108,27 +59,52 @@ const AgentDashboard = () => {
       </div>
     </div>
   );
-  console.log(user);
+  const fetchPropertyData = async (propertyRefs) => {
+    try {
+      const propertyPromises = propertyRefs.map(async ({ ref, postedBy }) => {
+        const propertyDoc = await getDoc(ref);
+        if (propertyDoc.exists()) {
+          return {
+            uid: propertyDoc.id,
+            ...(propertyDoc.data() as LISTING),
+            postedBy,
+          } as LISTING;
+        }
+        return null;
+      });
+
+      const resolvedProperties = (await Promise.all(propertyPromises)).filter(
+        (property) => property !== null
+      );
+      setProperties(resolvedProperties);
+    } catch (error) {
+      console.error("Error fetching property data:", error);
+      setFetchError("Failed to load properties");
+    }
+  };
   useEffect(() => {
     if (!user?.uid) return;
 
-    const unsubscribeDoc = onSnapshot(
-      doc(fireDataBase, "agents", user.uid),
-      (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const userData = docSnapshot.data();
-          setIsLoadingData(false);
+    const agencyRef = doc(fireDataBase, "agents", user.uid);
+    const unsubscribe = onSnapshot(agencyRef, async (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+
+        // Update user data
+        setUser({
+          uid: doc.id,
+          ...data,
+        } as USER);
+        if (data.myListings) {
+          await fetchPropertyData(data.myListings);
         }
-      },
-      (error) => {
-        console.error("Error listening to document:", error);
-        setFetchError(error.message);
+
         setIsLoadingData(false);
       }
-    );
+    });
 
     return () => {
-      unsubscribeDoc();
+      unsubscribe();
     };
   }, [user?.uid]);
 
@@ -232,7 +208,7 @@ const AgentDashboard = () => {
 
                   {view === "grid" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {mockProperties.map((property) => (
+                      {properties.map((property) => (
                         <Card key={property.id} className="overflow-hidden">
                           <div className="relative h-48">
                             <img
@@ -267,7 +243,7 @@ const AgentDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {mockProperties.map((property) => (
+                      {properties.map((property) => (
                         <Card key={property.id} className="overflow-hidden">
                           <div className="flex flex-col sm:flex-row">
                             <div className="sm:w-48 h-32 sm:h-auto">
@@ -540,9 +516,10 @@ const AgentDashboard = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Next Billing</span>
                       <span className="font-medium">
-                        {formatFirebaseTimestamp(
-                          user.subscription?.renewalDate
-                        )}
+                        {user.subscription &&
+                          formatFirebaseTimestamp(
+                            user.subscription.renewalDate
+                          )}
                       </span>
                     </div>
                   </div>

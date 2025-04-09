@@ -45,6 +45,7 @@ export default async function agentSignUp(credentials) {
       plan: "free",
       isActive: true,
       listingsTotal: 0,
+      renewalDate:serverTimestamp()
     },
   });
 
