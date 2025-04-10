@@ -436,13 +436,8 @@ const AgentDashboard = () => {
                       to="/agent/profile"
                       className="flex items-center text-gray-700 hover:text-realtyplus py-2"
                     >
-                      <User className="mr-2 h-4 w-4" /> Edit Profile
-                    </Link>
-                    <Link
-                      to="/agent/settings"
-                      className="flex items-center text-gray-700 hover:text-realtyplus py-2"
-                    >
-                      <Settings className="mr-2 h-4 w-4" /> Account Settings
+                      <User className="mr-2 h-4 w-4" /> Edit Profile and
+                      Settings
                     </Link>
                     <Link
                       to="/"

@@ -24,7 +24,7 @@ export type USER = {
   enquiries: number;
   views: number;
   experience: string;
-  agency: string;
+  agency: DocumentReference;
 
   // Agency-specific properties
   authProvider: string;
