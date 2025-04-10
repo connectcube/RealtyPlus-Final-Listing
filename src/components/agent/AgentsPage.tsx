@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, MapPin, Mail, Phone, Filter } from "lucide-react";
 import { Button } from "../ui/button";
@@ -21,6 +21,17 @@ import {
 import { Badge } from "../ui/badge";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  QueryDocumentSnapshot,
+  startAfter,
+} from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { USER } from "@/lib/typeDefinitions";
 
 // Mock agent data
 const mockAgents = [
@@ -127,41 +138,136 @@ const mockAgents = [
 ];
 
 const AgentsPage = () => {
+  const [agents, setAgents] = useState<USER[]>([]);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
 
+  const AGENTS_PER_PAGE = 6;
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const agentsRef = collection(fireDataBase, "agents");
+        const snapshot = await getDocs(agentsRef);
+        const agentData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        console.log("Fetched agents:", agentData); // Debug log
+        setAgents(agentData as USER[]);
+      } catch (error) {
+        console.error("Error fetching agents:", error);
+      }
+    };
+
+    fetchAgents();
+  }, []);
+
+  // Function to fetch next page of agents
+  const fetchMoreAgents = async () => {
+    if (!lastVisible || !hasMore) return;
+
+    try {
+      setLoading(true);
+      const agentsQuery = query(
+        collection(fireDataBase, "agents"),
+        orderBy("name"),
+        startAfter(lastVisible),
+        limit(AGENTS_PER_PAGE)
+      );
+
+      const snapshot = await getDocs(agentsQuery);
+
+      if (snapshot.empty) {
+        setHasMore(false);
+        return;
+      }
+
+      const newAgents = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as USER[];
+
+      setAgents((prevAgents) => [...prevAgents, ...newAgents]);
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === AGENTS_PER_PAGE);
+      // Add this where you're processing agents data
+      const debugAgentInfo = (agent: USER) => {
+        console.group(`Agent: ${agent.firstName} ${agent.lastName}`);
+        console.log({
+          basicInfo: {
+            name: `${agent.firstName} ${agent.lastName}`,
+            email: agent.email,
+            phone: agent.phone,
+            company: agent.companyName,
+            type: agent.agentType,
+          },
+          location: {
+            address: agent.address,
+            city: agent.city,
+          },
+          business: {
+            licenseNumber: agent.licenseNumber,
+            registrationNumber: agent.businessRegistrationNumber,
+            businessType: agent.businessType,
+          },
+          subscription: {
+            plan: agent.subscription?.plan,
+            isActive: agent.subscription?.isActive,
+            listings: {
+              total: agent.subscription?.listingsTotal,
+              used: agent.subscription?.listingsUsed,
+              remaining:
+                agent.subscription?.listingsTotal -
+                agent.subscription?.listingsUsed,
+            },
+          },
+          listings: {
+            count: agent.myListings?.length || 0,
+            references: agent.myListings?.map((listing) => listing.ref.path),
+          },
+          social: {
+            website: agent.website,
+            linkedin: agent.social?.linkedin,
+            twitter: agent.social?.twitter,
+          },
+          metrics: {
+            views: agent.views,
+            createdAt: agent.createdAt,
+          },
+        });
+        console.groupEnd();
+      };
+      // Usage in your filtering function:
+      filteredAgents.forEach(debugAgentInfo);
+    } catch (error) {
+      console.error("Error fetching more agents:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter agents based on search term and filters
+  const filteredAgents = agents.filter(
+    (agent) =>
+      `${agent.firstName} ${agent.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      agent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (agent.companyName || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Extract unique locations for filter
   const locations = [
     "all",
-    ...new Set(mockAgents.map((agent) => agent.location.split(",")[0].trim())),
+    ...new Set(agents.map((agent) => agent.city || "").filter(Boolean)),
   ];
-
-  // Extract unique specialties for filter
-  const specialties = [
-    "all",
-    ...new Set(mockAgents.flatMap((agent) => agent.specialties)),
-  ];
-
-  // Filter agents based on search term and filters
-  const filteredAgents = mockAgents.filter((agent) => {
-    const matchesSearch =
-      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.agency.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.bio.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesLocation =
-      locationFilter === "all" ||
-      agent.location.toLowerCase().includes(locationFilter.toLowerCase());
-
-    const matchesSpecialty =
-      specialtyFilter === "all" ||
-      agent.specialties.some((specialty) =>
-        specialty.toLowerCase().includes(specialtyFilter.toLowerCase()),
-      );
-
-    return matchesSearch && matchesLocation && matchesSpecialty;
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -210,13 +316,13 @@ const AgentsPage = () => {
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by specialty" />
               </SelectTrigger>
-              <SelectContent>
-                {specialties.map((specialty) => (
+              {/*<SelectContent>
+                {agent.specialties.map((specialty) => (
                   <SelectItem key={specialty} value={specialty}>
                     {specialty === "all" ? "All Specialties" : specialty}
                   </SelectItem>
                 ))}
-              </SelectContent>
+              </SelectContent>*/}
             </Select>
           </div>
         </div>
@@ -229,29 +335,31 @@ const AgentsPage = () => {
             >
               <div className="bg-realtyplus/10 p-6 flex flex-col items-center text-center">
                 <img
-                  src={agent.photo}
-                  alt={agent.name}
+                  src={agent.pfp}
+                  alt={`${agent.firstName} ${agent.lastName}`}
                   className="w-24 h-24 rounded-full mb-4"
                 />
                 <h3 className="text-xl font-bold text-gray-900">
-                  {agent.name}
+                  {`${agent.firstName} ${agent.lastName}`}
                 </h3>
-                <p className="text-gray-600">{agent.role}</p>
-                <p className="text-sm text-gray-500">{agent.agency}</p>
+                <p className="text-gray-600 capitalize">
+                  Type: {agent.agentType}
+                </p>
                 <div className="flex items-center mt-2">
                   {[...Array(5)].map((_, i) => (
                     <svg
                       key={i}
-                      className={`w-4 h-4 ${i < Math.floor(agent.rating) ? "text-yellow-400" : "text-gray-300"}`}
+                      className={`w-4 h-4 ${
+                        i < Math.floor(agent.rating)
+                          ? "text-yellow-400"
+                          : "text-gray-300"
+                      }`}
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
-                  <span className="text-sm text-gray-600 ml-1">
-                    {agent.rating} ({agent.reviews} reviews)
-                  </span>
                 </div>
               </div>
               <CardContent className="p-6">
@@ -260,7 +368,7 @@ const AgentsPage = () => {
                 <div className="space-y-3">
                   <div className="flex items-start">
                     <MapPin className="h-5 w-5 text-realtyplus mr-2 mt-0.5" />
-                    <span className="text-gray-700">{agent.location}</span>
+                    <span className="text-gray-700">{agent.address}</span>
                   </div>
                   <div className="flex items-start">
                     <Mail className="h-5 w-5 text-realtyplus mr-2 mt-0.5" />
@@ -277,15 +385,16 @@ const AgentsPage = () => {
                     Specialties:
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {agent.specialties.map((specialty, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="bg-gray-100"
-                      >
-                        {specialty}
-                      </Badge>
-                    ))}
+                    {agent.specialties &&
+                      agent.specialties.map((specialty, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="bg-gray-100"
+                        >
+                          {specialty}
+                        </Badge>
+                      ))}
                   </div>
                 </div>
 
@@ -294,11 +403,12 @@ const AgentsPage = () => {
                     Languages:
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {agent.languages.map((language, index) => (
-                      <Badge key={index} variant="outline">
-                        {language}
-                      </Badge>
-                    ))}
+                    {agent.languages &&
+                      agent.languages.map((language, index) => (
+                        <Badge key={index} variant="outline">
+                          {language}
+                        </Badge>
+                      ))}
                   </div>
                 </div>
               </CardContent>
@@ -306,7 +416,7 @@ const AgentsPage = () => {
                 <div className="w-full flex flex-col sm:flex-row gap-3">
                   <Button className="flex-1 bg-realtyplus hover:bg-realtyplus-dark">
                     <Link
-                      to={`/agents/${agent.id}`}
+                      to={`/agent/${agent.uid}`}
                       className="text-white w-full"
                     >
                       View Profile
@@ -314,10 +424,10 @@ const AgentsPage = () => {
                   </Button>
                   <Button variant="outline" className="flex-1">
                     <Link
-                      to={`/agents/${agent.id}/properties`}
+                      to={`/agents/${agent.uid}/properties`}
                       className="w-full"
                     >
-                      View Listings ({agent.listings})
+                      View Listings ({agent.myListings.length})
                     </Link>
                   </Button>
                 </div>

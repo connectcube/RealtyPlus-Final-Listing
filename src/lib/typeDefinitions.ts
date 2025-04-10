@@ -28,7 +28,9 @@ export type USER = {
   views: number;
   experience: string;
   agency?: string;
-
+specialties?:string[];
+languages?:string[];
+rating?:number;
   // Agency-specific properties
   authProvider: string;
   businessRegistrationNumber?: string;
@@ -41,7 +43,8 @@ export type USER = {
   position?: string;
   website?: string;
   myListings?: myListings[];
-  social:SOCIAL;
+  social?:SOCIAL;
+  totalSales?:string;
 };
 interface SOCIAL{
   linkedin: string;

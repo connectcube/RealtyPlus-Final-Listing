@@ -196,9 +196,6 @@ export default function AgentProfile() {
 
               {/* Company Description */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">
-                  Company Description
-                </label>
                 <CompanyCard agencyId={user.agency} />
               </div>
             </div>
@@ -206,9 +203,6 @@ export default function AgentProfile() {
             {/* Contact Information */}
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h4 className="font-medium text-lg mb-4">
-                  Contact Information
-                </h4>
                 {isEditing ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -405,6 +399,7 @@ const CompanyCard = ({ agencyId }: { agencyId: string }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <h1 className="text-2xl font-semibold text-gray-900 mb-5">Agency</h1>
       <div className="space-y-6">
         {/* Company Header */}
         <div className="flex items-start justify-between">
@@ -422,12 +417,10 @@ const CompanyCard = ({ agencyId }: { agencyId: string }) => {
         {/* Company Details */}
         <div className="space-y-4">
           <div className="flex items-center space-x-3">
-            <Badge className="h-5 w-5 text-gray-500" />
             <span className="text-sm text-gray-600">
               Reg. No: {agencyData.businessRegistrationNumber}
             </span>
           </div>
-
           {agencyData.companyDescription && (
             <div className="border-t pt-4">
               <p className="text-sm text-gray-600 leading-relaxed">

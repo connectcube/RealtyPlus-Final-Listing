@@ -7,6 +7,7 @@ import routes from "tempo-routes";
 import { ToastContainer } from "react-toastify";
 import AgencyProfile from "./components/agent/AgencyProfile";
 import AgentProfile from "./components/agent/AgentProfile";
+import AgentPublicProfile from "./components/publicProfiles/AgentPublicProfile";
 // Lazy load agent and subscription components
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
 const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
@@ -82,6 +83,8 @@ function App() {
           />
           <Route path="/agent/dashboard" element={<AgentDashboard />} />
           <Route path="/agent/profile" element={<AgentProfile />} />
+          <Route path="/agent/:id" element={<AgentPublicProfile />} />
+
           <Route path="/agency/dashboard" element={<AgencyDashboard />} />
           <Route path="/agency/profile" element={<AgencyProfile />} />
           {/* Admin routes */}
