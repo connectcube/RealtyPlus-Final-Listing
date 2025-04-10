@@ -148,110 +148,47 @@ const AgentsPage = () => {
   const [locationFilter, setLocationFilter] = useState("all");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const AGENTS_PER_PAGE = 6;
+
+  // Add this for accessibility
+  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     const fetchAgents = async () => {
       try {
+        setLoading(true);
         const agentsRef = collection(fireDataBase, "agents");
-        const snapshot = await getDocs(agentsRef);
+        const q = query(
+          agentsRef,
+          orderBy("firstName"),
+          limit(AGENTS_PER_PAGE)
+        );
+        const snapshot = await getDocs(q);
         const agentData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        console.log("Fetched agents:", agentData); // Debug log
         setAgents(agentData as USER[]);
+
+        // Get total count for pagination
+        const totalSnapshot = await getDocs(collection(fireDataBase, "agents"));
+        const totalAgents = totalSnapshot.size;
+        setTotalPages(Math.ceil(totalAgents / AGENTS_PER_PAGE));
+
+        setStatusMessage(
+          `Page ${currentPage} of ${Math.ceil(totalAgents / AGENTS_PER_PAGE)}`
+        );
       } catch (error) {
         console.error("Error fetching agents:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchAgents();
-  }, []);
-
-  // Function to fetch next page of agents
-  const fetchMoreAgents = async () => {
-    if (!lastVisible || !hasMore) return;
-
-    try {
-      setLoading(true);
-      const agentsQuery = query(
-        collection(fireDataBase, "agents"),
-        orderBy("name"),
-        startAfter(lastVisible),
-        limit(AGENTS_PER_PAGE)
-      );
-
-      const snapshot = await getDocs(agentsQuery);
-
-      if (snapshot.empty) {
-        setHasMore(false);
-        return;
-      }
-
-      const newAgents = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as USER[];
-
-      setAgents((prevAgents) => [...prevAgents, ...newAgents]);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === AGENTS_PER_PAGE);
-      // Add this where you're processing agents data
-      const debugAgentInfo = (agent: USER) => {
-        console.group(`Agent: ${agent.firstName} ${agent.lastName}`);
-        console.log({
-          basicInfo: {
-            name: `${agent.firstName} ${agent.lastName}`,
-            email: agent.email,
-            phone: agent.phone,
-            company: agent.companyName,
-            type: agent.agentType,
-          },
-          location: {
-            address: agent.address,
-            city: agent.city,
-          },
-          business: {
-            licenseNumber: agent.licenseNumber,
-            registrationNumber: agent.businessRegistrationNumber,
-            businessType: agent.businessType,
-          },
-          subscription: {
-            plan: agent.subscription?.plan,
-            isActive: agent.subscription?.isActive,
-            listings: {
-              total: agent.subscription?.listingsTotal,
-              used: agent.subscription?.listingsUsed,
-              remaining:
-                agent.subscription?.listingsTotal -
-                agent.subscription?.listingsUsed,
-            },
-          },
-          listings: {
-            count: agent.myListings?.length || 0,
-            references: agent.myListings?.map((listing) => listing.ref.path),
-          },
-          social: {
-            website: agent.website,
-            linkedin: agent.social?.linkedin,
-            twitter: agent.social?.twitter,
-          },
-          metrics: {
-            views: agent.views,
-            createdAt: agent.createdAt,
-          },
-        });
-        console.groupEnd();
-      };
-      // Usage in your filtering function:
-      filteredAgents.forEach(debugAgentInfo);
-    } catch (error) {
-      console.error("Error fetching more agents:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [currentPage]); // Add currentPage as dependency
 
   // Filter agents based on search term and filters
   const filteredAgents = agents.filter(
@@ -268,6 +205,50 @@ const AgentsPage = () => {
     "all",
     ...new Set(agents.map((agent) => agent.city || "").filter(Boolean)),
   ];
+  const PaginationControls = () => {
+    return (
+      <div
+        className="flex justify-center items-center gap-2 mt-8"
+        role="navigation"
+        aria-label="Pagination"
+      >
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1 || loading}
+          aria-label="Previous page"
+        >
+          Previous
+        </Button>
+
+        <div className="flex gap-2">
+          {[...Array(totalPages)].map((_, index) => (
+            <Button
+              key={index + 1}
+              variant={currentPage === index + 1 ? "default" : "outline"}
+              onClick={() => setCurrentPage(index + 1)}
+              disabled={loading}
+              aria-label={`Page ${index + 1}`}
+              aria-current={currentPage === index + 1 ? "page" : undefined}
+            >
+              {index + 1}
+            </Button>
+          ))}
+        </div>
+
+        <Button
+          variant="outline"
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
+          disabled={currentPage === totalPages || loading}
+          aria-label="Next page"
+        >
+          Next
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -416,7 +397,7 @@ const AgentsPage = () => {
                 <div className="w-full flex flex-col sm:flex-row gap-3">
                   <Button className="flex-1 bg-realtyplus hover:bg-realtyplus-dark">
                     <Link
-                      to={`/agent/${agent.uid}`}
+                      to={`/agent/${agent.id}`}
                       className="text-white w-full"
                     >
                       View Profile
@@ -424,7 +405,7 @@ const AgentsPage = () => {
                   </Button>
                   <Button variant="outline" className="flex-1">
                     <Link
-                      to={`/agents/${agent.uid}/properties`}
+                      to={`/agents/${agent.id}/properties`}
                       className="w-full"
                     >
                       View Listings ({agent.myListings.length})
@@ -454,7 +435,7 @@ const AgentsPage = () => {
             </Button>
           </div>
         )}
-
+        {filteredAgents.length > 0 && <PaginationControls />}
         <div className="mt-12 bg-realtyplus/5 rounded-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Join Our Team of Professional Agents

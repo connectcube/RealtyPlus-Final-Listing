@@ -11,6 +11,7 @@ export type USER = {
   phone?: string;
   email?: string;
   uid?: string;
+  id?: string;
   userType: string;
   companyName?: string;
   firstName?: string;
