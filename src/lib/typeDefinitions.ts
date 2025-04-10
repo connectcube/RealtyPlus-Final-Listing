@@ -1,5 +1,8 @@
 import { DocumentReference, Timestamp } from "firebase/firestore";
-
+export interface ZustandStore {
+  user: USER | null;
+  setUser: (user: USER | null) => void;
+}
 export type USER = {
   // Existing user properties
   pfp?: string;
@@ -24,7 +27,7 @@ export type USER = {
   enquiries: number;
   views: number;
   experience: string;
-  agency: DocumentReference;
+  agency?: string;
 
   // Agency-specific properties
   authProvider: string;

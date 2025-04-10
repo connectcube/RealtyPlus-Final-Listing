@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { User } from "./typeDefinitions";
+import { USER } from "./typeDefinitions";
 
 // Define the store state type
 interface UserState {
-  user: User | null;
+  user: USER | null;
   isAuthenticated: boolean;
-  setUser: (profile: User) => void;
+  setUser: (profile: USER) => void;
   clearUser: () => void;
 }
 

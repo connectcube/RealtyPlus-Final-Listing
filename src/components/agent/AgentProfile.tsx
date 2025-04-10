@@ -15,7 +15,6 @@ import {
 import { useEffect, useState } from "react";
 import { doc, DocumentReference, getDoc, updateDoc } from "firebase/firestore";
 import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
 import {
   Select,
   SelectContent,
@@ -26,6 +25,7 @@ import {
 import { fireDataBase } from "@/lib/firebase";
 import { toast } from "react-toastify";
 import Header from "../layout/Header";
+import { USER } from "@/lib/typeDefinitions";
 
 export default function AgentProfile() {
   const { user, setUser } = useZustand();
@@ -199,7 +199,7 @@ export default function AgentProfile() {
                 <label className="text-sm font-medium text-gray-600">
                   Company Description
                 </label>
-                <CompanyCard agencyRef={user.agency} />
+                <CompanyCard agencyId={user.agency} />
               </div>
             </div>
 
@@ -358,29 +358,18 @@ export default function AgentProfile() {
   );
 }
 
-// Add this interface for agency data
-interface AgencyData {
-  companyName: string;
-  businessType: string;
-  buisnessRegistrationNumber: string;
-  companyDescription?: string;
-  address?: string;
-  city?: string;
-}
-
 // Add this component within AgentProfile.tsx
-const CompanyCard = ({ agencyRef }: { agencyRef: DocumentReference }) => {
-  const [agencyData, setAgencyData] = useState<AgencyData | null>(null);
+const CompanyCard = ({ agencyId }: { agencyId: string }) => {
+  const [agencyData, setAgencyData] = useState<USER | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAgencyData = async () => {
       try {
-        //const agencyReference = doc(fireDataBase, "agencies", agencyRef.uid);
+        const agencyRef = await doc(fireDataBase, "agencies", agencyId);
         const agencySnap = await getDoc(agencyRef);
-        console.log("Is correct type?", agencyRef instanceof DocumentReference);
         if (agencySnap.exists()) {
-          setAgencyData(agencySnap.data() as AgencyData);
+          setAgencyData(agencySnap.data() as USER);
         }
       } catch (error) {
         console.error("Error fetching agency data:", error);
@@ -389,10 +378,10 @@ const CompanyCard = ({ agencyRef }: { agencyRef: DocumentReference }) => {
       }
     };
 
-    if (agencyRef) {
+    if (agencyId) {
       fetchAgencyData();
     }
-  }, [agencyRef]);
+  }, [agencyId]);
 
   if (loading) {
     return (
@@ -435,11 +424,11 @@ const CompanyCard = ({ agencyRef }: { agencyRef: DocumentReference }) => {
           <div className="flex items-center space-x-3">
             <Badge className="h-5 w-5 text-gray-500" />
             <span className="text-sm text-gray-600">
-              Reg. No: {agencyData.buisnessRegistrationNumber}
+              Reg. No: {agencyData.businessRegistrationNumber}
             </span>
           </div>
 
-          {agencyData.description && (
+          {agencyData.companyDescription && (
             <div className="border-t pt-4">
               <p className="text-sm text-gray-600 leading-relaxed">
                 {agencyData.companyDescription}
