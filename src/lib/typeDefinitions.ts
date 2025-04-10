@@ -41,7 +41,12 @@ export type USER = {
   position?: string;
   website?: string;
   myListings?: myListings[];
+  social:SOCIAL;
 };
+interface SOCIAL{
+  linkedin: string;
+  twitter: string;
+}
 export type LISTING={
  title: string;
     description: string;
