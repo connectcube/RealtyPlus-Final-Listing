@@ -148,6 +148,19 @@ export default function AgentPublicProfile() {
                     ))}
                   </div>
                 </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="h-5 w-5 text-realtyplus" />
+                    <h3 className="font-semibold">Languages</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {agent.languages.map((spec, index) => (
+                      <Badge key={index} variant="secondary" className="">
+                        {spec}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

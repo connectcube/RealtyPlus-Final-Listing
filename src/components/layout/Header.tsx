@@ -163,6 +163,12 @@ const Header = ({ className }: HeaderProps = {}) => {
               >
                 Agents
               </Link>
+              <Link
+                to="/agencies"
+                className="text-gray-700 hover:text-realtyplus font-medium"
+              >
+                Agencies
+              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger className="text-gray-700 hover:text-realtyplus font-medium">
                   More

@@ -8,6 +8,8 @@ import { ToastContainer } from "react-toastify";
 import AgencyProfile from "./components/agent/AgencyProfile";
 import AgentProfile from "./components/agent/AgentProfile";
 import AgentPublicProfile from "./components/publicProfiles/AgentPublicProfile";
+import AgencyPublicProfile from "./components/publicProfiles/AgencyPublicProfile";
+import AgencyPage from "./components/agency/AgencyPage";
 // Lazy load agent and subscription components
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
 const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
@@ -65,6 +67,7 @@ function App() {
           <Route path="/rent" element={<RentProperties />} />
           <Route path="/mortgage-calculator" element={<MortgageCalculator />} />
           <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/agencies" element={<AgencyPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
@@ -87,6 +90,7 @@ function App() {
 
           <Route path="/agency/dashboard" element={<AgencyDashboard />} />
           <Route path="/agency/profile" element={<AgencyProfile />} />
+          <Route path="/agency/:id" element={<AgencyPublicProfile />} />
           {/* Admin routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UsersPage />} />

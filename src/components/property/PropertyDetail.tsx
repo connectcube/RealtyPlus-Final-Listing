@@ -1,11 +1,9 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import {
   Heart,
   Share2,
@@ -35,6 +33,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../ui/carousel";
+import { doc, getDoc } from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { LISTING, USER } from "@/lib/typeDefinitions";
 
 interface PropertyAgent {
   id: string;
@@ -45,107 +46,99 @@ interface PropertyAgent {
   company: string;
 }
 
-interface NearbyPlace {
-  name: string;
-  type: string;
-  distance: string;
-}
-
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("details");
   const [showContactForm, setShowContactForm] = useState(false);
   const propertyContentRef = useRef<HTMLDivElement>(null);
+  const [property, setProperty] = useState<LISTING | null>(null);
+  const [propertyPostedBy, setPropertyPostedBy] = useState<USER | null>(null);
+  const [loadingPoster, setLoadingPoster] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock property data - in a real app, this would be fetched from an API
-  const property = {
-    id: id || "prop-1",
-    title: "Modern 3 Bedroom House in Kabulonga",
-    description:
-      "This beautiful modern home is located in the heart of Kabulonga, one of Lusaka's most prestigious neighborhoods. The property features spacious living areas, a modern kitchen with high-end appliances, and a landscaped garden with a swimming pool. Perfect for a family looking for comfort and luxury in a secure environment.",
-    price: 450000,
-    location: "Kabulonga, Lusaka",
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 240,
-    garageSpaces: 2,
-    yearBuilt: 2020,
-    propertyType: "standalone",
-    isFurnished: true,
-    images: [
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80",
-      "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&q=80",
-      "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800&q=80",
-      "https://images.unsplash.com/photo-1600607687644-c7f34b5063c8?w=800&q=80",
-    ],
-    features: [
-      "Swimming Pool",
-      "Garden",
-      "Security System",
-      "Backup Power",
-      "Borehole",
-      "Air Conditioning",
-      "Servants Quarters",
-      "Fitted Kitchen",
-      "Parking",
-      "Double Glazing",
-      "Central Heating",
-      "Solar Panels",
-      "Fireplace",
-      "Balcony/Terrace",
-      "Gym",
-      "Outdoor Entertainment Area",
-    ],
-    nearbyPlaces: [
-      {
-        name: "Kabulonga Primary School",
-        type: "school",
-        distance: "0.5 miles",
-      },
-      {
-        name: "International School of Lusaka",
-        type: "school",
-        distance: "1.2 miles",
-      },
-      {
-        name: "Kabulonga Bus Station",
-        type: "transport",
-        distance: "0.3 miles",
-      },
-      { name: "Manda Hill Mall", type: "shopping", distance: "1.5 miles" },
-      { name: "Lusaka Baptist Church", type: "church", distance: "0.8 miles" },
-      { name: "Kabulonga Mosque", type: "mosque", distance: "1.0 miles" },
-      {
-        name: "Lusaka Trust Hospital",
-        type: "hospital",
-        distance: "2.3 miles",
-      },
-      {
-        name: "The Misty Restaurant",
-        type: "restaurant",
-        distance: "0.4 miles",
-      },
-      { name: "Levy Junction Mall", type: "shopping", distance: "3.1 miles" },
-      {
-        name: "University Teaching Hospital",
-        type: "hospital",
-        distance: "4.2 miles",
-      },
-    ],
-    mapLocation:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15461.965147237144!2d28.2833!3d-15.4167!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x19408b8cfa7a6b7d%3A0x2b5c3a0f0bd2a1be!2sKabulonga%2C%20Lusaka%2C%20Zambia!5e0!3m2!1sen!2sus!4v1625764298760!5m2!1sen!2sus",
-  };
+  useEffect(() => {
+    let isMounted = true;
 
-  // Mock agent data
-  const agent: PropertyAgent = {
-    id: "agent-1",
-    name: "John Mwanza",
-    phone: "+260 97 1234567",
-    email: "john.mwanza@realtyzambia.com",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    company: "RealtyZambia",
-  };
+    const fetchData = async () => {
+      if (!id) return;
+
+      try {
+        setLoading(true);
+        const propertyRef = doc(fireDataBase, "listings", id);
+        const propertySnap = await getDoc(propertyRef);
+
+        if (!propertySnap.exists()) {
+          setError("Property not found");
+          return;
+        }
+
+        const propertyData = propertySnap.data() as LISTING;
+        const propertyWithId = {
+          ...propertyData,
+          uid: propertySnap.id,
+        };
+
+        // Only proceed if component is still mounted
+        if (!isMounted) return;
+
+        setProperty(propertyWithId);
+
+        // If we have a postedBy reference, fetch user data immediately
+        if (propertyData.postedBy) {
+          setLoadingPoster(true);
+          try {
+            const userSnap = await getDoc(propertyData.postedBy);
+            if (userSnap.exists() && isMounted) {
+              const userData = userSnap.data() as USER;
+              setPropertyPostedBy({
+                uid: userSnap.id,
+                ...userData,
+              });
+            }
+          } catch (err) {
+            console.error("Error fetching property poster:", err);
+          } finally {
+            if (isMounted) {
+              setLoadingPoster(false);
+            }
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError("Error fetching property details");
+          console.error("Error fetching property:", err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    // Cleanup function to prevent setting state on unmounted component
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading property details...</p>
+      </div>
+    );
+  }
+
+  if (error || !property) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-500">{error || "Property not found"}</p>
+      </div>
+    );
+  }
 
   // Mock similar properties
   const similarProperties = [
@@ -245,11 +238,18 @@ const PropertyDetail = () => {
         </head>
         <body>
           <h1>${property.title}</h1>
-          <div class="location">${property.location}</div>
+          <div class="location">${property.address}</div>
           <div class="price">K${property.price.toLocaleString()}</div>
           
           <div class="image-gallery">
-            ${property.images.map((image, index) => `<img src="${image}" class="property-image" alt="${property.title} - Image ${index + 1}" />`).join("")}
+            ${property.images
+              .map(
+                (image, index) =>
+                  `<img src="${image}" class="property-image" alt="${
+                    property.title
+                  } - Image ${index + 1}" />`
+              )
+              .join("")}
           </div>
           
           <div class="property-info">
@@ -257,9 +257,14 @@ const PropertyDetail = () => {
             <div><strong>Bathrooms:</strong> ${property.bathrooms}</div>
             <div><strong>Area:</strong> ${property.area} m²</div>
             <div><strong>Garage:</strong> ${property.garageSpaces} Cars</div>
-            <div><strong>Property Type:</strong> ${property.propertyType.charAt(0).toUpperCase() + property.propertyType.slice(1)}</div>
+            <div><strong>Property Type:</strong> ${
+              property.propertyType.charAt(0).toUpperCase() +
+              property.propertyType.slice(1)
+            }</div>
             <div><strong>Year Built:</strong> ${property.yearBuilt}</div>
-            <div><strong>Furnishing:</strong> ${property.isFurnished ? "Furnished" : "Unfurnished"}</div>
+            <div><strong>Furnishing:</strong> ${
+              property.isFurnished ? "Furnished" : "Unfurnished"
+            }</div>
           </div>
           
           <div class="property-details">
@@ -270,7 +275,9 @@ const PropertyDetail = () => {
           <div class="property-details">
             <h3>Features</h3>
             <div class="features-list">
-              ${property.features.map((feature) => `<div>✓ ${feature}</div>`).join("")}
+              ${property.features
+                .map((feature) => `<div>✓ ${feature}</div>`)
+                .join("")}
             </div>
           </div>
           
@@ -282,7 +289,7 @@ const PropertyDetail = () => {
                   ? property.nearbyPlaces
                       .map(
                         (place) =>
-                          `<div class="nearby-place"><span>✓ ${place.name}: ${place.distance}</span></div>`,
+                          `<div class="nearby-place"><span>✓ ${place.name}: ${place.distance}</span></div>`
                       )
                       .join("")
                   : "<div>Information not available</div>"
@@ -292,13 +299,15 @@ const PropertyDetail = () => {
           
           <div class="agent-info">
             <h3>Contact Agent</h3>
-            <p><strong>${agent.name}</strong> - ${agent.company}</p>
-            <p>Phone: ${agent.phone}</p>
-            <p>Email: ${agent.email}</p>
+            <p><strong>${propertyPostedBy?.firstName} ${
+      propertyPostedBy?.lastName
+    }</strong> - ${propertyPostedBy.company}</p>
+            <p>Phone: ${propertyPostedBy.phone}</p>
+            <p>Email: ${propertyPostedBy.email}</p>
           </div>
           
           <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
-            Property Reference: ${property.id} | Generated from RealtyPlus
+            Property Reference: ${property.uid} | Generated from RealtyPlus
           </div>
         </body>
       </html>
@@ -318,7 +327,7 @@ const PropertyDetail = () => {
     // For now, we'll simulate it with an alert
     console.log("Downloading property details as PDF");
     alert(
-      "PDF download functionality would be implemented here with a PDF generation library. The PDF would contain all property listing details including all images and nearby places information.",
+      "PDF download functionality would be implemented here with a PDF generation library. The PDF would contain all property listing details including all images and nearby places information."
     );
 
     // Note: In a production app, we would use a library like jsPDF to create a PDF with
@@ -353,7 +362,9 @@ const PropertyDetail = () => {
             </h1>
             <div className="flex items-center mt-2">
               <MapPin className="h-4 w-4 text-gray-500 mr-1" />
-              <span className="text-gray-600">{property.location}</span>
+              <span className="text-gray-600">
+                {property.neighborhood}, {property.city}, {property.province}
+              </span>
             </div>
           </div>
           <div className="flex space-x-2 mt-4 md:mt-0">
@@ -361,7 +372,7 @@ const PropertyDetail = () => {
               variant="outline"
               size="sm"
               className="flex items-center gap-1"
-              onClick={() => handleFavorite(property.id)}
+              onClick={() => handleFavorite(property.uid)}
             >
               <Heart className="h-4 w-4" /> Save
             </Button>
@@ -398,17 +409,19 @@ const PropertyDetail = () => {
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
               <Carousel className="w-full">
                 <CarouselContent>
-                  {property.images.map((image, index) => (
-                    <CarouselItem key={index}>
-                      <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
-                        <img
-                          src={image}
-                          alt={`${property.title} - Image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
+                  {[property.coverPhoto, ...property.images].map(
+                    (image, index) => (
+                      <CarouselItem key={index}>
+                        <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
+                          <img
+                            src={image}
+                            alt={`${property.title} - Image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </CarouselItem>
+                    )
+                  )}
                 </CarouselContent>
                 <CarouselPrevious className="left-2" />
                 <CarouselNext className="right-2" />
@@ -419,25 +432,26 @@ const PropertyDetail = () => {
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
               <Tabs defaultValue="details" onValueChange={setActiveTab}>
                 <TabsList className="w-full grid grid-cols-3 md:grid-cols-5 bg-gray-100 overflow-x-auto">
-                  <TabsTrigger value="details" className="py-3">
+                  <TabsTrigger value="details" className="py-1">
                     Details
                   </TabsTrigger>
-                  <TabsTrigger value="features" className="py-3">
+                  <TabsTrigger value="features" className="py-1">
                     Features
                   </TabsTrigger>
-                  <TabsTrigger value="nearby" className="py-3">
+                  <TabsTrigger value="nearby" className="py-1">
                     Nearby Places
                   </TabsTrigger>
-                  <TabsTrigger value="location" className="py-3">
+                  <TabsTrigger value="location" className="py-1">
                     Location
                   </TabsTrigger>
-                  <TabsTrigger value="video" className="py-3">
+                  <TabsTrigger value="video" className="py-1">
                     Video Tour
                   </TabsTrigger>
                 </TabsList>
 
                 {/* Details Tab */}
                 <TabsContent value="details" className="p-6">
+                  {/* Property Details */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
                     <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
                       <Bed className="h-6 w-6 text-realtyplus mb-1" />
@@ -518,12 +532,7 @@ const PropertyDetail = () => {
                     Property Features
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 border rounded-lg p-4">
-                    {property.features.map((feature, index) => (
-                      <div key={index} className="flex items-center">
-                        <CheckCircle2 className="h-5 w-5 text-realtyplus mr-2 flex-shrink-0" />
-                        <span className="text-gray-700">{feature}</span>
-                      </div>
-                    ))}
+                    // display features here
                   </div>
 
                   <div className="mt-6 flex flex-col md:flex-row gap-4">
@@ -548,40 +557,41 @@ const PropertyDetail = () => {
                 <TabsContent value="nearby" className="p-6">
                   <h3 className="text-xl font-semibold mb-4">Nearby Places</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                    {property.nearbyPlaces.map((place, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center p-3 bg-gray-50 rounded-lg"
-                      >
-                        {place.type === "school" && (
-                          <FileText className="h-5 w-5 text-blue-500 mr-3" />
-                        )}
-                        {place.type === "transport" && (
-                          <MapPin className="h-5 w-5 text-red-500 mr-3" />
-                        )}
-                        {place.type === "shopping" && (
-                          <Grid className="h-5 w-5 text-purple-500 mr-3" />
-                        )}
-                        {place.type === "church" && (
-                          <Home className="h-5 w-5 text-green-500 mr-3" />
-                        )}
-                        {place.type === "mosque" && (
-                          <Home className="h-5 w-5 text-green-500 mr-3" />
-                        )}
-                        {place.type === "hospital" && (
-                          <CheckCircle2 className="h-5 w-5 text-red-500 mr-3" />
-                        )}
-                        {place.type === "restaurant" && (
-                          <Calendar className="h-5 w-5 text-orange-500 mr-3" />
-                        )}
-                        <div>
-                          <span className="font-medium">{place.name}</span>
-                          <span className="text-sm text-gray-500 block">
-                            {place.distance}
-                          </span>
+                    {property.nearbyPlaces &&
+                      property.nearbyPlaces.map((place, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center p-3 bg-gray-50 rounded-lg"
+                        >
+                          {place.type === "school" && (
+                            <FileText className="h-5 w-5 text-blue-500 mr-3" />
+                          )}
+                          {place.type === "transport" && (
+                            <MapPin className="h-5 w-5 text-red-500 mr-3" />
+                          )}
+                          {place.type === "shopping" && (
+                            <Grid className="h-5 w-5 text-purple-500 mr-3" />
+                          )}
+                          {place.type === "church" && (
+                            <Home className="h-5 w-5 text-green-500 mr-3" />
+                          )}
+                          {place.type === "mosque" && (
+                            <Home className="h-5 w-5 text-green-500 mr-3" />
+                          )}
+                          {place.type === "hospital" && (
+                            <CheckCircle2 className="h-5 w-5 text-red-500 mr-3" />
+                          )}
+                          {place.type === "restaurant" && (
+                            <Calendar className="h-5 w-5 text-orange-500 mr-3" />
+                          )}
+                          <div>
+                            <span className="font-medium">{place.name}</span>
+                            <span className="text-sm text-gray-500 block">
+                              {place.distance}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </TabsContent>
 
@@ -589,7 +599,7 @@ const PropertyDetail = () => {
                   <h3 className="text-xl font-semibold mb-4">Location</h3>
                   <div className="aspect-video w-full rounded-lg overflow-hidden">
                     <iframe
-                      src={property.mapLocation}
+                      src={property.address}
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}
@@ -625,7 +635,7 @@ const PropertyDetail = () => {
                   <span className="text-sm">
                     {property.area} m² (K
                     {Math.round(
-                      property.price / property.area,
+                      property.price / property.area
                     ).toLocaleString()}
                     /m²)
                   </span>
@@ -703,7 +713,7 @@ const PropertyDetail = () => {
                         rows={4}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                         placeholder="I'm interested in this property..."
-                        defaultValue={`I'm interested in ${property.title} (Ref: ${property.id}). Please contact me with more information.`}
+                        defaultValue={`I'm interested in ${property.title} (Ref: ${property.uid}). Please contact me with more information.`}
                       ></textarea>
                     </div>
                     <Button className="w-full bg-realtyplus hover:bg-realtyplus-dark">
@@ -720,29 +730,28 @@ const PropertyDetail = () => {
                 <h3 className="text-lg font-semibold mb-4">Listed By</h3>
                 <div className="flex items-center mb-4">
                   <img
-                    src={agent.photo}
-                    alt={agent.name}
+                    src={propertyPostedBy?.pfp || ""}
+                    alt={`${propertyPostedBy?.firstName} ${propertyPostedBy?.lastName}`}
                     className="w-16 h-16 rounded-full mr-4"
                   />
                   <div>
-                    <h4 className="font-medium">{agent.name}</h4>
-                    <p className="text-sm text-gray-500">{agent.company}</p>
+                    <h4 className="font-medium">{`${propertyPostedBy?.firstName} ${propertyPostedBy?.lastName}`}</h4>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <a
-                    href={`tel:${agent.phone}`}
+                    href={`tel:${propertyPostedBy.phone}`}
                     className="flex items-center text-gray-700 hover:text-realtyplus"
                   >
                     <Phone className="h-4 w-4 mr-2" />
-                    {agent.phone}
+                    {propertyPostedBy.phone}
                   </a>
                   <a
-                    href={`mailto:${agent.email}`}
+                    href={`mailto:${propertyPostedBy.email}`}
                     className="flex items-center text-gray-700 hover:text-realtyplus"
                   >
                     <Mail className="h-4 w-4 mr-2" />
-                    {agent.email}
+                    {propertyPostedBy.email}
                   </a>
                   <Button
                     variant="outline"

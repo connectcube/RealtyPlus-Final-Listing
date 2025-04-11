@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, Mail, Phone, Filter, Loader2 } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  Mail,
+  Phone,
+  Filter,
+  Loader2,
+  Globe,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -28,7 +36,6 @@ import {
   orderBy,
   query,
   QueryDocumentSnapshot,
-  startAfter,
 } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { USER } from "@/lib/typeDefinitions";
@@ -137,8 +144,8 @@ const mockAgents = [
   },
 ];
 
-const AgentsPage = () => {
-  const [agents, setAgents] = useState<USER[]>([]);
+const AgencyPage = () => {
+  const [agency, setAgency] = useState<USER[]>([]);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(
     null
   );
@@ -159,7 +166,7 @@ const AgentsPage = () => {
     const fetchAgents = async () => {
       try {
         setLoading(true);
-        const agentsRef = collection(fireDataBase, "agents");
+        const agentsRef = collection(fireDataBase, "agencies");
         const q = query(
           agentsRef,
           orderBy("firstName"),
@@ -170,10 +177,12 @@ const AgentsPage = () => {
           id: doc.id,
           ...doc.data(),
         }));
-        setAgents(agentData as USER[]);
+        setAgency(agentData as USER[]);
 
         // Get total count for pagination
-        const totalSnapshot = await getDocs(collection(fireDataBase, "agents"));
+        const totalSnapshot = await getDocs(
+          collection(fireDataBase, "agencies")
+        );
         const totalAgents = totalSnapshot.size;
         setTotalPages(Math.ceil(totalAgents / AGENTS_PER_PAGE));
 
@@ -191,7 +200,7 @@ const AgentsPage = () => {
   }, [currentPage]); // Add currentPage as dependency
 
   // Filter agents based on search term and filters
-  const filteredAgents = agents.filter(
+  const filteredAgency = agency.filter(
     (agent) =>
       `${agent.firstName} ${agent.lastName}`
         .toLowerCase()
@@ -203,7 +212,7 @@ const AgentsPage = () => {
   // Extract unique locations for filter
   const locations = [
     "all",
-    ...new Set(agents.map((agent) => agent.city || "").filter(Boolean)),
+    ...new Set(agency.map((agent) => agent.city || "").filter(Boolean)),
   ];
   const PaginationControls = () => {
     return (
@@ -268,11 +277,11 @@ const AgentsPage = () => {
       <main className="flex-grow container mx-auto py-8 px-4">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Our Professional Real Estate Agents
+            Our Professional Real Estate Agencies
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Connect with our experienced agents who are ready to help you find
-            your perfect property in Zambia. Our agents have in-depth knowledge
+            Connect with our experienced agencies who are ready to help you find
+            your perfect property in Zambia. Our agency have in-depth knowledge
             of the local market and are committed to providing exceptional
             service.
           </p>
@@ -283,7 +292,7 @@ const AgentsPage = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <Input
               type="search"
-              placeholder="Search agents by name, agency, or expertise..."
+              placeholder="Search agency by name, agency, or expertise..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -322,7 +331,7 @@ const AgentsPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {!loading ? (
-            filteredAgents.map((agent) => (
+            filteredAgency.map((agent) => (
               <Card
                 key={agent.id}
                 className="overflow-hidden hover:shadow-lg transition-shadow"
@@ -333,37 +342,45 @@ const AgentsPage = () => {
                     alt={`${agent.companyName || "Agency"} logo`}
                     className="w-24 h-24 rounded-full mb-4"
                   />
-
                   <h3 className="text-xl font-bold text-gray-900">
-                    {`${agent.firstName} ${agent.lastName}`}
+                    {agent.companyName || "Agency Name"}
                   </h3>
                   <p className="text-gray-600 capitalize">
-                    Type: {agent.agentType}
+                    Type: {agent.businessType || "Real Estate Agency"}
                   </p>
-                  <div className="flex items-center mt-2">
-                    {[...Array(5)].map((_, i) => (
-                      <svg
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.floor(agent.rating)
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
+                  {agent.rating && (
+                    <div className="flex items-center mt-2">
+                      {[...Array(5)].map((_, i) => (
+                        <svg
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(agent.rating)
+                              ? "text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
                 <CardContent className="p-6">
-                  <p className="text-gray-700 mb-4 line-clamp-3">{agent.bio}</p>
+                  <p className="text-gray-700 mb-4 line-clamp-3">
+                    {agent.companyDescription ||
+                      agent.bio ||
+                      "No description available"}
+                  </p>
 
                   <div className="space-y-3">
                     <div className="flex items-start">
                       <MapPin className="h-5 w-5 text-realtyplus mr-2 mt-0.5" />
-                      <span className="text-gray-700">{agent.address}</span>
+                      <span className="text-gray-700">
+                        {`${agent.address || ""}, ${agent.city || ""}`}
+                      </span>
                     </div>
                     <div className="flex items-start">
                       <Mail className="h-5 w-5 text-realtyplus mr-2 mt-0.5" />
@@ -373,15 +390,28 @@ const AgentsPage = () => {
                       <Phone className="h-5 w-5 text-realtyplus mr-2 mt-0.5" />
                       <span className="text-gray-700">{agent.phone}</span>
                     </div>
+                    {agent.website && (
+                      <div className="flex items-start">
+                        <Globe className="h-5 w-5 text-realtyplus mr-2 mt-0.5" />
+                        <a
+                          href={agent.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-700 hover:text-realtyplus"
+                        >
+                          {agent.website}
+                        </a>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      Specialties:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {agent.specialties &&
-                        agent.specialties.map((specialty, index) => (
+                  {agent.specialties && agent.specialties.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Specialties:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {agent.specialties.map((specialty, index) => (
                           <Badge
                             key={index}
                             variant="secondary"
@@ -390,28 +420,40 @@ const AgentsPage = () => {
                             {specialty}
                           </Badge>
                         ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="mt-4">
                     <p className="text-sm font-medium text-gray-700 mb-2">
-                      Languages:
+                      Agency Details:
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {agent.languages &&
-                        agent.languages.map((language, index) => (
-                          <Badge key={index} variant="outline">
-                            {language}
-                          </Badge>
-                        ))}
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="font-medium">Registration:</span>
+                        <p>{agent.businessRegistrationNumber || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Agents:</span>
+                        <p>{agent.numberOfAgents || "0"}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Total Sales:</span>
+                        <p>{agent.totalSales || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Listings:</span>
+                        <p>{agent.myListings?.length || 0}</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
+
                 <CardFooter className="bg-gray-50 p-6 border-t">
                   <div className="w-full flex flex-col sm:flex-row gap-3">
                     <Button className="flex-1 bg-realtyplus hover:bg-realtyplus-dark">
                       <Link
-                        to={`/agent/${agent.id}`}
+                        to={`/agency/${agent.id}`}
                         className="text-white w-full"
                       >
                         View Profile
@@ -419,10 +461,10 @@ const AgentsPage = () => {
                     </Button>
                     <Button variant="outline" className="flex-1">
                       <Link
-                        to={`/agents/${agent.id}/properties`}
+                        to={`/agency/${agent.id}/properties`}
                         className="w-full"
                       >
-                        View Listings ({agent.myListings.length})
+                        View Listings ({agent.myListings?.length || 0})
                       </Link>
                     </Button>
                   </div>
@@ -436,10 +478,10 @@ const AgentsPage = () => {
           )}
         </div>
 
-        {filteredAgents.length === 0 && (
+        {filteredAgency.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
-              No agents found matching your criteria.
+              No agency found matching your criteria.
             </p>
             <Button
               variant="link"
@@ -454,7 +496,7 @@ const AgentsPage = () => {
             </Button>
           </div>
         )}
-        {filteredAgents.length > 0 && <PaginationControls />}
+        {filteredAgency.length > 0 && <PaginationControls />}
         <div className="mt-12 bg-realtyplus/5 rounded-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Join Our Team of Professional Agents
@@ -481,4 +523,4 @@ const AgentsPage = () => {
   );
 };
 
-export default AgentsPage;
+export default AgencyPage;

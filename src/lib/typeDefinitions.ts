@@ -32,6 +32,7 @@ export type USER = {
 specialties?:string[];
 languages?:string[];
 rating?:number;
+company?:string;
   // Agency-specific properties
   authProvider: string;
   businessRegistrationNumber?: string;
@@ -52,13 +53,14 @@ interface SOCIAL{
   twitter: string;
 }
 export type LISTING={
+  postedBy:DocumentReference;
     uid:string;
     title: string;
     isFeatured:boolean;
     description: string;
     price: string;
     coverPhoto: string;
-    gallery:string[];
+    images:string[];
     propertyType: "standalone" | "semi-detached" | "apartment" | "other";
     listingType: string;
     bedrooms: string;
@@ -72,7 +74,9 @@ export type LISTING={
     neighborhood: string;
     address: string;
     features: FEATURES,
-    nearby_places:NearbyPlace[]
+    nearbyPlaces:NearbyPlace[];
+    company:string;
+    createdAt:Timestamp;
 }
 interface FEATURES{
   swimmingPool: boolean;
