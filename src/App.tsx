@@ -10,6 +10,7 @@ import AgentProfile from "./components/agent/AgentProfile";
 import AgentPublicProfile from "./components/publicProfiles/AgentPublicProfile";
 import AgencyPublicProfile from "./components/publicProfiles/AgencyPublicProfile";
 import AgencyPage from "./components/agency/AgencyPage";
+import ViewPropertiesByPoster from "./components/property/ViewPropertiesByPoster";
 // Lazy load agent and subscription components
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
 const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
@@ -61,6 +62,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/property/:id" element={<PropertyDetail />} />
+          <Route path="/agents/*" element={<ViewPropertiesByPoster />} />
+          <Route path="/agency/*" element={<ViewPropertiesByPoster />} />
+
           <Route path="/list-property" element={<AddProperty />} />
           <Route path="/properties" element={<Home />} />
           <Route path="/buy" element={<BuyProperties />} />
