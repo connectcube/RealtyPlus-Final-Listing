@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
   Map,
   Download,
   FileText,
+  Cross,
+  XCircle,
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
@@ -36,6 +38,9 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { LISTING, USER } from "@/lib/typeDefinitions";
+import { LoadingSpinner } from "../globalScreens/Loader";
+import { ErrorMessage } from "../globalScreens/Error";
+import { NotFound } from "../globalScreens/Message";
 
 interface PropertyAgent {
   id: string;
@@ -45,7 +50,12 @@ interface PropertyAgent {
   photo: string;
   company: string;
 }
-
+interface FormData {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("details");
@@ -56,6 +66,41 @@ const PropertyDetail = () => {
   const [loadingPoster, setLoadingPoster] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+
+  const handleContactFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    // Compile the email body
+    const emailBody = `
+Hello,
+
+${formData.message}
+
+Contact Details:
+Name: ${formData.name}
+Email: ${formData.email}
+Phone: ${formData.phone}
+
+Best regards,
+${formData.name}
+    `.trim();
+
+    // Create mailto URL with encoded parameters
+    const mailtoLink = `mailto:${
+      propertyPostedBy.email
+    }?subject=Property Inquiry: ${encodeURIComponent(
+      property.title
+    )}&body=${encodeURIComponent(emailBody)}`;
+
+    // Open default email client
+    window.location.href = mailtoLink;
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -101,6 +146,10 @@ const PropertyDetail = () => {
           } finally {
             if (isMounted) {
               setLoadingPoster(false);
+              setFormData({
+                ...formData,
+                message: `I'm interested in ${property?.title} (Ref: ${property?.uid}). Please contact me with more information.`,
+              });
             }
           }
         }
@@ -127,19 +176,25 @@ const PropertyDetail = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading property details...</p>
+        <LoadingSpinner />
       </div>
     );
   }
 
-  if (error || !property) {
+  if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-500">{error || "Property not found"}</p>
+        <ErrorMessage message={error} />
       </div>
     );
   }
-
+  if (!property) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <NotFound message="Property doe not exist" />
+      </div>
+    );
+  }
   // Mock similar properties
   const similarProperties = [
     {
@@ -532,7 +587,95 @@ const PropertyDetail = () => {
                     Property Features
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 border rounded-lg p-4">
-                    // display features here
+                    {/* Air Conditioning */}
+                    <span className="flex items-center gap-2">
+                      {property.features.airConditioning ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Air Conditioning</h1>
+                    </span>
+
+                    {/* Backup Power */}
+                    <span className="flex items-center gap-2">
+                      {property.features.backupPower ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Backup Power</h1>
+                    </span>
+
+                    {/* Borehole */}
+                    <span className="flex items-center gap-2">
+                      {property.features.borehole ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Borehole</h1>
+                    </span>
+
+                    {/* Fitted Kitchen */}
+                    <span className="flex items-center gap-2">
+                      {property.features.fittedKitchen ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Fitted Kitchen</h1>
+                    </span>
+
+                    {/* Garden */}
+                    <span className="flex items-center gap-2">
+                      {property.features.garden ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Garden</h1>
+                    </span>
+
+                    {/* Parking */}
+                    <span className="flex items-center gap-2">
+                      {property.features.parking ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Parking</h1>
+                    </span>
+
+                    {/* Security System */}
+                    <span className="flex items-center gap-2">
+                      {property.features.securitySystem ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Security System</h1>
+                    </span>
+
+                    {/* Servants Quarters */}
+                    <span className="flex items-center gap-2">
+                      {property.features.servantsQuarters ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Servants Quarters</h1>
+                    </span>
+
+                    {/* Swimming Pool */}
+                    <span className="flex items-center gap-2">
+                      {property.features.swimmingPool ? (
+                        <CheckCircle2 className="text-green-500" />
+                      ) : (
+                        <XCircle className="text-red-500" />
+                      )}
+                      <h1>Swimming Pool</h1>
+                    </span>
                   </div>
 
                   <div className="mt-6 flex flex-col md:flex-row gap-4">
@@ -658,7 +801,10 @@ const PropertyDetail = () => {
               <Card className="mb-6">
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-4">Contact Agent</h3>
-                  <form className="space-y-4">
+                  <form
+                    className="space-y-4"
+                    onSubmit={handleContactFormSubmit}
+                  >
                     <div>
                       <label
                         htmlFor="name"
@@ -669,6 +815,11 @@ const PropertyDetail = () => {
                       <input
                         type="text"
                         id="name"
+                        required
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                         placeholder="Enter your name"
                       />
@@ -683,6 +834,11 @@ const PropertyDetail = () => {
                       <input
                         type="email"
                         id="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                         placeholder="Enter your email"
                       />
@@ -697,6 +853,11 @@ const PropertyDetail = () => {
                       <input
                         type="tel"
                         id="phone"
+                        required
+                        value={formData.phone}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                         placeholder="Enter your phone number"
                       />
@@ -711,12 +872,20 @@ const PropertyDetail = () => {
                       <textarea
                         id="message"
                         rows={4}
+                        required
+                        value={formData.message}
+                        onChange={(e) =>
+                          setFormData({ ...formData, message: e.target.value })
+                        }
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                         placeholder="I'm interested in this property..."
-                        defaultValue={`I'm interested in ${property.title} (Ref: ${property.uid}). Please contact me with more information.`}
                       ></textarea>
                     </div>
-                    <Button className="w-full bg-realtyplus hover:bg-realtyplus-dark">
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-realtyplus hover:bg-realtyplus-dark"
+                    >
                       Send Message
                     </Button>
                   </form>
