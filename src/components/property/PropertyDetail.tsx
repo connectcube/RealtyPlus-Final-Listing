@@ -41,6 +41,7 @@ import { LISTING, USER } from "@/lib/typeDefinitions";
 import { LoadingSpinner } from "../globalScreens/Loader";
 import { ErrorMessage } from "../globalScreens/Error";
 import { NotFound } from "../globalScreens/Message";
+import { DownloadPDFButton } from "./PropertPDFDownload";
 
 interface PropertyAgent {
   id: string;
@@ -255,126 +256,369 @@ ${formData.name}
   const handlePropertyClick = (id: string) => {
     console.log(`Navigating to property ${id} details`);
   };
-
-  const handlePrintPage = () => {
-    // Create a new window with only the property content
+  const generatePropertyPDF = (property: any, propertyPostedBy: any) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    // Get the property content
-    const propertyContent = propertyContentRef.current?.innerHTML;
-    if (!propertyContent) return;
+    const formatPrice = (price: number) => {
+      return `K ${price.toLocaleString("en-US")}`;
+    };
 
-    // Create a simplified version with only the essential property details
+    const featureLabels = {
+      airConditioning: "Air Conditioning",
+      backupPower: "Backup Power",
+      borehole: "Borehole",
+      fittedKitchen: "Fitted Kitchen",
+      garden: "Garden",
+      parking: "Parking",
+      securitySystem: "Security System",
+      servantsQuarters: "Servants Quarters",
+      swimmingPool: "Swimming Pool",
+    };
+
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>${property.title} - Print</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { font-size: 24px; margin-bottom: 10px; }
-            .property-details { margin-bottom: 20px; }
-            .property-image { max-width: 100%; height: auto; margin-bottom: 20px; }
-            .property-info { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-            .property-info div { flex: 1; min-width: 120px; }
-            .features-list { columns: 2; }
-            .price { font-size: 22px; font-weight: bold; color: #2563eb; margin-bottom: 10px; }
-            .location { margin-bottom: 15px; color: #666; }
-            .agent-info { border-top: 1px solid #eee; padding-top: 15px; margin-top: 20px; }
-            .image-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-            .image-gallery img { width: 100%; height: auto; object-fit: cover; }
-            .nearby-places { margin-bottom: 20px; }
-            .nearby-places h3 { margin-bottom: 10px; }
-            .nearby-places-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .nearby-place { display: flex; align-items: center; }
-            .nearby-place-icon { margin-right: 8px; width: 16px; height: 16px; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <h1>${property.title}</h1>
-          <div class="location">${property.address}</div>
-          <div class="price">K${property.price.toLocaleString()}</div>
+    <html>
+      <head>
+        <title>${property.title} - Property Details</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
           
-          <div class="image-gallery">
-            ${property.images
-              .map(
-                (image, index) =>
-                  `<img src="${image}" class="property-image" alt="${
-                    property.title
-                  } - Image ${index + 1}" />`
-              )
-              .join("")}
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+          }
+          
+          .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+          }
+          
+          .property-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+          }
+          
+          .property-ref {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 16px;
+          }
+          
+          .price-banner {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 24px;
+          }
+          
+          .main-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 24px;
+          }
+          
+          .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+          }
+          
+          .gallery-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+          }
+          
+          .property-overview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+            padding: 24px;
+            background-color: #f9fafb;
+            border-radius: 12px;
+          }
+          
+          .overview-item {
+            text-align: center;
+          }
+          
+          .overview-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 4px;
+          }
+          
+          .overview-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+          }
+          
+          .section {
+            margin-bottom: 32px;
+          }
+          
+          .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1f2937;
+          }
+          
+          .description {
+            color: #4b5563;
+            white-space: pre-line;
+          }
+          
+          .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+          }
+          
+          .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background-color: #f9fafb;
+            border-radius: 6px;
+          }
+          
+          .feature-check {
+            color: #2563eb;
+            font-weight: bold;
+          }
+          
+          .agent-card {
+            background-color: #f9fafb;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 32px;
+          }
+          
+          .agent-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1f2937;
+          }
+          
+          .agent-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+          }
+          
+          .agent-detail {
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .agent-label {
+            font-size: 14px;
+            color: #6b7280;
+          }
+          
+          .agent-value {
+            font-weight: 500;
+            color: #1f2937;
+          }
+          
+          .footer {
+            margin-top: 48px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+          }
+          
+          @media print {
+            body {
+              padding: 20px;
+            }
+            
+            .main-image, .gallery-image {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            
+            @page {
+              margin: 20px;
+              size: A4;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="/logo.png" alt="RealtyPlus Logo" class="logo" />
+          <h1 class="property-title">${property.title}</h1>
+          <div class="property-ref">Reference: ${property.uid}</div>
+          <div class="price-banner">${formatPrice(property.price)}</div>
+        </div>
+        
+        <img src="${
+          property.images[0]
+        }" alt="Main Property Image" class="main-image" />
+        
+        <div class="image-gallery">
+          ${property.images
+            .slice(1, 4)
+            .map(
+              (image) => `
+            <img src="${image}" alt="Property Image" class="gallery-image" />
+          `
+            )
+            .join("")}
+        </div>
+        
+        <div class="property-overview">
+          <div class="overview-item">
+            <div class="overview-label">Bedrooms</div>
+            <div class="overview-value">${property.bedrooms}</div>
           </div>
-          
-          <div class="property-info">
-            <div><strong>Bedrooms:</strong> ${property.bedrooms}</div>
-            <div><strong>Bathrooms:</strong> ${property.bathrooms}</div>
-            <div><strong>Area:</strong> ${property.area} m²</div>
-            <div><strong>Garage:</strong> ${property.garageSpaces} Cars</div>
-            <div><strong>Property Type:</strong> ${
+          <div class="overview-item">
+            <div class="overview-label">Bathrooms</div>
+            <div class="overview-value">${property.bathrooms}</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">Area</div>
+            <div class="overview-value">${property.area} m²</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">Garage Spaces</div>
+            <div class="overview-value">${property.garageSpaces}</div>
+          </div>
+          <div class="overview-item">
+            <div class="overview-label">Property Type</div>
+            <div class="overview-value">${
               property.propertyType.charAt(0).toUpperCase() +
               property.propertyType.slice(1)
             }</div>
-            <div><strong>Year Built:</strong> ${property.yearBuilt}</div>
-            <div><strong>Furnishing:</strong> ${
-              property.isFurnished ? "Furnished" : "Unfurnished"
-            }</div>
           </div>
-          
-          <div class="property-details">
-            <h3>Description</h3>
-            <p>${property.description}</p>
+          <div class="overview-item">
+            <div class="overview-label">Year Built</div>
+            <div class="overview-value">${property.yearBuilt}</div>
           </div>
-          
-          <div class="property-details">
-            <h3>Features</h3>
-            <div class="features-list">
-              ${property.features
-                .map((feature) => `<div>✓ ${feature}</div>`)
+        </div>
+        
+        <div class="section">
+          <h2 class="section-title">Description</h2>
+          <div class="description">${property.description}</div>
+        </div>
+        
+        <div class="section">
+          <h2 class="section-title">Features</h2>
+          <div class="features-grid">
+            ${Object.entries(property.features)
+              .filter(([_, value]) => value === true)
+              .map(
+                ([key, _]) => `
+                <div class="feature-item">
+                  <span class="feature-check">✓</span>
+                  <span>${featureLabels[key]}</span>
+                </div>
+              `
+              )
+              .join("")}
+          </div>
+        </div>
+        
+        ${
+          property.nearbyPlaces
+            ? `
+          <div class="section">
+            <h2 class="section-title">Nearby Places</h2>
+            <div class="features-grid">
+              ${property.nearbyPlaces
+                .map(
+                  (place) => `
+                <div class="feature-item">
+                  <span class="feature-check">📍</span>
+                  <span>${place.name} - ${place.distance}</span>
+                </div>
+              `
+                )
                 .join("")}
             </div>
           </div>
-          
-          <div class="nearby-places">
-            <h3>Nearby Places</h3>
-            <div class="nearby-places-grid">
-              ${
-                property.nearbyPlaces
-                  ? property.nearbyPlaces
-                      .map(
-                        (place) =>
-                          `<div class="nearby-place"><span>✓ ${place.name}: ${place.distance}</span></div>`
-                      )
-                      .join("")
-                  : "<div>Information not available</div>"
-              }
+        `
+            : ""
+        }
+        
+        <div class="agent-card">
+          <h3 class="agent-title">Contact Agent</h3>
+          <div class="agent-info">
+            <div class="agent-detail">
+              <span class="agent-label">Agent Name</span>
+              <span class="agent-value">${propertyPostedBy.firstName} ${
+      propertyPostedBy.lastName
+    }</span>
+            </div>
+            <div class="agent-detail">
+              <span class="agent-label">Company</span>
+              <span class="agent-value">${propertyPostedBy.company}</span>
+            </div>
+            <div class="agent-detail">
+              <span class="agent-label">Phone</span>
+              <span class="agent-value">${propertyPostedBy.phone}</span>
+            </div>
+            <div class="agent-detail">
+              <span class="agent-label">Email</span>
+              <span class="agent-value">${propertyPostedBy.email}</span>
             </div>
           </div>
-          
-          <div class="agent-info">
-            <h3>Contact Agent</h3>
-            <p><strong>${propertyPostedBy?.firstName} ${
-      propertyPostedBy?.lastName
-    }</strong> - ${propertyPostedBy.company}</p>
-            <p>Phone: ${propertyPostedBy.phone}</p>
-            <p>Email: ${propertyPostedBy.email}</p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
-            Property Reference: ${property.uid} | Generated from RealtyPlus
-          </div>
-        </body>
-      </html>
-    `);
+        </div>
+        
+        <div class="footer">
+          Generated by RealtyPlus | Property Reference: ${
+            property.uid
+          } | Date: ${new Date().toLocaleDateString()}
+        </div>
+      </body>
+    </html>
+  `);
 
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
-      // Close the window after printing (optional)
-      // printWindow.close();
-    }, 500);
+    }, 1000);
+  };
+
+  const handlePrintPage = () => {
+    generatePropertyPDF(property, propertyPostedBy);
   };
 
   const handleDownloadPDF = () => {
@@ -426,34 +670,30 @@ ${formData.name}
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 py-1"
               onClick={() => handleFavorite(property.uid)}
             >
-              <Heart className="h-4 w-4" /> Save
+              <Heart className="size-4" /> Save
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 py-1"
             >
-              <Share2 className="h-4 w-4" /> Share
+              <Share2 className="size-4" /> Share
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 py-1"
               onClick={handlePrintPage}
             >
-              <Printer className="h-4 w-4" /> Print
+              <Printer className="size-4" /> Print
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={handleDownloadPDF}
-            >
-              <Download className="h-4 w-4" /> PDF
-            </Button>
+            <DownloadPDFButton
+              property={property}
+              propertyPostedBy={propertyPostedBy}
+            />
           </div>
         </div>
 
@@ -686,13 +926,6 @@ ${formData.name}
                     >
                       <Printer className="h-4 w-4" /> Print Features
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={handleDownloadPDF}
-                    >
-                      <FileText className="h-4 w-4" /> Download Property Sheet
-                    </Button>
                   </div>
                 </TabsContent>
 
@@ -778,7 +1011,7 @@ ${formData.name}
                   <span className="text-sm">
                     {property.area} m² (K
                     {Math.round(
-                      property.price / property.area
+                      Number(property.price) / Number(property.area)
                     ).toLocaleString()}
                     /m²)
                   </span>
@@ -950,7 +1183,13 @@ ${formData.name}
                 bathrooms={property.bathrooms}
                 area={property.area}
                 imageUrl={property.imageUrl}
-                propertyType={property.propertyType}
+                propertyType={
+                  property.propertyType as
+                    | "standalone"
+                    | "semi-detached"
+                    | "apartment"
+                    | "other"
+                }
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
