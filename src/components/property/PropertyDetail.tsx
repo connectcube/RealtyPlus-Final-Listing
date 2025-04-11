@@ -19,10 +19,7 @@ import {
   Mail,
   MessageSquare,
   CheckCircle2,
-  Map,
-  Download,
   FileText,
-  Cross,
   XCircle,
 } from "lucide-react";
 import Header from "../layout/Header";
@@ -43,14 +40,6 @@ import { ErrorMessage } from "../globalScreens/Error";
 import { NotFound } from "../globalScreens/Message";
 import { DownloadPDFButton } from "./PropertPDFDownload";
 
-interface PropertyAgent {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  photo: string;
-  company: string;
-}
 interface FormData {
   name: string;
   email: string;
@@ -302,7 +291,7 @@ ${formData.name}
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 2px solid #e31837;
           }
           
           .logo {
@@ -415,7 +404,7 @@ ${formData.name}
           }
           
           .feature-check {
-            color: #2563eb;
+            color: #e31837;
             font-weight: bold;
           }
           
@@ -685,7 +674,7 @@ ${formData.name}
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-1 py-1"
+              className="flex items-center gap-1 py-1 "
               onClick={handlePrintPage}
             >
               <Printer className="size-4" /> Print

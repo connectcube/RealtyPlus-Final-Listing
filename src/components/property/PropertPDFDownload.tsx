@@ -50,7 +50,7 @@ const generateAndDownloadPDF = async (property: any, propertyPostedBy: any) => {
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 2px solid #e31837;
           }
           
           .logo {
@@ -66,13 +66,13 @@ const generateAndDownloadPDF = async (property: any, propertyPostedBy: any) => {
           }
           
           .property-ref {
-            color: #6b7280;
+            color: #e31837;
             font-size: 14px;
             margin-bottom: 16px;
           }
           
           .price-banner {
-            background-color: #2563eb;
+            background-color: #e31837;
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
@@ -163,7 +163,7 @@ const generateAndDownloadPDF = async (property: any, propertyPostedBy: any) => {
           }
           
           .feature-check {
-            color: #2563eb;
+            color: #e31837;
             font-weight: bold;
           }
           
