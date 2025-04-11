@@ -52,10 +52,14 @@ interface SOCIAL{
   twitter: string;
 }
 export type LISTING={
- title: string;
+    uid:string;
+    title: string;
+    isFeatured:boolean;
     description: string;
     price: string;
-    propertyType: string;
+    coverPhoto: string;
+    gallery:string[];
+    propertyType: "standalone" | "semi-detached" | "apartment" | "other";
     listingType: string;
     bedrooms: string;
     bathrooms: string;
