@@ -7,6 +7,7 @@ import {
   Building2,
   Edit,
   Globe,
+  Loader2,
   Mail,
   Phone,
   Save,
@@ -26,12 +27,13 @@ import { fireDataBase } from "@/lib/firebase";
 import { toast } from "react-toastify";
 import Header from "../layout/Header";
 import { USER } from "@/lib/typeDefinitions";
+import { LoadingSpinner } from "../globalScreens/Loader";
 
 export default function AgentProfile() {
   const { user, setUser } = useZustand();
-  console.log(user);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [saving, isSaving] = useState(false);
   const [formData, setFormData] = useState({
     licenseNumber: user?.licenseNumber || "",
     firstName: user?.firstName || "",
@@ -161,7 +163,12 @@ export default function AgentProfile() {
                   disabled={loading}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                  Save Changes{" "}
+                  {loading && (
+                    <>
+                      <Loader2 className="animate-spin mx-1" />{" "}
+                    </>
+                  )}
                 </Button>
               </>
             ) : (
@@ -266,14 +273,6 @@ export default function AgentProfile() {
                         </div>
                       )}
                     </div>
-
-                    <Input
-                      name="businessRegistrationNumber"
-                      value={formData.businessRegistrationNumber}
-                      onChange={handleInputChange}
-                      placeholder="Business Registration Number"
-                      className="w-full"
-                    />
                   </>
                 ) : (
                   <>

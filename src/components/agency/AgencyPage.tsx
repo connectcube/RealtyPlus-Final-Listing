@@ -216,45 +216,46 @@ const AgencyPage = () => {
   ];
   const PaginationControls = () => {
     return (
-      <div
-        className="flex justify-center items-center gap-2 mt-8"
-        role="navigation"
-        aria-label="Pagination"
-      >
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1 || loading}
-          aria-label="Previous page"
-        >
-          Previous
-        </Button>
+      <div className=" mt-8" role="navigation" aria-label="Pagination">
+        <div className="flex justify-center items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || loading}
+            aria-label="Previous page"
+          >
+            Previous
+          </Button>
 
-        <div className="flex gap-2">
-          {[...Array(totalPages)].map((_, index) => (
-            <Button
-              key={index + 1}
-              variant={currentPage === index + 1 ? "default" : "outline"}
-              onClick={() => setCurrentPage(index + 1)}
-              disabled={loading}
-              aria-label={`Page ${index + 1}`}
-              aria-current={currentPage === index + 1 ? "page" : undefined}
-            >
-              {index + 1}
-            </Button>
-          ))}
+          <div className="flex gap-2">
+            {[...Array(totalPages)].map((_, index) => (
+              <Button
+                key={index + 1}
+                variant={currentPage === index + 1 ? "default" : "outline"}
+                onClick={() => setCurrentPage(index + 1)}
+                disabled={loading}
+                aria-label={`Page ${index + 1}`}
+                aria-current={currentPage === index + 1 ? "page" : undefined}
+              >
+                {index + 1}
+              </Button>
+            ))}
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages || loading}
+            aria-label="Next page"
+          >
+            Next
+          </Button>
         </div>
-
-        <Button
-          variant="outline"
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
-          disabled={currentPage === totalPages || loading}
-          aria-label="Next page"
-        >
-          Next
-        </Button>
+        <h5 className="text-center text-gray-400 gap-2 mt-4">
+          {statusMessage}
+        </h5>
       </div>
     );
   };
@@ -311,20 +312,6 @@ const AgencyPage = () => {
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
-
-            <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by specialty" />
-              </SelectTrigger>
-              {/*<SelectContent>
-                {agent.specialties.map((specialty) => (
-                  <SelectItem key={specialty} value={specialty}>
-                    {specialty === "all" ? "All Specialties" : specialty}
-                  </SelectItem>
-                ))}
-              </SelectContent>*/}
             </Select>
           </div>
         </div>
