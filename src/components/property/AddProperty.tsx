@@ -76,6 +76,7 @@ const AddProperty = () => {
       parking: false,
     },
     nearby_places: [] as NearbyPlace[],
+    propertyCategory: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -388,10 +389,41 @@ const AddProperty = () => {
                               <SelectItem value="farmhouse">
                                 Farmhouse
                               </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label
+                            htmlFor="propertyCategory"
+                            className="text-base font-medium"
+                          >
+                            Property Category
+                          </Label>
+                          <Select
+                            value={formData.propertyCategory}
+                            onValueChange={(value) =>
+                              handleInputChange("propertyCategory", value)
+                            }
+                          >
+                            <SelectTrigger
+                              id="propertyCategory"
+                              className="mt-1"
+                            >
+                              <SelectValue placeholder="Select property category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="residential">
+                                Residential
+                              </SelectItem>
                               <SelectItem value="commercial">
-                                Commercial Property
+                                Commercial
                               </SelectItem>
                               <SelectItem value="land">Land</SelectItem>
+                              <SelectItem value="newDevelopment">
+                                New Development
+                              </SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
