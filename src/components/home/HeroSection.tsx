@@ -3,14 +3,32 @@ import { Button } from "../ui/button";
 import { Link } from "react-router-dom";
 import { HomeIcon, Building, MapPin } from "lucide-react";
 import SearchFilters from "../search/SearchFilters";
-
+import { useZustand } from "@/lib/zustand";
+import { useNavigate } from "react-router-dom";
 interface HeroSectionProps {
   backgroundImage?: string;
 }
+// HeroSection.tsx
 
 const HeroSection = ({
   backgroundImage = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=80",
 }: HeroSectionProps) => {
+  const { user } = useZustand();
+  const navigate = useNavigate();
+
+  // Add handler for search submission
+  const handleSearchSubmit = (searchParams: any) => {
+    // Convert search parameters to URL query string
+    const queryString = new URLSearchParams({
+      ...searchParams,
+      search: searchParams.searchTerm || "",
+      type: searchParams.propertyType || "all",
+      priceRange: searchParams.priceRange || "all",
+    }).toString();
+
+    // Navigate to properties view with search parameters
+    navigate(`/properties?${queryString}`);
+  };
   return (
     <section
       className="relative bg-cover bg-center h-[600px]"
@@ -43,16 +61,21 @@ const HeroSection = ({
                 <Building className="mr-2 h-5 w-5" /> Rent
               </Link>
             </Button>
-            <Button className="flex-1 h-12 text-lg bg-realtyplus hover:bg-realtyplus-dark">
-              <Link
-                to="/list-property"
-                className="flex items-center justify-center w-full text-white"
-              >
-                <MapPin className="mr-2 h-5 w-5" /> List Property
-              </Link>
-            </Button>
+            {user !== null && user.userType !== "users" && (
+              <Button className="flex-1 h-12 text-lg bg-realtyplus hover:bg-realtyplus-dark">
+                <Link
+                  to="/list-property"
+                  className="flex items-center justify-center w-full text-white"
+                >
+                  <MapPin className="mr-2 h-5 w-5" /> List Property
+                </Link>
+              </Button>
+            )}
           </div>
-          <SearchFilters className="border-none shadow-none p-0" />
+          <SearchFilters
+            onSearch={handleSearchSubmit}
+            className="border-none shadow-none p-0"
+          />
         </div>
       </div>
     </section>

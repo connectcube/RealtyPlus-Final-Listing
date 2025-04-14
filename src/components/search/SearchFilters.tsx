@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,14 +29,16 @@ import {
   Coffee,
   Map,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
 
 interface SearchFiltersProps {
   onSearch?: (filters: SearchFilters) => void;
   className?: string;
   compact?: boolean;
-  type?:string;
+  type?: string;
 }
 
 interface SearchFilters {
@@ -51,14 +53,24 @@ interface SearchFilters {
   garage: string;
   amenities: string[];
   listingType: string;
+  propertyCategory: string;
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
 }
 
 const SearchFilters = ({
   onSearch,
   className,
   compact = false,
-  type,
+  type = "buy",
 }: SearchFiltersProps = {}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [errors, setErrors] = useState<ValidationError[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Set different price ranges based on listing type
   const priceRanges = {
     buy: { min: 10000, max: 5000000, default: [10000, 5000000], step: 10000 },
@@ -77,21 +89,135 @@ const SearchFilters = ({
     garage: "",
     amenities: [],
     listingType: type,
+    propertyCategory: "",
   });
-
+  console.log(filters);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Initialize filters from URL params
+  useEffect(() => {
+    const params = Object.fromEntries(searchParams.entries());
+    setFilters((prev) => ({
+      ...prev,
+      location: params.location || "",
+      province: params.province || "",
+      priceRange: params.priceRange
+        ? (params.priceRange.split(",").map(Number) as [number, number])
+        : prev.priceRange,
+      propertyType: params.propertyType || "",
+      propertyCategory: params.propertyCategory || "",
+      bedrooms: params.bedrooms || "",
+      bathrooms: params.bathrooms || "",
+      garage: params.garage || "",
+      furnishingStatus: params.furnishingStatus || "",
+      yearBuilt: params.yearBuilt || "",
+      amenities: params.amenities ? params.amenities.split(",") : [],
+      listingType: params.listingType || type,
+    }));
+  }, [searchParams, type]);
+
+  const updateURLParams = (newFilters: SearchFilters) => {
+    const params = new URLSearchParams();
+
+    // Only add non-empty and non-default values to URL
+    if (newFilters.location) params.set("location", newFilters.location);
+    if (newFilters.province) params.set("province", newFilters.province);
+    if (newFilters.propertyType)
+      params.set("propertyType", newFilters.propertyType);
+    if (newFilters.propertyCategory)
+      params.set("propertyCategory", newFilters.propertyCategory);
+    if (newFilters.bedrooms) params.set("bedrooms", newFilters.bedrooms);
+    if (newFilters.bathrooms) params.set("bathrooms", newFilters.bathrooms);
+    if (newFilters.garage) params.set("garage", newFilters.garage);
+    if (newFilters.furnishingStatus)
+      params.set("furnishingStatus", newFilters.furnishingStatus);
+    if (newFilters.yearBuilt) params.set("yearBuilt", newFilters.yearBuilt);
+    if (newFilters.amenities.length > 0)
+      params.set("amenities", newFilters.amenities.join(","));
+
+    // Only add price range if it's different from default
+    if (
+      newFilters.priceRange[0] !==
+        priceRanges[newFilters.listingType].default[0] ||
+      newFilters.priceRange[1] !==
+        priceRanges[newFilters.listingType].default[1]
+    ) {
+      params.set("priceRange", newFilters.priceRange.join(","));
+    }
+
+    // Only add listing type if different from default
+    if (newFilters.listingType !== type) {
+      params.set("listingType", newFilters.listingType);
+    }
+
+    setSearchParams(params, { replace: true }); // Use replace to avoid adding to browser history
+  };
+
+  const validateFilters = (filters: SearchFilters): ValidationError[] => {
+    const errors: ValidationError[] = [];
+
+    // Validate price range
+    if (filters.priceRange[0] > filters.priceRange[1]) {
+      errors.push({
+        field: "priceRange",
+        message: "Minimum price cannot be greater than maximum price",
+      });
+    }
+
+    // Validate year built
+    if (filters.yearBuilt && isNaN(Number(filters.yearBuilt))) {
+      errors.push({
+        field: "yearBuilt",
+        message: "Year built must be a valid number",
+      });
+    }
+
+    return errors;
+  };
+
+  const handleSearch = async () => {
+    const validationErrors = validateFilters(filters);
+    setErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      updateURLParams(filters);
+      if (onSearch) {
+        await onSearch(filters);
+      }
+    } catch (error) {
+      setErrors([
+        {
+          field: "general",
+          message:
+            "An error occurred while performing the search. Please try again.",
+        },
+      ]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePriceRangeChange = (value: number[]) => {
+    if (value[0] > value[1]) {
+      setErrors([
+        ...errors,
+        {
+          field: "priceRange",
+          message: "Minimum price cannot be greater than maximum price",
+        },
+      ]);
+      return;
+    }
+    setErrors(errors.filter((error) => error.field !== "priceRange"));
     setFilters({
       ...filters,
       priceRange: [value[0], value[1]],
     });
-  };
-
-  const handleSearch = () => {
-    if (onSearch) {
-      onSearch(filters);
-    }
   };
 
   const handleReset = () => {
@@ -100,7 +226,7 @@ const SearchFilters = ({
         ? (priceRanges.rent.default as [number, number])
         : (priceRanges.buy.default as [number, number]);
 
-    setFilters({
+    const resetFilters = {
       location: "",
       province: "",
       priceRange: defaultPriceRange,
@@ -111,8 +237,12 @@ const SearchFilters = ({
       bathrooms: "",
       garage: "",
       amenities: [],
+      propertyCategory: "",
       listingType: filters.listingType,
-    });
+    };
+
+    setFilters(resetFilters);
+    setSearchParams(new URLSearchParams()); // Clear all URL params
   };
 
   const handleListingTypeChange = (value: string) => {
@@ -130,6 +260,15 @@ const SearchFilters = ({
 
   return (
     <div className={cn("bg-white p-4 rounded-lg shadow-md", className)}>
+      {errors.length > 0 && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          {errors.map((error) => (
+            <p key={error.field} className="text-red-600 text-sm">
+              {error.message}
+            </p>
+          ))}
+        </div>
+      )}
       <Tabs defaultValue={type} onValueChange={handleListingTypeChange}>
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="buy">Buy</TabsTrigger>
@@ -190,12 +329,32 @@ const SearchFilters = ({
                 <SelectContent>
                   <SelectItem value="house">House</SelectItem>
                   <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="land">Land</SelectItem>
-                  <SelectItem value="commercial">Commercial</SelectItem>
                   <SelectItem value="semi-detached">Semi Detached</SelectItem>
                   <SelectItem value="standalone">Stand Alone</SelectItem>
                   <SelectItem value="farmhouse">Farmhouse</SelectItem>
                   <SelectItem value="townhouse">Townhouse</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full md:w-1/4">
+              <Label htmlFor="propertyCategory">Property Category</Label>
+              <Select
+                value={filters.propertyCategory}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, propertyCategory: value })
+                }
+              >
+                <SelectTrigger id="propertyCategory">
+                  <SelectValue placeholder="Select property category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="residential">Residential</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="land">Land</SelectItem>
+                  <SelectItem value="newDevelopment">
+                    New Development
+                  </SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -244,9 +403,19 @@ const SearchFilters = ({
                   size="sm"
                   onClick={handleSearch}
                   className="flex-1 sm:flex-none"
+                  disabled={isSubmitting}
                 >
-                  Search
-                  <Search className="ml-1 h-3 w-3" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      Search
+                      <Search className="ml-1 h-3 w-3" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -386,14 +555,16 @@ const SearchFilters = ({
                             setFilters({
                               ...filters,
                               amenities: filters.amenities.filter(
-                                (a) => a !== amenity,
+                                (a) => a !== amenity
                               ),
                             });
                           }
                         }}
                       />
                       <label
-                        htmlFor={`buy-${amenity.toLowerCase().replace(" ", "-")}`}
+                        htmlFor={`buy-${amenity
+                          .toLowerCase()
+                          .replace(" ", "-")}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {amenity}
@@ -513,9 +684,19 @@ const SearchFilters = ({
                   size="sm"
                   onClick={handleSearch}
                   className="flex-1 sm:flex-none"
+                  disabled={isSubmitting}
                 >
-                  Search
-                  <Search className="ml-1 h-3 w-3" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      Search
+                      <Search className="ml-1 h-3 w-3" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -532,7 +713,10 @@ const SearchFilters = ({
                       setFilters({ ...filters, bedrooms: value })
                     }
                   >
-                    <SelectTrigger id="bedrooms-rent">
+                    <SelectTrigger
+                      id="bedrooms-rent"
+                      aria-label="Select number of bedrooms"
+                    >
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
@@ -553,7 +737,10 @@ const SearchFilters = ({
                       setFilters({ ...filters, bathrooms: value })
                     }
                   >
-                    <SelectTrigger id="bathrooms-rent">
+                    <SelectTrigger
+                      id="bathrooms-rent"
+                      aria-label="Select number of bathrooms"
+                    >
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
@@ -573,7 +760,10 @@ const SearchFilters = ({
                       setFilters({ ...filters, garage: value })
                     }
                   >
-                    <SelectTrigger id="garage-rent">
+                    <SelectTrigger
+                      id="garage-rent"
+                      aria-label="Select number of garage spaces"
+                    >
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
@@ -592,7 +782,10 @@ const SearchFilters = ({
                       setFilters({ ...filters, furnishingStatus: value })
                     }
                   >
-                    <SelectTrigger id="furnishingStatus-rent">
+                    <SelectTrigger
+                      id="furnishingStatus-rent"
+                      aria-label="Select furnishing status"
+                    >
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
@@ -614,7 +807,10 @@ const SearchFilters = ({
                     setFilters({ ...filters, yearBuilt: value })
                   }
                 >
-                  <SelectTrigger id="yearBuilt-rent">
+                  <SelectTrigger
+                    id="yearBuilt-rent"
+                    aria-label="Select year built"
+                  >
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>
@@ -630,7 +826,14 @@ const SearchFilters = ({
 
               <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2">
+                <div
+                  className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2"
+                  role="group"
+                  aria-labelledby="amenities-label"
+                >
+                  <span id="amenities-label" className="sr-only">
+                    Select amenities
+                  </span>
                   {[
                     "Swimming Pool",
                     "Garden",
@@ -658,14 +861,17 @@ const SearchFilters = ({
                             setFilters({
                               ...filters,
                               amenities: filters.amenities.filter(
-                                (a) => a !== amenity,
+                                (a) => a !== amenity
                               ),
                             });
                           }
                         }}
+                        aria-label={`${amenity} amenity`}
                       />
                       <label
-                        htmlFor={`rent-${amenity.toLowerCase().replace(" ", "-")}`}
+                        htmlFor={`rent-${amenity
+                          .toLowerCase()
+                          .replace(" ", "-")}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {amenity}

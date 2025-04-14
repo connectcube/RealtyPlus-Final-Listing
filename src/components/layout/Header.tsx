@@ -319,7 +319,7 @@ const Header = ({ className }: HeaderProps = {}) => {
                       <Bell className="mr-2 h-4 w-4" /> Notifications
                     </Link>
                   </DropdownMenuItem>
-                  {user !== null && user.userType === "agent" && (
+                  {user !== null && user.userType === "agents" && (
                     <>
                       <DropdownMenuItem>
                         <Link to="/agent/dashboard" className="w-full">
@@ -335,7 +335,7 @@ const Header = ({ className }: HeaderProps = {}) => {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              {user !== null && user.userType !== "user" && (
+              {user !== null && user.userType !== "users" && (
                 <Button className="bg-realtyplus hover:bg-realtyplus-dark text-white">
                   <Link to="/list-property" className="text-white">
                     List Property
