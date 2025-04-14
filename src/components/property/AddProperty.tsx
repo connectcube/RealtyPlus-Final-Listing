@@ -59,6 +59,7 @@ const AddProperty = () => {
     garageSpaces: "",
     yearBuilt: "",
     isFurnished: false,
+    isFeatured: false,
     province: "",
     city: "",
     neighborhood: "",
@@ -293,7 +294,21 @@ const AddProperty = () => {
                             }
                           />
                         </div>
-
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="isFurnished"
+                            checked={formData.isFeatured}
+                            onCheckedChange={(checked) =>
+                              handleInputChange("isFeatured", checked)
+                            }
+                          />
+                          <Label
+                            htmlFor="isFurnished"
+                            className="text-base font-medium"
+                          >
+                            Make this a featured property
+                          </Label>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <div>
                             <Label

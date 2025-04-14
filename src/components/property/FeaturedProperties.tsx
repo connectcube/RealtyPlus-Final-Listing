@@ -12,7 +12,14 @@ import {
 } from "../ui/pagination";
 import { ChevronLeft, ChevronRight, Grid3X3, List } from "lucide-react";
 import PropertyCard from "./PropertyCard";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 
 interface Property {
@@ -52,7 +59,12 @@ const FeaturedProperties = ({
       try {
         setLoading(true);
         const listingsRef = collection(fireDataBase, "listings");
-        const q = query(listingsRef, orderBy("createdAt", "desc"));
+        const q = query(
+          listingsRef,
+          where("isFeatured", "==", true),
+          orderBy("createdAt", "desc"),
+          limit(12)
+        );
         const querySnapshot = await getDocs(q);
 
         const fetchedProperties: Property[] = querySnapshot.docs.map((doc) => ({
@@ -73,7 +85,6 @@ const FeaturedProperties = ({
   // Filter properties based on active tab
   const filteredProperties = properties.filter((property) => {
     if (activeTab === "all") return true;
-    if (activeTab === "featured") return property.isFeatured;
     if (activeTab === "standalone")
       return property.propertyType === "standalone";
     if (activeTab === "apartment") return property.propertyType === "apartment";
@@ -126,13 +137,10 @@ const FeaturedProperties = ({
             onValueChange={setActiveTab}
           >
             <TabsList className="flex justify-between w-full">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="featured">Featured</TabsTrigger>
+              <TabsTrigger value="all">All Properties</TabsTrigger>
               <TabsTrigger value="standalone">Houses</TabsTrigger>
               <TabsTrigger value="apartment">Apartments</TabsTrigger>
-              <TabsTrigger value="semi-detached" className="w-fit">
-                Semi-Detached
-              </TabsTrigger>
+              <TabsTrigger value="semi-detached">Semi-Detached</TabsTrigger>
             </TabsList>
           </Tabs>
 
