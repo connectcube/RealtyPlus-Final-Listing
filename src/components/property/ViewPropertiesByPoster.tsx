@@ -44,8 +44,8 @@ const ViewPropertiesByPoster = () => {
           if (listingDoc.exists()) {
             propertyList.push({
               uid: listingDoc.id,
-              ...listingDoc.data(),
-            } as LISTING);
+              ...(listingDoc.data() as Omit<LISTING, "uid">),
+            });
           }
         }
 

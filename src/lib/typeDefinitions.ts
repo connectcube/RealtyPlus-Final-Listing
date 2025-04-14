@@ -110,4 +110,5 @@ export type Subscription = {
   listingsTotal: number;
   agentsUsed:number;
   agentsTotal:number;
+  renewalDate:Timestamp;
 };

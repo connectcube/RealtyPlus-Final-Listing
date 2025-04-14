@@ -205,6 +205,10 @@ const AgentsPage = () => {
     "all",
     ...new Set(agents.map((agent) => agent.city || "").filter(Boolean)),
   ];
+  const specialties = [
+    "all",
+    ...new Set(agents.flatMap((agent) => agent.specialties)),
+  ];
   const PaginationControls = () => {
     return (
       <div
@@ -309,13 +313,13 @@ const AgentsPage = () => {
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by specialty" />
               </SelectTrigger>
-              {/*<SelectContent>
-                {agent.specialties.map((specialty) => (
+              <SelectContent>
+                {specialties.map((specialty) => (
                   <SelectItem key={specialty} value={specialty}>
                     {specialty === "all" ? "All Specialties" : specialty}
                   </SelectItem>
                 ))}
-              </SelectContent>*/}
+              </SelectContent>
             </Select>
           </div>
         </div>

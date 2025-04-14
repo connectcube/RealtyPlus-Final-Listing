@@ -43,6 +43,8 @@ export default function AgentProfile() {
     companyName: user?.companyName || "",
     businessType: user?.businessType || "",
     businessRegistrationNumber: user?.businessRegistrationNumber || "",
+    specialties: user?.specialties || [],
+    languages: user?.languages || [],
     social: {
       linkedin: user?.social?.linkedin || "",
       twitter: user?.social?.twitter || "",
@@ -50,6 +52,21 @@ export default function AgentProfile() {
     address: user?.address || "",
     city: user?.city || "",
   });
+  const specialtyOptions = [
+    "Residential",
+    "Family Homes",
+    "Suburbs",
+    "Tourism Properties",
+    "Vacation Homes",
+    "Land",
+    "Luxury Homes",
+    "International Clients",
+    "Investment Properties",
+    "Affordable Housing",
+    "Rentals",
+    "First-time Buyers",
+    "Commercial",
+  ].sort(); // Sort alphabetically and remove duplicates
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -86,7 +103,10 @@ export default function AgentProfile() {
     try {
       setLoading(true);
       const agencyRef = doc(fireDataBase, "agents", user?.uid);
-      await updateDoc(agencyRef, formData);
+      await updateDoc(agencyRef, {
+        ...formData,
+        specialties: formData.specialties, // Make sure specialties are included
+      });
 
       setUser({ ...user, ...formData });
       setIsEditing(false);
@@ -97,6 +117,21 @@ export default function AgentProfile() {
     } finally {
       setLoading(false);
     }
+  };
+  const handleAddSpecialty = (value: string) => {
+    if (!formData.specialties.includes(value)) {
+      setFormData((prev) => ({
+        ...prev,
+        specialties: [...prev.specialties, value],
+      }));
+    }
+  };
+
+  const handleRemoveSpecialty = (specialty: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      specialties: prev.specialties.filter((item) => item !== specialty),
+    }));
   };
 
   return (
@@ -171,6 +206,67 @@ export default function AgentProfile() {
                         <SelectItem value="BROKER">Broker</SelectItem>
                       </SelectContent>
                     </Select>
+                    {/* Specialties Section */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm border">
+                      <h4 className="font-medium text-lg mb-4">Specialties</h4>
+                      {isEditing ? (
+                        <div className="space-y-4">
+                          <Select onValueChange={handleAddSpecialty}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Add a specialty" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {specialtyOptions.map((specialty) => (
+                                <SelectItem
+                                  key={specialty}
+                                  value={specialty}
+                                  disabled={formData.specialties.includes(
+                                    specialty
+                                  )}
+                                >
+                                  {specialty}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            <h1 className="w-full text-xl font-semibold">
+                              Specialties
+                            </h1>
+                            {formData.specialties.map((specialty) => (
+                              <span
+                                key={specialty}
+                                className="px-3 py-1 flex items-center gap-2 bg-slate-400/5 rounded"
+                              >
+                                {specialty}
+
+                                <button
+                                  onClick={() =>
+                                    handleRemoveSpecialty(specialty)
+                                  }
+                                  className="text-black hover:text-gray-700"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {user?.specialties?.map((specialty) => (
+                            <Badge key={specialty}>{specialty}</Badge>
+                          ))}
+                          {(!user?.specialties ||
+                            user.specialties.length === 0) && (
+                            <p className="text-sm text-gray-500">
+                              No specialties added
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <Input
                       name="businessRegistrationNumber"
                       value={formData.businessRegistrationNumber}
@@ -186,6 +282,28 @@ export default function AgentProfile() {
                     </h3>
                     <div className="flex flex-wrap gap-2 capitalize">
                       Agent Type: {user?.agentType?.replace(/_/g, " ")}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <h1 className="w-full text-xl font-semibold">
+                        Specialties
+                      </h1>
+                      {formData.specialties.map((specialty) => (
+                        <span
+                          key={specialty}
+                          className="px-3 py-1 flex items-center gap-2 bg-slate-400/5 rounded"
+                        >
+                          {specialty}
+
+                          {isEditing && (
+                            <button
+                              onClick={() => handleRemoveSpecialty(specialty)}
+                              className="text-black hover:text-gray-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
                     </div>
                     <p className="text-sm text-gray-600">
                       License No: {user?.licenseNumber}

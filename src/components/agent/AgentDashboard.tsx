@@ -344,13 +344,16 @@ const AgentDashboard = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <ProfileForm
+                      <Button>
+                        <Link to="/agent/profile">Visit Profile</Link>
+                      </Button>
+                      {/*<ProfileForm
                         user={user}
                         onUpdateSuccess={() => {
                           // Handle successful update (e.g., show a toast notification)
                           toast.success("Profile updated successfully");
                         }}
-                      />
+                      />*/}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -462,7 +465,7 @@ const AgentDashboard = () => {
   );
 };
 
-interface ProfileFormData {
+/*interface ProfileFormData {
   firstName: string;
   lastName: string;
   email: string;
@@ -475,7 +478,6 @@ interface ProfileFormData {
     twitter: string;
   };
 }
-
 const ProfileForm = ({ user, onUpdateSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -536,7 +538,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Profile Header with Avatar */}
       <div className="flex items-center space-x-4">
         <div className="relative h-24 w-24">
           <img
@@ -561,7 +562,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
         </div>
       </div>
 
-      {/* Personal Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Personal Information</h3>
@@ -625,7 +625,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
           </div>
         </div>
 
-        {/* Professional Information */}
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Professional Information</h3>
           <div className="space-y-2">
@@ -660,8 +659,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
           </div>
         </div>
       </div>
-
-      {/* Bio */}
       <div className="space-y-2">
         <label htmlFor="bio" className="text-sm text-gray-500">
           Bio
@@ -677,7 +674,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
         />
       </div>
 
-      {/* Social Links */}
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">Social Links</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -709,8 +705,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
           </div>
         </div>
       </div>
-
-      {/* Action Buttons */}
       <div className="flex justify-end space-x-3">
         <Button
           type="button"
@@ -743,6 +737,6 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
       </div>
     </form>
   );
-};
+};*/
 
 export default AgentDashboard;
