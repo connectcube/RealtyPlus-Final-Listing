@@ -21,7 +21,6 @@ const CallToAction = ({
   secondaryButtonLink = "/list-property",
 }: CallToActionProps) => {
   const { user } = useZustand();
-  console.log(user);
   return (
     <section className="py-16 bg-realtyplus text-white">
       <div className="container mx-auto px-4 text-center">

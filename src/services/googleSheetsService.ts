@@ -5,13 +5,12 @@ export interface ContactFormData {
   timestamp: string;
 }
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUa5THDHljv145TrZlCKsJc95svqfEXi7e5cy7fhB9vgSKSHfDk-vmbBqh1JeV3YSG/exec';
+const API_BASE_URL =  'http://localhost:3000';
 
 export const submitContactForm = async (formData: ContactFormData): Promise<Response> => {
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
+    const response = await fetch(`${API_BASE_URL}/api/contact`, {
       method: 'POST',
-      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -20,7 +19,8 @@ export const submitContactForm = async (formData: ContactFormData): Promise<Resp
     });
 
     if (!response.ok) {
-      throw new Error('Failed to submit form');
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.message || 'Failed to submit form');
     }
 
     return response;

@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { submitContactForm } from "@/services/googleSheetsService";
 import { toast } from "react-toastify";
+import { useZustand } from "@/lib/zustand";
 
 interface ContactSectionProps {
   address?: string;
@@ -15,9 +16,10 @@ const ContactSection = ({
   phone = "+260 97 1234567",
   email = "info@realtyzambia.com",
 }: ContactSectionProps) => {
+  const { user } = useZustand();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: `${user.firstName} ${user.lastName}` || "",
+    email: user.email || "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
