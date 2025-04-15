@@ -1,10 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import SearchFilters from "../search/SearchFilters";
 import PropertyCard from "./PropertyCard";
 import { Button } from "../ui/button";
-import { Grid, List, MapPin } from "lucide-react";
+import { Grid, LayoutGrid, List, MapPin } from "lucide-react";
+import { fireDataBase } from "@/lib/firebase";
+import {
+  collection,
+  DocumentData,
+  getDocs,
+  Query,
+  query,
+  where,
+} from "firebase/firestore";
+import { LISTING } from "@/lib/typeDefinitions";
 
 // Mock properties for sale data
 const mockPropertiesForSale = [
@@ -102,63 +112,185 @@ const mockPropertiesForSale = [
 
 const BuyProperties = () => {
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [properties, setProperties] = useState(mockPropertiesForSale);
+  const [properties, setProperties] = useState<LISTING[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<LISTING[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFavorite = (id: string) => {
-    console.log(`Property ${id} added to favorites`);
+  // Initial fetch of properties
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const listingsRef = collection(fireDataBase, "listings");
+      const q = query(
+        listingsRef,
+        where("listingType", "==", "sale"),
+        where("status", "==", "active")
+      );
+
+      const querySnapshot = await getDocs(q);
+      const propertyList: LISTING[] = [];
+
+      querySnapshot.forEach((doc) => {
+        propertyList.push({
+          uid: doc.id,
+          ...(doc.data() as LISTING),
+        });
+      });
+
+      setProperties(propertyList);
+      setFilteredProperties(propertyList);
+    } catch (err) {
+      console.error("Error fetching properties:", err);
+      setError("Failed to load properties. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handlePropertyClick = (id: string) => {
-    console.log(`Navigating to property ${id} details`);
-    window.location.href = `/property/${id}`;
+  const handleSearch = async (filters: SearchFilters) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const listingsRef = collection(fireDataBase, "listings");
+      let q: Query<DocumentData> = query(
+        listingsRef,
+        where("listingType", "==", "sale"),
+        where("status", "==", "active")
+      );
+
+      // Build query based on filters
+      if (filters.province) {
+        q = query(q, where("province", "==", filters.province.toLowerCase()));
+      }
+
+      if (filters.propertyType) {
+        q = query(q, where("propertyType", "==", filters.propertyType));
+      }
+
+      if (filters.bedrooms) {
+        q = query(q, where("bedrooms", ">=", parseInt(filters.bedrooms)));
+      }
+
+      if (filters.bathrooms) {
+        q = query(q, where("bathrooms", ">=", parseInt(filters.bathrooms)));
+      }
+
+      const querySnapshot = await getDocs(q);
+      let filteredResults = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as LISTING),
+      }));
+
+      // Client-side filtering for remaining filters
+      filteredResults = filteredResults.filter((property) => {
+        // Price range filter
+        if (filters.priceRange[0] && filters.priceRange[1]) {
+          const minPrice = parseInt(filters.priceRange[0]);
+          const maxPrice = parseInt(filters.priceRange[1]);
+          if (property.price < minPrice || property.price > maxPrice) {
+            return false;
+          }
+        }
+
+        // Location filter (case-insensitive)
+        if (
+          filters.location &&
+          !property.location
+            .toLowerCase()
+            .includes(filters.location.toLowerCase())
+        ) {
+          return false;
+        }
+
+        // Year built filter
+        if (
+          filters.yearBuilt &&
+          property.yearBuilt < parseInt(filters.yearBuilt)
+        ) {
+          return false;
+        }
+
+        // Furnishing status filter
+        if (filters.furnishingStatus) {
+          const isFurnished = filters.furnishingStatus === "furnished";
+          if (property.isFurnished !== isFurnished) {
+            return false;
+          }
+        }
+
+        // Amenities filter
+        if (filters.amenities && filters.amenities.length > 0) {
+          return filters.amenities.every((amenity) =>
+            property.amenities?.includes(amenity)
+          );
+        }
+
+        return true;
+      });
+
+      setFilteredProperties(filteredResults);
+    } catch (err) {
+      console.error("Error searching properties:", err);
+      setError("An error occurred while searching. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Properties for Sale
-          </h1>
-          <p className="text-gray-600">
-            Browse our selection of properties available for purchase in Zambia
-          </p>
-        </div>
+        <SearchFilters type="sale" onSearch={handleSearch} />
 
-        <SearchFilters type="buy"/>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
 
         <div className="flex justify-between items-center my-6">
           <div className="text-gray-600">
             <p>
-              <span className="font-semibold">{properties.length}</span>{" "}
+              <span className="font-semibold">{filteredProperties.length}</span>{" "}
               properties found
             </p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex gap-2">
             <Button
-              variant={view === "grid" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => setView("grid")}
+              className={view === "grid" ? "bg-gray-100" : ""}
             >
-              <Grid className="h-4 w-4" />
+              <LayoutGrid className="h-4 w-4" />
             </Button>
             <Button
-              variant={view === "list" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => setView("list")}
+              className={view === "list" ? "bg-gray-100" : ""}
             >
               <List className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {view === "grid" ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-realtyplus"></div>
+          </div>
+        ) : view === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {properties.map((property) => (
+            {filteredProperties.map((property) => (
               <PropertyCard
-                key={property.id}
-                id={property.id}
+                key={property.uid}
+                id={property.uid}
                 title={property.title}
                 price={property.price}
                 location={property.location}
@@ -170,104 +302,52 @@ const BuyProperties = () => {
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
-                onFavorite={handleFavorite}
-                onClick={handlePropertyClick}
+                onFavorite={() => console.log(property.uid)}
+                onClick={() => console.log(property.uid)}
               />
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {properties.map((property) => (
-              <div
-                key={property.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row"
-              >
-                <div className="md:w-1/3 h-48 md:h-auto relative">
-                  <img
-                    src={property.imageUrl}
-                    alt={property.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {property.isFeatured && (
-                    <div className="absolute top-2 left-2 bg-realtyplus text-white text-xs font-semibold px-2 py-1 rounded">
-                      Featured
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 md:p-6 flex-1 flex flex-col">
-                  <div className="flex-1">
-                    <h3
-                      className="text-xl font-semibold text-gray-900 mb-2 cursor-pointer hover:text-realtyplus"
-                      onClick={() => handlePropertyClick(property.id)}
-                    >
-                      {property.title}
-                    </h3>
-                    <div className="flex items-center text-gray-600 mb-3">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      <span>{property.location}</span>
-                    </div>
-                    <p className="text-2xl font-bold text-realtyplus mb-4">
-                      K{property.price.toLocaleString()}
-                    </p>
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      <div className="text-center p-2 bg-gray-50 rounded">
-                        <p className="text-gray-500 text-xs">Bedrooms</p>
-                        <p className="font-semibold">
-                          {property.bedrooms > 0 ? property.bedrooms : "N/A"}
-                        </p>
-                      </div>
-                      <div className="text-center p-2 bg-gray-50 rounded">
-                        <p className="text-gray-500 text-xs">Bathrooms</p>
-                        <p className="font-semibold">{property.bathrooms}</p>
-                      </div>
-                      <div className="text-center p-2 bg-gray-50 rounded">
-                        <p className="text-gray-500 text-xs">Area</p>
-                        <p className="font-semibold">{property.area} m²</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="flex space-x-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${property.isFurnished ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
-                      >
-                        {property.isFurnished ? "Furnished" : "Unfurnished"}
-                      </span>
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                        {property.propertyType.charAt(0).toUpperCase() +
-                          property.propertyType.slice(1)}
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePropertyClick(property.id)}
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                </div>
-              </div>
+            {filteredProperties.map((property) => (
+              <PropertyCard
+                key={property.uid}
+                id={property.uid}
+                title={property.title}
+                price={property.price}
+                location={property.location}
+                bedrooms={property.bedrooms}
+                bathrooms={property.bathrooms}
+                area={property.area}
+                imageUrl={property.imageUrl}
+                propertyType={property.propertyType}
+                isFeatured={property.isFeatured}
+                isFurnished={property.isFurnished}
+                yearBuilt={property.yearBuilt}
+                onFavorite={() => console.log(property.uid)}
+                onClick={() => console.log(property.uid)}
+              />
             ))}
           </div>
         )}
 
-        {properties.length === 0 && (
+        {!isLoading && filteredProperties.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
               No properties found matching your criteria.
             </p>
-            <Button variant="link" className="mt-2">
+            <Button
+              variant="link"
+              className="mt-2"
+              onClick={() => {
+                setFilteredProperties(properties);
+                // You might want to trigger a reset in SearchFilters component
+              }}
+            >
               Clear all filters
             </Button>
           </div>
         )}
-
-        <div className="mt-8 flex justify-center">
-          <Button variant="outline" className="mr-2">
-            Load More
-          </Button>
-        </div>
       </main>
       <Footer />
     </div>

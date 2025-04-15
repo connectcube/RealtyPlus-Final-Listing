@@ -73,8 +73,13 @@ const SearchFilters = ({
 
   // Set different price ranges based on listing type
   const priceRanges = {
-    sale: { min: 10000, max: 5000000, default: [10000, 5000000], step: 10000 },
-    rent: { min: 100, max: 50000, default: [100, 50000], step: 100 },
+    sale: {
+      min: 10,
+      max: 5000000,
+      default: ["10", "5000000"],
+      step: 10000,
+    },
+    rent: { min: 10, max: 50000, default: ["100", "50000"], step: 100 },
   };
 
   const [filters, setFilters] = useState<SearchFilters>({
@@ -91,7 +96,6 @@ const SearchFilters = ({
     listingType: type,
     propertyCategory: "",
   });
-  console.log(filters);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Initialize filters from URL params
@@ -236,8 +240,8 @@ const SearchFilters = ({
   const handleReset = () => {
     const defaultPriceRange =
       filters.listingType === "rent"
-        ? (priceRanges.rent.default as [number, number])
-        : (priceRanges.sale.default as [number, number]);
+        ? (priceRanges.rent.default as [string, string])
+        : (priceRanges.sale.default as [string, string]);
 
     const resetFilters = {
       location: "",
@@ -318,6 +322,7 @@ const SearchFilters = ({
                   <SelectValue placeholder="Select province" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="lusaka">Lusaka</SelectItem>
                   <SelectItem value="copperbelt">Copperbelt</SelectItem>
                   <SelectItem value="central">Central</SelectItem>
@@ -340,6 +345,7 @@ const SearchFilters = ({
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="house">House</SelectItem>
                   <SelectItem value="apartment">Apartment</SelectItem>
                   <SelectItem value="semi-detached">Semi Detached</SelectItem>
@@ -361,6 +367,7 @@ const SearchFilters = ({
                   <SelectValue placeholder="Select property category" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="residential">Residential</SelectItem>
                   <SelectItem value="commercial">Commercial</SelectItem>
                   <SelectItem value="land">Land</SelectItem>
