@@ -192,17 +192,20 @@ const RentProperties = () => {
         if (filters.priceRange[0] && filters.priceRange[1]) {
           const minPrice = parseInt(filters.priceRange[0]);
           const maxPrice = parseInt(filters.priceRange[1]);
-          if (property.price < minPrice || property.price > maxPrice) {
+          if (
+            parseInt(property.price) < minPrice ||
+            parseInt(property.price) > maxPrice
+          ) {
             return false;
           }
         }
 
         // Location filter (case-insensitive)
         if (
-          filters.location &&
-          !property.location
+          filters.address &&
+          !property.address
             .toLowerCase()
-            .includes(filters.location.toLowerCase())
+            .includes(filters.address.toLowerCase())
         ) {
           return false;
         }
@@ -210,7 +213,7 @@ const RentProperties = () => {
         // Year built filter
         if (
           filters.yearBuilt &&
-          property.yearBuilt < parseInt(filters.yearBuilt)
+          parseInt(property.yearBuilt) < parseInt(filters.yearBuilt)
         ) {
           return false;
         }
@@ -293,11 +296,11 @@ const RentProperties = () => {
                 id={property.uid}
                 title={property.title}
                 price={property.price}
-                location={property.location}
+                location={property.address}
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.imageUrl}
+                imageUrl={property.coverPhoto}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
@@ -315,11 +318,11 @@ const RentProperties = () => {
                 id={property.uid}
                 title={property.title}
                 price={property.price}
-                location={property.location}
+                location={property.address}
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.imageUrl}
+                imageUrl={property.coverPhoto}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}

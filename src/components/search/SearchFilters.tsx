@@ -43,6 +43,7 @@ interface SearchFiltersProps {
 
 interface SearchFilters {
   location: string;
+  address: string;
   province: string;
   priceRange: [string, string];
   propertyType: string;
@@ -84,6 +85,7 @@ const SearchFilters = ({
 
   const [filters, setFilters] = useState<SearchFilters>({
     location: "",
+    address: "",
     province: "",
     priceRange: [priceRanges[type].default[0], priceRanges[type].default[1]],
     propertyType: "",
@@ -245,6 +247,7 @@ const SearchFilters = ({
 
     const resetFilters = {
       location: "",
+      address: "",
       province: "",
       priceRange: defaultPriceRange,
       propertyType: "",

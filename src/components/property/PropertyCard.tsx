@@ -21,7 +21,15 @@ interface PropertyCardProps {
   bathrooms?: number | string;
   area?: number | string;
   imageUrl?: string;
-  propertyType?: "standalone" | "semi-detached" | "apartment" | "other";
+  propertyType?:
+    | "standalone"
+    | "semi-detached"
+    | "apartment"
+    | "house"
+    | "commercial"
+    | "farmhouse"
+    | "townhouse"
+    | "other";
   isFeatured?: boolean;
   isFurnished?: boolean;
   yearBuilt?: number | string;
