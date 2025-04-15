@@ -61,8 +61,9 @@ export type LISTING={
     price: string;
     coverPhoto: string;
     images:string[];
-    propertyType: "standalone" | "semi-detached" | "apartment" | "other";
-    listingType: string;
+    propertyType: "standalone" | "semi-detached" | "apartment" | "house" | "commercial" | "farmhouse" | "townhouse" | "other";
+  listingType: "sale" | "rent";
+  propertyCategory: "residential" | "commercial" | "land" | "newDevelopment" | "other";
     bedrooms: string;
     bathrooms: string;
     area: string;
@@ -78,7 +79,7 @@ export type LISTING={
     company:string;
     createdAt:Timestamp;
 }
-interface FEATURES{
+export type FEATURES={
   swimmingPool: boolean;
   garden: boolean;
   securitySystem: boolean;

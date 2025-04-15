@@ -44,7 +44,7 @@ interface SearchFiltersProps {
 interface SearchFilters {
   location: string;
   province: string;
-  priceRange: [number, number];
+  priceRange: [string, string];
   propertyType: string;
   furnishingStatus: string;
   yearBuilt: string;
@@ -65,7 +65,7 @@ const SearchFilters = ({
   onSearch,
   className,
   compact = false,
-  type = "buy",
+  type = "sale",
 }: SearchFiltersProps = {}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [errors, setErrors] = useState<ValidationError[]>([]);
@@ -73,14 +73,14 @@ const SearchFilters = ({
 
   // Set different price ranges based on listing type
   const priceRanges = {
-    buy: { min: 10000, max: 5000000, default: [10000, 5000000], step: 10000 },
+    sale: { min: 10000, max: 5000000, default: [10000, 5000000], step: 10000 },
     rent: { min: 100, max: 50000, default: [100, 50000], step: 100 },
   };
 
   const [filters, setFilters] = useState<SearchFilters>({
     location: "",
     province: "",
-    priceRange: priceRanges.buy.default as [number, number],
+    priceRange: [priceRanges[type].default[0], priceRanges[type].default[1]],
     propertyType: "",
     furnishingStatus: "",
     yearBuilt: "",
@@ -102,7 +102,7 @@ const SearchFilters = ({
       location: params.location || "",
       province: params.province || "",
       priceRange: params.priceRange
-        ? (params.priceRange.split(",").map(Number) as [number, number])
+        ? (params.priceRange.split(",") as [string, string])
         : prev.priceRange,
       propertyType: params.propertyType || "",
       propertyCategory: params.propertyCategory || "",
@@ -116,6 +116,7 @@ const SearchFilters = ({
     }));
   }, [searchParams, type]);
 
+  // In SearchFilters.tsx
   const updateURLParams = (newFilters: SearchFilters) => {
     const params = new URLSearchParams();
 
@@ -135,7 +136,6 @@ const SearchFilters = ({
     if (newFilters.amenities.length > 0)
       params.set("amenities", newFilters.amenities.join(","));
 
-    // Only add price range if it's different from default
     if (
       newFilters.priceRange[0] !==
         priceRanges[newFilters.listingType].default[0] ||
@@ -145,14 +145,21 @@ const SearchFilters = ({
       params.set("priceRange", newFilters.priceRange.join(","));
     }
 
-    // Only add listing type if different from default
-    if (newFilters.listingType !== type) {
-      params.set("listingType", newFilters.listingType);
+    setSearchParams(params, { replace: true });
+  };
+  const validatePriceRange = (range: [string, string]): boolean => {
+    // Check if values are valid numbers
+    if (isNaN(Number(range[0])) || isNaN(Number(range[1]))) {
+      return false;
     }
 
-    setSearchParams(params, { replace: true }); // Use replace to avoid adding to browser history
-  };
+    // Check if min is less than max
+    if (Number(range[0]) > Number(range[1])) {
+      return false;
+    }
 
+    return true;
+  };
   const validateFilters = (filters: SearchFilters): ValidationError[] => {
     const errors: ValidationError[] = [];
 
@@ -203,28 +210,34 @@ const SearchFilters = ({
   };
 
   const handlePriceRangeChange = (value: number[]) => {
-    if (value[0] > value[1]) {
-      setErrors([
-        ...errors,
+    const newRange: [string, string] = [
+      value[0].toString(),
+      value[1].toString(),
+    ];
+
+    if (!validatePriceRange(newRange)) {
+      setErrors((prev) => [
+        ...prev.filter((e) => e.field !== "priceRange"),
         {
           field: "priceRange",
-          message: "Minimum price cannot be greater than maximum price",
+          message: "Invalid price range values",
         },
       ]);
       return;
     }
-    setErrors(errors.filter((error) => error.field !== "priceRange"));
-    setFilters({
-      ...filters,
-      priceRange: [value[0], value[1]],
-    });
+
+    setErrors((prev) => prev.filter((error) => error.field !== "priceRange"));
+    setFilters((prev) => ({
+      ...prev,
+      priceRange: newRange,
+    }));
   };
 
   const handleReset = () => {
     const defaultPriceRange =
       filters.listingType === "rent"
         ? (priceRanges.rent.default as [number, number])
-        : (priceRanges.buy.default as [number, number]);
+        : (priceRanges.sale.default as [number, number]);
 
     const resetFilters = {
       location: "",
@@ -248,8 +261,8 @@ const SearchFilters = ({
   const handleListingTypeChange = (value: string) => {
     const newPriceRange =
       value === "rent"
-        ? (priceRanges.rent.default as [number, number])
-        : (priceRanges.buy.default as [number, number]);
+        ? (priceRanges.rent.default as [string, string])
+        : (priceRanges.sale.default as [string, string]);
 
     setFilters({
       ...filters,
@@ -271,11 +284,11 @@ const SearchFilters = ({
       )}
       <Tabs defaultValue={type} onValueChange={handleListingTypeChange}>
         <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="buy">Buy</TabsTrigger>
+          <TabsTrigger value="sale">Buy</TabsTrigger>
           <TabsTrigger value="rent">Rent</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="buy" className="space-y-4">
+        <TabsContent value="sale" className="space-y-4">
           <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <div className="flex-1">
               <Label htmlFor="location">Location</Label>
@@ -364,15 +377,18 @@ const SearchFilters = ({
             <div className="flex justify-between">
               <Label>Price Range</Label>
               <span className="text-sm text-muted-foreground">
-                K{filters.priceRange[0].toLocaleString()} - K
-                {filters.priceRange[1].toLocaleString()}
+                K{parseInt(filters.priceRange[0]).toLocaleString()} - K
+                {parseInt(filters.priceRange[1]).toLocaleString()}
               </span>
             </div>
             <Slider
-              min={priceRanges.buy.min}
-              max={priceRanges.buy.max}
-              step={priceRanges.buy.step}
-              value={[filters.priceRange[0], filters.priceRange[1]]}
+              min={parseInt(priceRanges[filters.listingType].min)}
+              max={parseInt(priceRanges[filters.listingType].max)}
+              step={priceRanges[filters.listingType].step}
+              value={[
+                parseInt(filters.priceRange[0]),
+                parseInt(filters.priceRange[1]),
+              ]}
               onValueChange={handlePriceRangeChange}
               className="my-4"
             />
@@ -650,10 +666,13 @@ const SearchFilters = ({
               </span>
             </div>
             <Slider
-              min={priceRanges.rent.min}
-              max={priceRanges.rent.max}
-              step={priceRanges.rent.step}
-              value={[filters.priceRange[0], filters.priceRange[1]]}
+              min={parseInt(priceRanges[filters.listingType].min)}
+              max={parseInt(priceRanges[filters.listingType].max)}
+              step={priceRanges[filters.listingType].step}
+              value={[
+                parseInt(filters.priceRange[0]),
+                parseInt(filters.priceRange[1]),
+              ]}
               onValueChange={handlePriceRangeChange}
               className="my-4"
             />

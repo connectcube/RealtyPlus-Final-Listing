@@ -1,10 +1,9 @@
-import React from "react";
 import { Button } from "../ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { HomeIcon, Building, MapPin } from "lucide-react";
 import SearchFilters from "../search/SearchFilters";
 import { useZustand } from "@/lib/zustand";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 interface HeroSectionProps {
   backgroundImage?: string;
 }
@@ -16,13 +15,13 @@ const HeroSection = ({
   const { user } = useZustand();
   const navigate = useNavigate();
 
-  // Add handler for search submission
   const handleSearchSubmit = (searchParams: any) => {
     // Convert search parameters to URL query string
     const queryString = new URLSearchParams({
       ...searchParams,
       search: searchParams.searchTerm || "",
-      type: searchParams.propertyType || "all",
+      propertyType: searchParams.propertyType || "all",
+      propertyCategory: searchParams.propertyCategory || "all",
       priceRange: searchParams.priceRange || "all",
     }).toString();
 

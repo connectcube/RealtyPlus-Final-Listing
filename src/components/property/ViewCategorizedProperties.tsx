@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, memo, useState } from "react";
+import { useCallback, useEffect, memo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   collection,
@@ -25,7 +25,6 @@ import { LISTING } from "@/lib/typeDefinitions";
 import { Input } from "../ui/input";
 import { Loader2 } from "lucide-react";
 import debounce from "lodash/debounce";
-import { FixedSizeGrid } from "react-window";
 import { ErrorBoundary } from "react-error-boundary";
 
 // Memoized Property Card Component
@@ -96,9 +95,8 @@ const ErrorFallback = ({ error, resetErrorBoundary }: any) => (
 );
 
 export default function ViewCategorizedProperties() {
-  const [searchParams] = useSearchParams();
-  const type = searchParams.get("type");
-
+  const [searchParams, setSearchParams] = useSearchParams();
+  const listingType = searchParams.get("listingType") || "sale";
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState<DocumentData | null>(null);
@@ -107,17 +105,18 @@ export default function ViewCategorizedProperties() {
 
   // Filters
   const [priceRange, setPriceRange] = useState("all");
-  const [propertyType, setPropertyType] = useState(type || "all");
+  const [PropertyType, setPropertyType] = useState("all");
+  const [PropertyCategory, setPropertyCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [searchTerm, setSearchTerm] = useState("");
 
   const ITEMS_PER_PAGE = 9;
 
   const createQueryKey = useCallback(() => {
-    return `${propertyType}-${priceRange}-${sortBy}-${
+    return `${PropertyType}-${priceRange}-${sortBy}-${
       lastVisible?.id || "initial"
     }`;
-  }, [propertyType, priceRange, sortBy, lastVisible]);
+  }, [PropertyType, priceRange, sortBy, lastVisible]);
 
   const fetchProperties = useCallback(
     async (isNewQuery: boolean = true) => {
@@ -136,16 +135,39 @@ export default function ViewCategorizedProperties() {
           return;
         }
 
-        const queryConstraints = [];
+        let queryConstraints: any[] = [];
 
-        if (propertyType !== "all") {
-          queryConstraints.push(where("propertyCategory", "==", propertyType));
+        // Base query for listing type (buy/rent)
+        if (listingType !== "all") {
+          queryConstraints.push(where("listingType", "==", listingType));
         }
 
+        // Property type filter
+        if (PropertyType !== "all") {
+          queryConstraints.push(where("propertyType", "==", PropertyType));
+        }
+
+        // Property category filter
+        if (PropertyCategory !== "all") {
+          queryConstraints.push(
+            where("propertyCategory", "==", PropertyCategory)
+          );
+        }
+
+        // Price range filter
         if (priceRange !== "all") {
           const [min, max] = priceRange.split("-").map(Number);
-          queryConstraints.push(where("price", ">=", min));
-          if (max) queryConstraints.push(where("price", "<=", max));
+          // Convert string price to number for comparison
+          queryConstraints.push(where("price", ">=", min.toString()));
+          if (max) {
+            queryConstraints.push(where("price", "<=", max.toString()));
+          }
+        }
+
+        // Add pagination
+        queryConstraints.push(limit(ITEMS_PER_PAGE));
+        if (!isNewQuery && lastVisible) {
+          queryConstraints.push(startAfter(lastVisible));
         }
 
         // Add sorting
@@ -157,18 +179,12 @@ export default function ViewCategorizedProperties() {
             : orderBy("createdAt", "desc")
         );
 
-        // Add pagination
-        queryConstraints.push(limit(ITEMS_PER_PAGE));
-        if (!isNewQuery && lastVisible) {
-          queryConstraints.push(startAfter(lastVisible));
-        }
-
         const q = query(
           collection(fireDataBase, "listings"),
           ...queryConstraints
         );
-        const querySnapshot = await getDocs(q);
 
+        const querySnapshot = await getDocs(q);
         const lastVisibleDoc =
           querySnapshot.docs[querySnapshot.docs.length - 1];
         setLastVisible(lastVisibleDoc);
@@ -195,21 +211,67 @@ export default function ViewCategorizedProperties() {
         setLoading(false);
       }
     },
-    [propertyType, priceRange, sortBy, lastVisible, properties]
+    [
+      PropertyType,
+      PropertyCategory,
+      priceRange,
+      sortBy,
+      lastVisible,
+      properties,
+    ]
   );
 
+  // Initialize filters and fetch properties on mount
   useEffect(() => {
-    fetchProperties(true);
-  }, [propertyType, priceRange, sortBy]);
+    const initializeFilters = () => {
+      setPropertyType(searchParams.get("propertyType") || "all");
+      setPropertyCategory(searchParams.get("propertyCategory") || "all");
+      setPriceRange(searchParams.get("priceRange") || "all");
+      setSortBy(searchParams.get("sortBy") || "newest");
+      setSearchTerm(searchParams.get("search") || "");
+    };
 
-  const filteredProperties = useMemo(() => {
-    const lowercasedSearch = searchTerm.toLowerCase();
-    return properties.filter(
-      (property) =>
-        property.title.toLowerCase().includes(lowercasedSearch) ||
-        property.description.toLowerCase().includes(lowercasedSearch)
-    );
-  }, [properties, searchTerm]);
+    initializeFilters();
+    fetchProperties(true);
+  }, []);
+
+  // Update URL params when filters change
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
+
+    if (PropertyType !== "all") {
+      newParams.set("propertyType", PropertyType);
+    } else {
+      newParams.delete("propertyType");
+    }
+
+    if (PropertyCategory !== "all") {
+      newParams.set("propertyCategory", PropertyCategory);
+    } else {
+      newParams.delete("propertyCategory");
+    }
+
+    if (priceRange !== "all") {
+      newParams.set("priceRange", priceRange);
+    } else {
+      newParams.delete("priceRange");
+    }
+
+    if (sortBy !== "newest") {
+      newParams.set("sortBy", sortBy);
+    } else {
+      newParams.delete("sortBy");
+    }
+
+    if (searchTerm) {
+      newParams.set("search", searchTerm);
+    } else {
+      newParams.delete("search");
+    }
+
+    setSearchParams(newParams);
+    fetchProperties(true);
+  }, [PropertyType, PropertyCategory, priceRange, sortBy, searchTerm]);
 
   const debouncedSetSearchTerm = useCallback(
     debounce((value: string) => {
@@ -222,6 +284,29 @@ export default function ViewCategorizedProperties() {
     debouncedSetSearchTerm(e.target.value);
   };
 
+  const clearFilters = useCallback(() => {
+    // Reset all state filters
+    setPropertyType("all");
+    setPropertyCategory("all");
+    setPriceRange("all");
+    setSortBy("newest");
+    setSearchTerm("");
+
+    // Clear URL parameters while preserving only the listingType
+    const currentListingType = searchParams.get("listingType");
+    setSearchParams(
+      currentListingType ? { listingType: currentListingType } : {}
+    );
+
+    // Trigger a new fetch
+    fetchProperties(true);
+  }, [setSearchParams]);
+
+  // Filter properties based on search term
+  const filteredProperties = properties.filter((property) =>
+    property.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -229,7 +314,9 @@ export default function ViewCategorizedProperties() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            {type ? `${type} Properties` : "All Properties"}
+            {PropertyCategory !== "all"
+              ? `${PropertyCategory} Properties`
+              : "All Properties"}
           </h1>
 
           {/* Filters Section */}
@@ -237,10 +324,14 @@ export default function ViewCategorizedProperties() {
             <Input
               placeholder="Search properties..."
               onChange={handleSearchChange}
+              value={searchTerm}
               className="w-full"
             />
 
-            <Select value={propertyType} onValueChange={setPropertyType}>
+            <Select
+              value={PropertyCategory}
+              onValueChange={setPropertyCategory}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Property Category" />
               </SelectTrigger>
@@ -251,6 +342,21 @@ export default function ViewCategorizedProperties() {
                 <SelectItem value="land">Land</SelectItem>
                 <SelectItem value="newDevelopment">New Development</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={PropertyType} onValueChange={setPropertyType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Property Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="house">House</SelectItem>
+                <SelectItem value="apartment">Apartment</SelectItem>
+                <SelectItem value="semi-detached">Semi Detached</SelectItem>
+                <SelectItem value="standalone">Stand Alone</SelectItem>
+                <SelectItem value="farmhouse">Farmhouse</SelectItem>
+                <SelectItem value="townhouse">Townhouse</SelectItem>
               </SelectContent>
             </Select>
 
@@ -279,6 +385,14 @@ export default function ViewCategorizedProperties() {
                 <SelectItem value="price-desc">Price: High to Low</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              onClick={clearFilters}
+              variant="outline"
+              className="w-full md:col-span-4 mt-2"
+            >
+              Clear All Filters
+            </Button>
           </div>
 
           <ErrorBoundary

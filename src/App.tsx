@@ -1,18 +1,28 @@
 import { Suspense, lazy, useEffect } from "react";
 import { useRoutes, Routes, Route } from "react-router-dom";
 import Home from "./components/home";
-import PropertyDetail from "./components/property/PropertyDetail";
-import AddProperty from "./components/property/AddProperty";
 import routes from "tempo-routes";
 import { ToastContainer } from "react-toastify";
-import AgencyProfile from "./components/agent/AgencyProfile";
-import AgentProfile from "./components/agent/AgentProfile";
-import AgentPublicProfile from "./components/publicProfiles/AgentPublicProfile";
-import AgencyPublicProfile from "./components/publicProfiles/AgencyPublicProfile";
-import AgencyPage from "./components/agency/AgencyPage";
-import ViewPropertiesByPoster from "./components/property/ViewPropertiesByPoster";
-import ViewCategorizedProperties from "./components/property/ViewCategorizedProperties";
 // Lazy load agent and subscription components
+const PropertyDetail = lazy(
+  () => import("./components/property/PropertyDetail")
+);
+const AddProperty = lazy(() => import("./components/property/AddProperty"));
+const AgencyProfile = lazy(() => import("./components/agent/AgencyProfile"));
+const AgentProfile = lazy(() => import("./components/agent/AgentProfile"));
+const AgentPublicProfile = lazy(
+  () => import("./components/publicProfiles/AgentPublicProfile")
+);
+const AgencyPublicProfile = lazy(
+  () => import("./components/publicProfiles/AgencyPublicProfile")
+);
+const AgencyPage = lazy(() => import("./components/agency/AgencyPage"));
+const ViewPropertiesByPoster = lazy(
+  () => import("./components/property/ViewPropertiesByPoster")
+);
+const ViewCategorizedProperties = lazy(
+  () => import("./components/property/ViewCategorizedProperties")
+);
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
 const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
 const SubscriptionPage = lazy(
