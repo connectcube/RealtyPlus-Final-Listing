@@ -110,7 +110,7 @@ export default function ViewCategorizedProperties() {
   const [sortBy, setSortBy] = useState("newest");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const ITEMS_PER_PAGE = 9;
+  const ITEMS_PER_PAGE = 12;
 
   const createQueryKey = useCallback(() => {
     return `${PropertyType}-${priceRange}-${sortBy}-${
@@ -123,7 +123,9 @@ export default function ViewCategorizedProperties() {
       try {
         setLoading(true);
         setError(null);
-
+        if (isNewQuery) {
+          setLastVisible(null);
+        }
         const queryKey = createQueryKey();
         const cachedResult = getCachedQuery(queryKey);
 
@@ -190,6 +192,12 @@ export default function ViewCategorizedProperties() {
         setLastVisible(lastVisibleDoc);
         setHasMore(querySnapshot.docs.length === ITEMS_PER_PAGE);
 
+        if (querySnapshot.docs.length > 0) {
+          setLastVisible(lastVisibleDoc);
+        }
+
+        setHasMore(querySnapshot.docs.length === ITEMS_PER_PAGE);
+
         const fetchedProperties = querySnapshot.docs.map((doc) => ({
           uid: doc.id,
           ...doc.data(),
@@ -218,6 +226,7 @@ export default function ViewCategorizedProperties() {
       sortBy,
       lastVisible,
       properties,
+      listingType,
     ]
   );
 
