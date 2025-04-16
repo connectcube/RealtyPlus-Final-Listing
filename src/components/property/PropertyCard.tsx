@@ -32,6 +32,7 @@ interface PropertyCardProps {
     | "other";
   isFeatured?: boolean;
   isFurnished?: boolean;
+  isFavorite: () => boolean;
   yearBuilt?: number | string;
   onFavorite?: (id: string) => void;
   onClick?: (id: string) => void;
@@ -49,6 +50,7 @@ const PropertyCard = ({
   propertyType = "standalone",
   isFeatured = false,
   isFurnished = true,
+  isFavorite = () => false,
   yearBuilt = 2020,
   onFavorite = () => {},
   onClick = () => {},
@@ -61,7 +63,7 @@ const PropertyCard = ({
   const handleCardClick = () => {
     onClick(id);
   };
-
+  const isFavorited = isFavorite();
   return (
     <Card
       className="overflow-hidden transition-all duration-300 hover:shadow-lg bg-white cursor-pointer h-full flex flex-col"
@@ -78,7 +80,10 @@ const PropertyCard = ({
                   className="rounded-full bg-white/80 hover:bg-white"
                   onClick={handleFavoriteClick}
                 >
-                  <Heart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+                  <Heart
+                    fill={isFavorited ? "#ef4444" : "#ffffff"}
+                    className="h-5 w-5 text-gray-600 hover:text-red-500"
+                  />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

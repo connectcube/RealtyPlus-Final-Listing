@@ -9,6 +9,8 @@ import {
   limit,
   startAfter,
   DocumentData,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import PropertyCard from "../property/PropertyCard";
@@ -26,6 +28,7 @@ import { Input } from "../ui/input";
 import { Loader2 } from "lucide-react";
 import debounce from "lodash/debounce";
 import { ErrorBoundary } from "react-error-boundary";
+import { useZustand } from "@/lib/zustand";
 
 // Memoized Property Card Component
 const MemoizedPropertyCard = memo(
@@ -41,7 +44,9 @@ const MemoizedPropertyCard = memo(
     propertyType,
     isFeatured,
     isFurnished,
+    isFavorite,
     yearBuilt,
+    onFavorite,
   }: any) => (
     <PropertyCard
       id={id}
@@ -55,7 +60,9 @@ const MemoizedPropertyCard = memo(
       propertyType={propertyType}
       isFeatured={isFeatured}
       isFurnished={isFurnished}
+      isFavorite={isFavorite}
       yearBuilt={yearBuilt}
+      onFavorite={onFavorite}
     />
   )
 );
@@ -95,6 +102,8 @@ const ErrorFallback = ({ error, resetErrorBoundary }: any) => (
 );
 
 export default function ViewCategorizedProperties() {
+  const { user, setUser } = useZustand();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const listingType = searchParams.get("listingType") || "sale";
   const [properties, setProperties] = useState<LISTING[]>([]);
@@ -315,11 +324,52 @@ export default function ViewCategorizedProperties() {
   const filteredProperties = properties.filter((property) =>
     property.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        console.log("User not logged in");
+        return;
+      }
+
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  // And the isFavorite check would be simpler too:
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -327,7 +377,6 @@ export default function ViewCategorizedProperties() {
               ? `${PropertyCategory} Properties`
               : "All Properties"}
           </h1>
-
           {/* Filters Section */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Input
@@ -429,7 +478,9 @@ export default function ViewCategorizedProperties() {
                       propertyType={property.propertyType}
                       isFeatured={property.isFeatured}
                       isFurnished={property.isFurnished}
+                      isFavorite={() => handleCheckFav(property.uid)}
                       yearBuilt={property.yearBuilt}
+                      onFavorite={handleFavClick}
                     />
                   ))}
                 </div>

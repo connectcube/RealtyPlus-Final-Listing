@@ -11,7 +11,8 @@ export type USER = {
   phone?: string;
   email?: string;
   uid?: string;
-  id?: string;
+  isSubscribed?: boolean;
+  savedProperties?: string[];
   userType: string;
   companyName?: string;
   firstName?: string;

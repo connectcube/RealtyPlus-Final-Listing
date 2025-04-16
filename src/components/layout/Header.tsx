@@ -24,6 +24,8 @@ import { Badge } from "../ui/badge";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useZustand } from "@/lib/zustand";
+import { LISTING } from "@/lib/typeDefinitions";
+import { getDoc } from "firebase/firestore";
 
 interface HeaderProps {
   className?: string;
@@ -37,6 +39,7 @@ interface User {
   phoneNumber?: string;
 }
 const Header = ({ className }: HeaderProps = {}) => {
+  const [isFavOpen, setIsFavOpen] = React.useState(false);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
   const { user, clearUser } = useZustand();
@@ -208,12 +211,22 @@ const Header = ({ className }: HeaderProps = {}) => {
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               </div>
-
-              <Button variant="ghost" size="icon" className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={() => setIsFavOpen(!isFavOpen)}
+              >
                 <Heart className="h-5 w-5 text-gray-600" />
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
-                  2
+                  {user?.savedProperties?.length || 0}
                 </Badge>
+                {isFavOpen && (
+                  <div className="absolute bottom-[-250%]  bg-slate-50 p-2 border border-gray-400 rounded">
+                    <p className="text-xs text-gray-600">Favorites</p>
+                    <SavedPropertiesDropDown user={user} />
+                  </div>
+                )}
               </Button>
 
               <DropdownMenu>
@@ -448,6 +461,83 @@ const Header = ({ className }: HeaderProps = {}) => {
         </div>
       </header>
     </>
+  );
+};
+
+const SavedPropertiesDropDown = ({ user }) => {
+  const [savedProperties, setSavedProperties] = React.useState<LISTING[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchSavedProperties = async () => {
+      try {
+        if (!user.savedProperties || user.savedProperties.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const propertiesPromises = user.savedProperties.map(async (ref) => {
+          const docSnap = await getDoc(ref);
+          if (docSnap.exists()) {
+            return { uid: docSnap.id, ...docSnap.data() } as LISTING;
+          }
+          return null;
+        });
+
+        const properties = await Promise.all(propertiesPromises);
+        setSavedProperties(
+          properties.filter((prop): prop is LISTING => prop !== null)
+        );
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching saved properties:", error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchSavedProperties();
+  }, [user.savedProperties]);
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Loading saved properties...</div>;
+  }
+
+  if (!savedProperties.length) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        No saved properties found
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-[300px] overflow-y-auto p-2">
+      {savedProperties.map((property) => (
+        <div
+          key={property.uid}
+          className="mb-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <img
+              src={property.coverPhoto}
+              alt={property.title}
+              className="w-16 h-16 object-cover rounded"
+            />
+            <div>
+              <h3 className="font-medium text-sm">{property.title}</h3>
+              <div className="flex gap-2 text-xs text-gray-600">
+                <span>{property.propertyType}</span>
+                <span>•</span>
+                <span>{property.propertyCategory}</span>
+              </div>
+              <div className="text-sm font-semibold text-blue-600">
+                ${property.price}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 };
 
