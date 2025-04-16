@@ -8,13 +8,16 @@ import { Grid, LayoutGrid, List, MapPin } from "lucide-react";
 import { fireDataBase } from "@/lib/firebase";
 import {
   collection,
+  doc,
   DocumentData,
   getDocs,
   Query,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { LISTING } from "@/lib/typeDefinitions";
+import { useZustand } from "@/lib/zustand";
 
 // Mock properties for sale data
 const mockPropertiesForSale = [
@@ -111,6 +114,7 @@ const mockPropertiesForSale = [
 ];
 
 const RentProperties = () => {
+  const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<LISTING[]>([]);
@@ -159,7 +163,7 @@ const RentProperties = () => {
       const listingsRef = collection(fireDataBase, "listings");
       let q: Query<DocumentData> = query(
         listingsRef,
-        where("listingType", "==", "sale"),
+        where("listingType", "==", "rent"),
         where("status", "==", "active")
       );
 
@@ -172,17 +176,13 @@ const RentProperties = () => {
         q = query(q, where("propertyType", "==", filters.propertyType));
       }
 
-      if (filters.bedrooms) {
-        q = query(q, where("bedrooms", ">=", parseInt(filters.bedrooms)));
-      }
-
-      if (filters.bathrooms) {
-        q = query(q, where("bathrooms", ">=", parseInt(filters.bathrooms)));
+      if (filters.propertyCategory) {
+        q = query(q, where("propertyCategory", "==", filters.propertyCategory));
       }
 
       const querySnapshot = await getDocs(q);
       let filteredResults = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
+        uid: doc.id,
         ...(doc.data() as LISTING),
       }));
 
@@ -200,12 +200,43 @@ const RentProperties = () => {
           }
         }
 
-        // Location filter (case-insensitive)
+        // Location/Address filter (case-insensitive)
+        if (
+          filters.location &&
+          !property.city.toLowerCase().includes(filters.location.toLowerCase())
+        ) {
+          return false;
+        }
+
         if (
           filters.address &&
           !property.address
             .toLowerCase()
             .includes(filters.address.toLowerCase())
+        ) {
+          return false;
+        }
+
+        // Bedrooms filter
+        if (
+          filters.bedrooms &&
+          parseInt(property.bedrooms) < parseInt(filters.bedrooms)
+        ) {
+          return false;
+        }
+
+        // Bathrooms filter
+        if (
+          filters.bathrooms &&
+          parseInt(property.bathrooms) < parseInt(filters.bathrooms)
+        ) {
+          return false;
+        }
+
+        // Garage filter
+        if (
+          filters.garage &&
+          parseInt(property.garageSpaces) < parseInt(filters.garage)
         ) {
           return false;
         }
@@ -220,17 +251,26 @@ const RentProperties = () => {
 
         // Furnishing status filter
         if (filters.furnishingStatus) {
-          const isFurnished = filters.furnishingStatus === "furnished";
-          if (property.isFurnished !== isFurnished) {
+          if (
+            filters.furnishingStatus === "furnished" &&
+            !property.isFurnished
+          ) {
+            return false;
+          }
+          if (
+            filters.furnishingStatus === "unfurnished" &&
+            property.isFurnished
+          ) {
             return false;
           }
         }
 
         // Amenities filter
         if (filters.amenities && filters.amenities.length > 0) {
-          return filters.amenities.every((amenity) =>
-            property.amenities?.includes(amenity)
-          );
+          return filters.amenities.every((amenity) => {
+            const amenityKey = amenity.toLowerCase().replace(" ", "");
+            return property.features[amenityKey];
+          });
         }
 
         return true;
@@ -244,7 +284,48 @@ const RentProperties = () => {
       setIsLoading(false);
     }
   };
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        console.log("User not logged in");
+        return;
+      }
 
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  // And the isFavorite check would be simpler too:
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
@@ -305,7 +386,8 @@ const RentProperties = () => {
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
-                onFavorite={() => console.log(property.uid)}
+                isFavorite={() => handleCheckFav(property.uid)}
+                onFavorite={handleFavClick}
                 onClick={() => console.log(property.uid)}
               />
             ))}
@@ -327,7 +409,7 @@ const RentProperties = () => {
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
-                onFavorite={() => console.log(property.uid)}
+                isFavorite={() => handleCheckFav(property.uid)}
                 onClick={() => console.log(property.uid)}
               />
             ))}

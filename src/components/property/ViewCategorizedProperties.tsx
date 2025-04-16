@@ -321,9 +321,16 @@ export default function ViewCategorizedProperties() {
   }, [setSearchParams]);
 
   // Filter properties based on search term
-  const filteredProperties = properties.filter((property) =>
-    property.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProperties = properties.filter((property) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      property.title.toLowerCase().includes(searchLower) ||
+      property.address.toLowerCase().includes(searchLower) ||
+      property.city.toLowerCase().includes(searchLower) ||
+      property.neighborhood.toLowerCase().includes(searchLower)
+    );
+  });
+
   const handleFavClick = (propertyId: string) => {
     try {
       if (!user) {

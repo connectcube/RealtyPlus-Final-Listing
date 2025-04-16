@@ -14,31 +14,20 @@ import { ChevronLeft, ChevronRight, Grid3X3, List } from "lucide-react";
 import PropertyCard from "./PropertyCard";
 import {
   collection,
+  doc,
   getDocs,
   limit,
   orderBy,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
-
-interface Property {
-  id: string;
-  title: string;
-  price: number;
-  location: string;
-  bedrooms: number;
-  bathrooms: number;
-  area: number;
-  imageUrl: string;
-  propertyType: "standalone" | "semi-detached" | "apartment" | "other";
-  isFeatured: boolean;
-  isFurnished: boolean;
-  yearBuilt: number;
-}
+import { useZustand } from "@/lib/zustand";
+import { LISTING } from "@/lib/typeDefinitions";
 
 interface FeaturedPropertiesProps {
-  properties?: Property[];
+  properties?: LISTING[];
   title?: string;
   subtitle?: string;
   loading?: boolean;
@@ -48,7 +37,8 @@ const FeaturedProperties = ({
   title = "Featured Properties",
   subtitle = "Discover our handpicked selection of premium properties across Zambia",
 }: FeaturedPropertiesProps) => {
-  const [properties, setProperties] = useState<Property[]>([]);
+  const { user, setUser } = useZustand();
+  const [properties, setProperties] = useState<LISTING[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
@@ -67,9 +57,9 @@ const FeaturedProperties = ({
         );
         const querySnapshot = await getDocs(q);
 
-        const fetchedProperties: Property[] = querySnapshot.docs.map((doc) => ({
+        const fetchedProperties: LISTING[] = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...(doc.data() as Omit<Property, "id">),
+          ...(doc.data() as Omit<LISTING, "id">),
         }));
 
         setProperties(fetchedProperties);
@@ -111,17 +101,52 @@ const FeaturedProperties = ({
       behavior: "smooth",
     });
   };
-
-  const handleFavorite = (id: string) => {
-    // Handle favorite functionality
-    console.log(`Property ${id} added to favorites`);
-  };
-
   const handlePropertyClick = (id: string) => {
     // Navigate to property details page
     console.log(`Navigating to property ${id} details`);
   };
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        console.log("User not logged in");
+        return;
+      }
 
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  // And the isFavorite check would be simpler too:
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   return (
     <section id="featured-properties" className="py-12 bg-gray-50">
       <div className="container mx-auto px-4">
@@ -192,20 +217,21 @@ const FeaturedProperties = ({
           >
             {currentProperties.map((property) => (
               <PropertyCard
-                key={property.id}
-                id={property.id}
+                key={property.uid}
+                id={property.uid}
                 title={property.title}
                 price={property.price}
-                location={property.location}
+                location={property.address}
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.imageUrl}
+                imageUrl={property.coverPhoto}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
-                onFavorite={handleFavorite}
+                onFavorite={handleFavClick}
+                isFavorite={() => handleCheckFav(property.uid)}
                 onClick={handlePropertyClick}
               />
             ))}
