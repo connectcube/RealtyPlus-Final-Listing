@@ -49,6 +49,23 @@ company?:string;
   social?:SOCIAL;
   totalSales?:string;
 };
+export type ADMIN={
+  uid:string;
+  firstName?: string;
+  lastName?: string;
+  email:string;
+  adminType:'admin' | 'superadmin';
+  createdAt:Timestamp;
+  isApproved:boolean;
+  adminPermissions:ADMINPERMISSIONS
+}
+
+interface ADMINPERMISSIONS{
+  userRead:boolean;
+  userWrite:boolean;
+  listingRead:boolean;
+  listingWrite:boolean;
+}
 interface SOCIAL{
   linkedin: string;
   twitter: string;

@@ -9,8 +9,59 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/layout/AdminLayout";
+import { auth, fireDataBase } from "@/lib/firebase";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { ADMIN } from "@/lib/typeDefinitions";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { LoadingSpinner } from "../globalScreens/Loader";
 
 export default function AdminDashboard() {
+  const [admin, setAdmin] = useState<ADMIN>();
+  const authentication = auth;
+
+  useEffect(() => {
+    const checkAdminStatus = async (user: any) => {
+      try {
+        if (!user) {
+          window.location.href = "/";
+          return;
+        }
+
+        // Get admin document reference
+        const adminRef = doc(fireDataBase, "admins", user.uid);
+
+        // Get admin document
+        const adminSnapshot = await getDoc(adminRef);
+        const adminData = adminSnapshot.data() as ADMIN;
+
+        // Check admin status
+        if (!adminSnapshot.exists() || !adminData.isApproved) {
+          await signOut(authentication);
+          window.location.href = "/";
+        } else {
+          setAdmin(adminData);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        await signOut(authentication);
+        window.location.href = "/";
+      }
+    };
+
+    // Set up auth state listener first
+    const unsubscribe = onAuthStateChanged(authentication, (user) => {
+      if (user) {
+        checkAdminStatus(user);
+      } else {
+        window.location.href = "/";
+      }
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
+  }, []);
+
   // Mock data for dashboard stats
   const stats = [
     {
@@ -91,8 +142,10 @@ export default function AdminDashboard() {
     },
   ];
 
-  return (
-    <AdminLayout>
+  return !admin ? (
+    <LoadingSpinner />
+  ) : (
+    <AdminLayout admin={admin}>
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">
@@ -144,10 +197,10 @@ export default function AdminDashboard() {
                       activity.type === "property"
                         ? "bg-blue-100 text-blue-600"
                         : activity.type === "agent"
-                          ? "bg-purple-100 text-purple-600"
-                          : activity.type === "subscription"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-gray-100 text-gray-600"
+                        ? "bg-purple-100 text-purple-600"
+                        : activity.type === "subscription"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {activity.type === "property" ? (

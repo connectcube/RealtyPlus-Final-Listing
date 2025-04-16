@@ -3,6 +3,7 @@ import { useRoutes, Routes, Route } from "react-router-dom";
 import Home from "./components/home";
 import routes from "tempo-routes";
 import { ToastContainer } from "react-toastify";
+import AdminLogin from "./components/admin/auth/AdminLogin";
 // Lazy load agent and subscription components
 const PropertyDetail = lazy(
   () => import("./components/property/PropertyDetail")
@@ -107,6 +108,7 @@ function App() {
           <Route path="/agency/profile" element={<AgencyProfile />} />
           <Route path="/agency/:id" element={<AgencyPublicProfile />} />
           {/* Admin routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="/admin/properties" element={<PropertiesPage />} />

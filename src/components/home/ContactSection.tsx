@@ -18,8 +18,8 @@ const ContactSection = ({
 }: ContactSectionProps) => {
   const { user } = useZustand();
   const [formData, setFormData] = useState({
-    name: `${user.firstName} ${user.lastName}` || "",
-    email: user.email || "",
+    name: `${user?.firstName} ${user?.lastName}` || "",
+    email: user?.email || "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);

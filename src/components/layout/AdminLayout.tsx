@@ -11,6 +11,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ADMIN } from "@/lib/typeDefinitions";
 
 // Define permission types for admin roles
 const PERMISSIONS = {
@@ -46,18 +47,18 @@ const PERMISSIONS = {
 
 interface AdminLayoutProps {
   children: ReactNode;
+  admin: ADMIN;
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function AdminLayout({ children, admin }: AdminLayoutProps) {
   const location = useLocation();
 
   // Simulate current user as Super Admin for this demo
   const currentUser = {
     id: 9,
-    name: "Mwamba Tembo",
-    email: "mwamba@realtyplus.com",
-    role: "Admin",
-    adminRole: "Super Admin",
+    name: `${admin.firstName} ${admin.lastName}`,
+    email: admin.email,
+    adminRole: admin.adminType,
     permissions: [
       ...Object.values(PERMISSIONS.USERS),
       ...Object.values(PERMISSIONS.PROPERTIES),
@@ -121,8 +122,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Filter nav items based on user permissions
   const navItems = allNavItems.filter(
     (item) =>
-      item.requiredPermission === null ||
-      hasPermission(item.requiredPermission),
+      item.requiredPermission === null || hasPermission(item.requiredPermission)
   );
 
   return (
@@ -149,7 +149,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   className={cn(
                     "flex items-center p-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors",
                     location.pathname === item.path &&
-                      "bg-blue-50 text-blue-700 font-medium",
+                      "bg-blue-50 text-blue-700 font-medium"
                   )}
                 >
                   {item.icon}
@@ -182,7 +182,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="text-sm text-right">
               <div className="font-medium">{currentUser.name}</div>
               <div className="text-gray-500">{currentUser.email}</div>
-              <div className="text-xs text-blue-600 flex items-center justify-end mt-1">
+              <div className="text-xs text-blue-600 flex items-center justify-end mt-1 capitalize">
                 <ShieldAlert className="h-3 w-3 mr-1" />
                 {currentUser.adminRole}
               </div>
