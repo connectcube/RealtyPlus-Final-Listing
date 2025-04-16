@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ADMIN } from "@/lib/typeDefinitions";
+import { LoadingSpinner } from "../globalScreens/Loader";
+import { auth, fireDataBase } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 // Define permission types for admin roles
 const PERMISSIONS = {
@@ -47,30 +51,61 @@ const PERMISSIONS = {
 
 interface AdminLayoutProps {
   children: ReactNode;
-  admin: ADMIN;
 }
 
-export default function AdminLayout({ children, admin }: AdminLayoutProps) {
+export default function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation();
+  const [admin, setAdmin] = useState<ADMIN | null>(null);
 
+  useEffect(() => {
+    const checkAdminStatus = async (user: any) => {
+      try {
+        if (!user) {
+          window.location.href = "/";
+          return;
+        }
+
+        const adminRef = doc(fireDataBase, "admins", user.uid);
+        const adminSnapshot = await getDoc(adminRef);
+
+        if (!adminSnapshot.exists()) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        const adminData = adminSnapshot.data() as ADMIN;
+        if (!adminData.isApproved) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        setAdmin({
+          ...adminData,
+          uid: adminSnapshot.id,
+        });
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        await signOut(auth);
+        window.location.href = "/";
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
+    return () => unsubscribe();
+  }, []);
+
+  if (!admin) {
+    return <LoadingSpinner />;
+  }
   // Simulate current user as Super Admin for this demo
   const currentUser = {
-    id: 9,
+    id: admin.uid || "",
     name: `${admin.firstName} ${admin.lastName}`,
     email: admin.email,
     adminRole: admin.adminType,
-    permissions: [
-      ...Object.values(PERMISSIONS.USERS),
-      ...Object.values(PERMISSIONS.PROPERTIES),
-      ...Object.values(PERMISSIONS.AGENTS),
-      ...Object.values(PERMISSIONS.AGENCIES),
-      ...Object.values(PERMISSIONS.SETTINGS),
-    ],
-  };
-
-  // Check if current user has a specific permission
-  const hasPermission = (permission) => {
-    return currentUser.permissions.includes(permission);
+    permissions: admin.permissions,
   };
 
   // Define all possible nav items
@@ -79,52 +114,48 @@ export default function AdminLayout({ children, admin }: AdminLayoutProps) {
       name: "Dashboard",
       path: "/admin",
       icon: <LayoutDashboard className="h-5 w-5" />,
-      requiredPermission: null, // Everyone can access dashboard
+      toShow: true, // Everyone can access dashboard
     },
     {
       name: "Users",
       path: "/admin/users",
       icon: <Users className="h-5 w-5" />,
-      requiredPermission: PERMISSIONS.USERS.VIEW,
+      toShow: true,
     },
     {
       name: "Properties",
       path: "/admin/properties",
       icon: <Home className="h-5 w-5" />,
-      requiredPermission: PERMISSIONS.PROPERTIES.VIEW,
+      toShow: true,
     },
     {
       name: "Agents",
       path: "/admin/agents",
       icon: <UserCog className="h-5 w-5" />,
-      requiredPermission: PERMISSIONS.AGENTS.VIEW,
+      toShow: true,
     },
     {
       name: "Agencies",
       path: "/admin/agencies",
       icon: <Building2 className="h-5 w-5" />,
-      requiredPermission: PERMISSIONS.AGENCIES.VIEW,
+      toShow: true,
     },
     {
       name: "Admin Management",
       path: "/admin/admin-management",
       icon: <ShieldAlert className="h-5 w-5" />,
-      requiredPermission: PERMISSIONS.USERS.MANAGE_ADMINS,
+      requiredPermission: true,
     },
     {
       name: "Settings",
       path: "/admin/settings",
       icon: <Settings className="h-5 w-5" />,
-      requiredPermission: PERMISSIONS.SETTINGS.VIEW,
+      requiredPermission: true,
     },
   ];
-
-  // Filter nav items based on user permissions
-  const navItems = allNavItems.filter(
-    (item) =>
-      item.requiredPermission === null || hasPermission(item.requiredPermission)
-  );
-
+  if (!admin) {
+    return <LoadingSpinner />;
+  }
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -142,21 +173,25 @@ export default function AdminLayout({ children, admin }: AdminLayoutProps) {
         </div>
         <nav className="mt-6 px-4">
           <ul className="space-y-2">
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "flex items-center p-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors",
-                    location.pathname === item.path &&
-                      "bg-blue-50 text-blue-700 font-medium"
-                  )}
-                >
-                  {item.icon}
-                  <span className="ml-3">{item.name}</span>
-                </Link>
-              </li>
-            ))}
+            {allNavItems.map(
+              (item) =>
+                // Check if user has permission to view this item
+                item.toShow === true && (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        "flex items-center p-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors",
+                        location.pathname === item.path &&
+                          "bg-blue-50 text-blue-700 font-medium"
+                      )}
+                    >
+                      {item.icon}
+                      <span className="ml-3">{item.name}</span>
+                    </Link>
+                  </li>
+                )
+            )}
             <li className="pt-4 mt-4 border-t border-gray-200">
               <Link
                 to="/"
@@ -175,8 +210,8 @@ export default function AdminLayout({ children, admin }: AdminLayoutProps) {
         {/* Header */}
         <header className="bg-white shadow-sm p-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-800">
-            {navItems.find((item) => item.path === location.pathname)?.name ||
-              "Admin"}
+            {allNavItems.find((item) => item.path === location.pathname)
+              ?.name || "Admin"}
           </h1>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-right">

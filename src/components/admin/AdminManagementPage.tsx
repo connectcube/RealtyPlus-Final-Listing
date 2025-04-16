@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { adminService } from "./services/createNewAdmin";
+import { LoadingSpinner } from "../globalScreens/Loader";
+import { ADMIN } from "@/lib/typeDefinitions";
+import { auth, fireDataBase } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 // Define permission types for admin roles
 const PERMISSIONS = {
@@ -123,6 +129,7 @@ const ADMIN_ROLES = {
 };
 
 export default function AdminManagementPage() {
+  const [admin, setAdmin] = useState<ADMIN | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [admins, setAdmins] = useState([
     {
@@ -178,7 +185,44 @@ export default function AdminManagementPage() {
     adminRole: "User Admin",
     customPermissions: [],
   });
+  useEffect(() => {
+    const checkAdminStatus = async (user: any) => {
+      try {
+        if (!user) {
+          window.location.href = "/";
+          return;
+        }
 
+        const adminRef = doc(fireDataBase, "admins", user.uid);
+        const adminSnapshot = await getDoc(adminRef);
+
+        if (!adminSnapshot.exists()) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        const adminData = adminSnapshot.data() as ADMIN;
+        if (!adminData.isApproved) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        setAdmin({
+          ...adminData,
+          uid: adminSnapshot.id,
+        });
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        await signOut(auth);
+        window.location.href = "/";
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
+    return () => unsubscribe();
+  }, []);
   // Simulate current user as Super Admin for this demo
   const currentUser = {
     id: 1,
@@ -188,11 +232,59 @@ export default function AdminManagementPage() {
     permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
   };
 
-  // Check if current user has a specific permission
-  const hasPermission = (permission) => {
-    return currentUser.permissions.includes(permission);
-  };
+  const createNewAdmin = async () => {
+    try {
+      // Prepare admin data
+      const adminData = {
+        name: newAdminData.name,
+        email: newAdminData.email,
+        adminRole: newAdminData.adminRole,
+        permissions:
+          newAdminData.adminRole === "Custom"
+            ? newAdminData.customPermissions
+            : ADMIN_ROLES[
+                newAdminData.adminRole.toUpperCase().replace(" ", "_")
+              ]?.permissions || [],
+      };
 
+      // Call backend API through service
+      const createdAdmin = await adminService.createAdmin(adminData);
+
+      // Update local state with the response from backend
+      const newAdmin = {
+        id: createdAdmin.uid,
+        name: createdAdmin.name,
+        email: createdAdmin.email,
+        adminRole: createdAdmin.adminRole,
+        permissions: createdAdmin.permissions,
+        status: "Active",
+        joined: new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        }),
+      };
+
+      setAdmins([...admins, newAdmin]);
+      toast({
+        title: "Admin created",
+        description: `${newAdmin.name} has been added as a ${newAdmin.adminRole}.`,
+      });
+      setIsAddAdminDialogOpen(false);
+      setNewAdminData({
+        name: "",
+        email: "",
+        adminRole: "User Admin",
+        customPermissions: [],
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error creating admin",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
   const handleDeleteAdmin = (admin) => {
     setAdminToDelete(admin);
     setIsDeleteDialogOpen(true);
@@ -276,7 +368,7 @@ export default function AdminManagementPage() {
   const filteredAdmins = admins.filter(
     (admin) =>
       admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      admin.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      admin.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getAdminRoleColor = (role) => {
@@ -306,7 +398,9 @@ export default function AdminManagementPage() {
         return "bg-blue-100 text-blue-800";
     }
   };
-
+  if (!admin) {
+    return <LoadingSpinner />;
+  }
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -535,7 +629,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="users-view"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.VIEW,
+                            PERMISSIONS.USERS.VIEW
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -551,7 +645,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW,
+                                    (p) => p !== PERMISSIONS.USERS.VIEW
                                   ),
                               });
                             }
@@ -563,7 +657,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="users-edit"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.EDIT,
+                            PERMISSIONS.USERS.EDIT
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -579,7 +673,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT,
+                                    (p) => p !== PERMISSIONS.USERS.EDIT
                                   ),
                               });
                             }
@@ -591,7 +685,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="users-delete"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.DELETE,
+                            PERMISSIONS.USERS.DELETE
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -607,7 +701,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE,
+                                    (p) => p !== PERMISSIONS.USERS.DELETE
                                   ),
                               });
                             }
@@ -619,7 +713,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="users-manage-admins"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.MANAGE_ADMINS,
+                            PERMISSIONS.USERS.MANAGE_ADMINS
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -635,8 +729,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) =>
-                                      p !== PERMISSIONS.USERS.MANAGE_ADMINS,
+                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
                                   ),
                               });
                             }
@@ -656,7 +749,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="properties-view"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.VIEW,
+                            PERMISSIONS.PROPERTIES.VIEW
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -672,7 +765,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
                                   ),
                               });
                             }
@@ -684,7 +777,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="properties-edit"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.EDIT,
+                            PERMISSIONS.PROPERTIES.EDIT
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -700,7 +793,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
                                   ),
                               });
                             }
@@ -712,7 +805,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="properties-delete"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.DELETE,
+                            PERMISSIONS.PROPERTIES.DELETE
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -728,7 +821,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.DELETE,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.DELETE
                                   ),
                               });
                             }
@@ -740,7 +833,7 @@ export default function AdminManagementPage() {
                         <Checkbox
                           id="properties-approve"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.APPROVE,
+                            PERMISSIONS.PROPERTIES.APPROVE
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -756,7 +849,7 @@ export default function AdminManagementPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.APPROVE,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.APPROVE
                                   ),
                               });
                             }
@@ -840,7 +933,7 @@ export default function AdminManagementPage() {
                           <Checkbox
                             id="edit-users-view"
                             checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.VIEW,
+                              PERMISSIONS.USERS.VIEW
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -855,7 +948,7 @@ export default function AdminManagementPage() {
                                 setSelectedAdmin({
                                   ...selectedAdmin,
                                   permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW,
+                                    (p) => p !== PERMISSIONS.USERS.VIEW
                                   ),
                                 });
                               }
@@ -867,7 +960,7 @@ export default function AdminManagementPage() {
                           <Checkbox
                             id="edit-users-edit"
                             checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.EDIT,
+                              PERMISSIONS.USERS.EDIT
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -882,7 +975,7 @@ export default function AdminManagementPage() {
                                 setSelectedAdmin({
                                   ...selectedAdmin,
                                   permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT,
+                                    (p) => p !== PERMISSIONS.USERS.EDIT
                                   ),
                                 });
                               }
@@ -894,7 +987,7 @@ export default function AdminManagementPage() {
                           <Checkbox
                             id="edit-users-delete"
                             checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.DELETE,
+                              PERMISSIONS.USERS.DELETE
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -909,7 +1002,7 @@ export default function AdminManagementPage() {
                                 setSelectedAdmin({
                                   ...selectedAdmin,
                                   permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE,
+                                    (p) => p !== PERMISSIONS.USERS.DELETE
                                   ),
                                 });
                               }
@@ -921,7 +1014,7 @@ export default function AdminManagementPage() {
                           <Checkbox
                             id="edit-users-manage-admins"
                             checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.MANAGE_ADMINS,
+                              PERMISSIONS.USERS.MANAGE_ADMINS
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -936,8 +1029,7 @@ export default function AdminManagementPage() {
                                 setSelectedAdmin({
                                   ...selectedAdmin,
                                   permissions: selectedAdmin.permissions.filter(
-                                    (p) =>
-                                      p !== PERMISSIONS.USERS.MANAGE_ADMINS,
+                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
                                   ),
                                 });
                               }
@@ -957,7 +1049,7 @@ export default function AdminManagementPage() {
                           <Checkbox
                             id="edit-properties-view"
                             checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.PROPERTIES.VIEW,
+                              PERMISSIONS.PROPERTIES.VIEW
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -972,7 +1064,7 @@ export default function AdminManagementPage() {
                                 setSelectedAdmin({
                                   ...selectedAdmin,
                                   permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
                                   ),
                                 });
                               }
@@ -984,7 +1076,7 @@ export default function AdminManagementPage() {
                           <Checkbox
                             id="edit-properties-edit"
                             checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.PROPERTIES.EDIT,
+                              PERMISSIONS.PROPERTIES.EDIT
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -999,7 +1091,7 @@ export default function AdminManagementPage() {
                                 setSelectedAdmin({
                                   ...selectedAdmin,
                                   permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
                                   ),
                                 });
                               }

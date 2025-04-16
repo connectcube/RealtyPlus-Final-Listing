@@ -30,10 +30,10 @@ export type USER = {
   views: number;
   experience: string;
   agency?: string;
-specialties?:string[];
-languages?:string[];
-rating?:number;
-company?:string;
+  specialties?: string[];
+  languages?: string[];
+  rating?: number;
+  company?: string;
   // Agency-specific properties
   authProvider: string;
   businessRegistrationNumber?: string;
@@ -46,58 +46,78 @@ company?:string;
   position?: string;
   website?: string;
   myListings?: myListings[];
-  social?:SOCIAL;
-  totalSales?:string;
+  social?: SOCIAL;
+  totalSales?: string;
 };
-export type ADMIN={
-  uid:string;
-  firstName?: string;
-  lastName?: string;
-  email:string;
-  adminType:'admin' | 'superadmin';
-  createdAt:Timestamp;
-  isApproved:boolean;
-  adminPermissions:ADMINPERMISSIONS
-}
+export type ADMIN = {
+  uid: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  adminType: "Super Admin" | "Content Admin" | "User Admin" | "Custom"; // Updated to match actual roles
+  createdAt: Timestamp;
+  isApproved: boolean;
+  permissions: ADMINPERMISSIONS;
+  status: "Active" | "Inactive" | "Suspended";
+};
 
-interface ADMINPERMISSIONS{
-  userRead:boolean;
-  userWrite:boolean;
-  listingRead:boolean;
-  listingWrite:boolean;
+interface ADMINPERMISSIONS {
+  userRead: boolean;
+  userWrite: boolean;
+  listingRead: boolean;
+  listingWrite: boolean;
+  agentRead: boolean;
+  agentWrite: boolean;
+  agencyRead: boolean;
+  agencyWrite: boolean;
+  adminManagement: boolean;
+  subscriptionManagement: boolean;
 }
-interface SOCIAL{
+interface SOCIAL {
   linkedin: string;
   twitter: string;
 }
-export type LISTING={
-  postedBy:DocumentReference;
-    uid:string;
-    title: string;
-    isFeatured:boolean;
-    description: string;
-    price: string;
-    coverPhoto: string;
-    images:string[];
-    propertyType: "standalone" | "semi-detached" | "apartment" | "house" | "commercial" | "farmhouse" | "townhouse" | "other";
+export type LISTING = {
+  postedBy: DocumentReference;
+  uid: string;
+  title: string;
+  isFeatured: boolean;
+  description: string;
+  price: string;
+  coverPhoto: string;
+  images: string[];
+  propertyType:
+    | "standalone"
+    | "semi-detached"
+    | "apartment"
+    | "house"
+    | "commercial"
+    | "farmhouse"
+    | "townhouse"
+    | "other";
   listingType: "sale" | "rent";
-  propertyCategory: "residential" | "commercial" | "land" | "newDevelopment" | "other";
-    bedrooms: string;
-    bathrooms: string;
-    area: string;
-    garageSpaces: string;
-    yearBuilt: string;
-    isFurnished: false,
-    province: string;
-    city: string;
-    neighborhood: string;
-    address: string;
-    features: FEATURES,
-    nearbyPlaces:NearbyPlace[];
-    company:string;
-    createdAt:Timestamp;
-}
-export type FEATURES={
+  propertyCategory:
+    | "residential"
+    | "commercial"
+    | "land"
+    | "newDevelopment"
+    | "other";
+  bedrooms: string;
+  bathrooms: string;
+  area: string;
+  garageSpaces: string;
+  yearBuilt: string;
+  isFurnished: false;
+  province: string;
+  city: string;
+  neighborhood: string;
+  address: string;
+  features: FEATURES;
+  nearbyPlaces: NearbyPlace[];
+  company: string;
+  createdAt: Timestamp;
+};
+export type FEATURES = {
   swimmingPool: boolean;
   garden: boolean;
   securitySystem: boolean;
@@ -107,14 +127,13 @@ export type FEATURES={
   servantsQuarters: boolean;
   fittedKitchen: boolean;
   parking: boolean;
-
-}
+};
 export interface NearbyPlace {
   name: string;
   distance: string;
   type: string;
 }
-interface myListings{
+interface myListings {
   position: string;
   ref: DocumentReference;
 }
@@ -127,7 +146,7 @@ export type Subscription = {
   plan: string;
   isActive: boolean;
   listingsTotal: number;
-  agentsUsed:number;
-  agentsTotal:number;
-  renewalDate:Timestamp;
+  agentsUsed: number;
+  agentsTotal: number;
+  renewalDate: Timestamp;
 };

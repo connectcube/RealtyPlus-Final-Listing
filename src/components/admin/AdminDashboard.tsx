@@ -17,8 +17,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LoadingSpinner } from "../globalScreens/Loader";
 
 export default function AdminDashboard() {
-  const [admin, setAdmin] = useState<ADMIN>();
-  const authentication = auth;
+  const [admin, setAdmin] = useState<ADMIN | null>(null);
 
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
@@ -28,40 +27,40 @@ export default function AdminDashboard() {
           return;
         }
 
-        // Get admin document reference
         const adminRef = doc(fireDataBase, "admins", user.uid);
-
-        // Get admin document
         const adminSnapshot = await getDoc(adminRef);
-        const adminData = adminSnapshot.data() as ADMIN;
 
-        // Check admin status
-        if (!adminSnapshot.exists() || !adminData.isApproved) {
-          await signOut(authentication);
+        if (!adminSnapshot.exists()) {
+          await signOut(auth);
           window.location.href = "/";
-        } else {
-          setAdmin(adminData);
+          return;
         }
+
+        const adminData = adminSnapshot.data() as ADMIN;
+        if (!adminData.isApproved) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        setAdmin({
+          ...adminData,
+          uid: adminSnapshot.id,
+        });
       } catch (error) {
         console.error("Error checking admin status:", error);
-        await signOut(authentication);
+        await signOut(auth);
         window.location.href = "/";
       }
     };
 
-    // Set up auth state listener first
-    const unsubscribe = onAuthStateChanged(authentication, (user) => {
-      if (user) {
-        checkAdminStatus(user);
-      } else {
-        window.location.href = "/";
-      }
-    });
-
-    // Cleanup subscription
+    const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
     return () => unsubscribe();
   }, []);
 
+  if (!admin) {
+    return <LoadingSpinner />;
+  }
   // Mock data for dashboard stats
   const stats = [
     {
@@ -145,7 +144,7 @@ export default function AdminDashboard() {
   return !admin ? (
     <LoadingSpinner />
   ) : (
-    <AdminLayout admin={admin}>
+    <AdminLayout>
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">

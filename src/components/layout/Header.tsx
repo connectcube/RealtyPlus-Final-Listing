@@ -228,21 +228,19 @@ const Header = ({ className }: HeaderProps = {}) => {
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
                       {user?.savedProperties?.length || 0}
                     </Badge>
-                    <DropdownMenuContent
-                      align="end"
-                      className="transform translate-x-1/2 left-1/2"
-                    >
-                      <div className=" bg-slate-50 p-2 border border-gray-400 rounded">
-                        <p className="text-xs text-gray-600">Favorites</p>
-                        <SavedPropertiesDropDown
-                          user={user}
-                          setUser={setUser}
-                        />
-                      </div>
-                    </DropdownMenuContent>
                   </Button>
                 </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="transform translate-x-1/2 left-1/2"
+                >
+                  <div className="bg-slate-50 p-2 border border-gray-400 rounded">
+                    <p className="text-xs text-gray-600">Favorites</p>
+                    <SavedPropertiesDropDown user={user} setUser={setUser} />
+                  </div>
+                </DropdownMenuContent>
               </DropdownMenu>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
