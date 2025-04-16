@@ -9,6 +9,8 @@ import {
   MapPin,
   Heart,
   Bell,
+  Home,
+  MapPinIcon,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -22,10 +24,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, fireDataBase } from "@/lib/firebase";
 import { useZustand } from "@/lib/zustand";
 import { LISTING } from "@/lib/typeDefinitions";
-import { getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { toast } from "react-toastify";
 
 interface HeaderProps {
   className?: string;
@@ -42,7 +45,7 @@ const Header = ({ className }: HeaderProps = {}) => {
   const [isFavOpen, setIsFavOpen] = React.useState(false);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const { user, clearUser } = useZustand();
+  const { user, clearUser, setUser } = useZustand();
   const navigate = useNavigate();
   React.useEffect(() => {
     const handleScroll = () => {
@@ -54,6 +57,7 @@ const Header = ({ className }: HeaderProps = {}) => {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+    setIsFavOpen(!isFavOpen);
   };
   const handleSignOut = async () => {
     try {
@@ -85,6 +89,7 @@ const Header = ({ className }: HeaderProps = {}) => {
       return "a User";
     }
   };
+  //if()
   return (
     <>
       {/* Top Bar */}
@@ -211,24 +216,33 @@ const Header = ({ className }: HeaderProps = {}) => {
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative"
-                onClick={() => setIsFavOpen(!isFavOpen)}
-              >
-                <Heart className="h-5 w-5 text-gray-600" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
-                  {user?.savedProperties?.length || 0}
-                </Badge>
-                {isFavOpen && (
-                  <div className="absolute bottom-[-250%]  bg-slate-50 p-2 border border-gray-400 rounded">
-                    <p className="text-xs text-gray-600">Favorites</p>
-                    <SavedPropertiesDropDown user={user} />
-                  </div>
-                )}
-              </Button>
-
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative"
+                    onClick={() => setIsFavOpen(!isFavOpen)}
+                  >
+                    <Heart className="h-5 w-5 text-gray-600" />
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
+                      {user?.savedProperties?.length || 0}
+                    </Badge>
+                    <DropdownMenuContent
+                      align="end"
+                      className="transform translate-x-1/2 left-1/2"
+                    >
+                      <div className=" bg-slate-50 p-2 border border-gray-400 rounded">
+                        <p className="text-xs text-gray-600">Favorites</p>
+                        <SavedPropertiesDropDown
+                          user={user}
+                          setUser={setUser}
+                        />
+                      </div>
+                    </DropdownMenuContent>
+                  </Button>
+                </DropdownMenuTrigger>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -237,12 +251,15 @@ const Header = ({ className }: HeaderProps = {}) => {
                     className="rounded-full relative"
                   >
                     <User className="h-5 w-5" />
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
+                    {/* <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
                       3
-                    </Badge>
+                    </Badge>*/}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 transform translate-x-1/2 left-1/2"
+                >
                   <div className="p-2 text-center">
                     <p className="text-sm font-medium">
                       Welcome to RealtyZambia
@@ -464,9 +481,10 @@ const Header = ({ className }: HeaderProps = {}) => {
   );
 };
 
-const SavedPropertiesDropDown = ({ user }) => {
+const SavedPropertiesDropDown = ({ user, setUser }) => {
   const [savedProperties, setSavedProperties] = React.useState<LISTING[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const navigate = useNavigate(); // Assuming you're using react-router
 
   React.useEffect(() => {
     const fetchSavedProperties = async () => {
@@ -477,7 +495,8 @@ const SavedPropertiesDropDown = ({ user }) => {
         }
 
         const propertiesPromises = user.savedProperties.map(async (ref) => {
-          const docSnap = await getDoc(ref);
+          const docRef = doc(fireDataBase, "listings", ref);
+          const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             return { uid: docSnap.id, ...docSnap.data() } as LISTING;
           }
@@ -498,40 +517,141 @@ const SavedPropertiesDropDown = ({ user }) => {
     fetchSavedProperties();
   }, [user.savedProperties]);
 
+  const handlePropertyClick = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
+  };
+
+  const handleRemoveFavorite = async (
+    propertyId: string,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    try {
+      if (!user || !user.uid) {
+        console.log("User not logged in");
+        return;
+      }
+
+      // Filter out the property to remove
+      const updatedSavedProperties = user.savedProperties.filter(
+        (id) => id !== propertyId
+      );
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // Update Firebase
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      await updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+
+      // Optional: Show success message
+      toast?.success("Property removed from favorites");
+    } catch (error) {
+      console.error("Error removing property from favorites:", error);
+      // Revert local state if Firebase update fails
+      setUser({
+        ...user,
+        savedProperties: [...user.savedProperties],
+      });
+      // Optional: Show error message
+      toast?.error("Failed to remove property from favorites");
+    }
+  };
+
   if (isLoading) {
-    return <div className="p-4 text-center">Loading saved properties...</div>;
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-2 text-gray-600">Loading saved properties...</p>
+      </div>
+    );
   }
 
   if (!savedProperties.length) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        No saved properties found
+      <div className="p-6 text-center">
+        <div className="text-gray-400 mb-2">
+          <Heart className="h-12 w-12 mx-auto" />{" "}
+          {/* Import from your icon library */}
+        </div>
+        <p className="text-gray-600">No saved properties yet</p>
+        <button
+          onClick={() => navigate("/properties")}
+          className="mt-3 text-sm text-blue-600 hover:text-blue-700"
+        >
+          Browse Properties
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-h-[300px] overflow-y-auto p-2">
+    <div className="max-h-[400px] w-[320px] overflow-y-auto p-3 divide-y divide-gray-100">
+      <div className="pb-2 mb-2 flex justify-between items-center">
+        <h3 className="font-semibold text-gray-800">Saved Properties</h3>
+        <span className="text-sm text-gray-500">
+          {savedProperties.length} items
+        </span>
+      </div>
+
       {savedProperties.map((property) => (
         <div
           key={property.uid}
-          className="mb-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+          onClick={() => handlePropertyClick(property.uid)}
+          className="group w-full text-wrap p-3 hover:bg-gray-50 transition-all cursor-pointer rounded-lg"
         >
-          <div className="flex items-center gap-3">
-            <img
-              src={property.coverPhoto}
-              alt={property.title}
-              className="w-16 h-16 object-cover rounded"
-            />
-            <div>
-              <h3 className="font-medium text-sm">{property.title}</h3>
-              <div className="flex gap-2 text-xs text-gray-600">
-                <span>{property.propertyType}</span>
-                <span>•</span>
-                <span>{property.propertyCategory}</span>
+          <div className="flex items-start gap-3">
+            <div className="relative">
+              <img
+                src={property.coverPhoto}
+                alt={property.title}
+                className="w-20 h-20 object-cover rounded-lg"
+              />
+              <span className="absolute top-1 right-1 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                {property.propertyCategory}
+              </span>
+            </div>
+
+            <div className="flex-1">
+              <div className="flex  justify-between items-start">
+                <h3 className="font-medium text-sm group-hover:text-blue-600 truncate">
+                  {property.title}
+                </h3>
+                <button
+                  onClick={(e) => handleRemoveFavorite(property.uid, e)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                >
+                  <X className="h-4 w-4 text-gray-500" />{" "}
+                  {/* Import from your icon library */}
+                </button>
               </div>
-              <div className="text-sm font-semibold text-blue-600">
-                ${property.price}
+
+              <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                <span className="flex items-center">
+                  <Home className="h-3 w-3 mr-1" />{" "}
+                  {/* Import from your icon library */}
+                  {property.propertyType}
+                </span>
+                <span>•</span>
+                <span className="flex items-center">
+                  <MapPinIcon className="h-3 w-3 mr-1" />{" "}
+                  {/* Import from your icon library */}
+                  {property.address}
+                </span>
+              </div>
+
+              <div className="mt-2 flex justify-between items-center">
+                <div className="text-sm font-semibold text-blue-600">
+                  ${property.price.toLocaleString()}
+                </div>
+                <span className="text-xs text-gray-500">
+                  Added {new Date().toLocaleDateString()}
+                </span>
               </div>
             </div>
           </div>
@@ -540,5 +660,4 @@ const SavedPropertiesDropDown = ({ user }) => {
     </div>
   );
 };
-
 export default Header;
