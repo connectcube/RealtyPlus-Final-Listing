@@ -51,7 +51,7 @@ const AddProperty = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    price: "",
+    price: 0,
     propertyType: "",
     listingType: "sale",
     bedrooms: "",
@@ -83,10 +83,24 @@ const AddProperty = () => {
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
+    // Special handling for price field
+    if (field === "price") {
+      // Convert to number and handle invalid inputs
+      const numericValue = Number(value);
+      // Only update if it's a valid number
+      if (!isNaN(numericValue)) {
+        setFormData({
+          ...formData,
+          [field]: numericValue, // This will store as number instead of string
+        });
+      }
+    } else {
+      // Handle other fields normally
+      setFormData({
+        ...formData,
+        [field]: value,
+      });
+    }
   };
 
   const handleFeatureChange = (feature: string, checked: boolean) => {
@@ -1067,7 +1081,7 @@ const AddProperty = () => {
                         </h4>
                         <p className="font-medium">
                           {formData.price
-                            ? `K${parseInt(formData.price).toLocaleString()}`
+                            ? `K ${formData.price}`
                             : "Not specified yet"}
                         </p>
                       </div>

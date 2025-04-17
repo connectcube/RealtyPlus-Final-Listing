@@ -27,6 +27,7 @@ import { LISTING } from "@/lib/typeDefinitions";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import SearchFilters from "../search/SearchFilters";
+import { useZustand } from "@/lib/zustand";
 interface SearchFiltersProps {
   address: string;
   province: string;
@@ -55,9 +56,9 @@ const MemoizedPropertyCard = memo(
     propertyType,
     isFeatured,
     isFurnished,
+    onFavorite,
     isFavorite,
     yearBuilt,
-    onFavorite,
   }: any) => (
     <PropertyCard
       id={id}
@@ -71,9 +72,9 @@ const MemoizedPropertyCard = memo(
       propertyType={propertyType}
       isFeatured={isFeatured}
       isFurnished={isFurnished}
-      isFavorite={isFavorite}
       yearBuilt={yearBuilt}
       onFavorite={onFavorite}
+      isFavorite={isFavorite}
     />
   )
 );
@@ -95,6 +96,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: any) => (
 
 // ViewCategorizedProperties.tsx
 export default function ViewCategorizedProperties() {
+  const { user, setUser } = useZustand();
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<SearchFiltersProps>({
@@ -136,7 +138,9 @@ export default function ViewCategorizedProperties() {
           where("propertyType", "==", filters.propertyType)
         );
       }
-
+      if (filters.province && filters.province !== "all") {
+        queryConstraints.push(where("province", "==", filters.province));
+      }
       // Add property category filter
       if (filters.propertyCategory && filters.propertyCategory !== "all") {
         queryConstraints.push(
@@ -157,7 +161,7 @@ export default function ViewCategorizedProperties() {
           where("bathrooms", ">=", parseInt(filters.bathrooms))
         );
       }
-
+      console.log(queryConstraints);
       // Execute query
       const q = query(listingsRef, ...queryConstraints);
       const querySnapshot = await getDocs(q);
@@ -203,7 +207,48 @@ export default function ViewCategorizedProperties() {
       setLoading(false);
     }
   };
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        console.log("User not logged in");
+        return;
+      }
 
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  // And the isFavorite check would be simpler too:
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -241,7 +286,7 @@ export default function ViewCategorizedProperties() {
                       id={property.uid}
                       title={property.title}
                       price={property.price}
-                      location={`${property.neighborhood}, ${property.city}`}
+                      location={property.address}
                       bedrooms={property.bedrooms}
                       bathrooms={property.bathrooms}
                       area={property.area}
@@ -249,9 +294,10 @@ export default function ViewCategorizedProperties() {
                       propertyType={property.propertyType}
                       isFeatured={property.isFeatured}
                       isFurnished={property.isFurnished}
-                      isFavorite={() => true}
                       yearBuilt={property.yearBuilt}
-                      onFavorite={() => console.log("Favorite clicked")}
+                      onFavorite={handleFavClick}
+                      isFavorite={() => handleCheckFav(property.uid)}
+                      onClick={() => console.log(property.uid)}
                     />
                   ))}
                 </div>

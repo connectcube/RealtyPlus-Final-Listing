@@ -84,10 +84,10 @@ const SearchFilters = ({
   // Set different price ranges based on listing type
   const priceRanges = {
     sale: {
-      min: 10000,
+      min: 10,
       max: 5000000,
-      default: [10000, 5000000],
-      step: 10000,
+      default: [10, 5000000],
+      step: 1000,
     },
     rent: {
       min: 100,
@@ -540,6 +540,7 @@ const SearchFilters = ({
                   <SelectValue placeholder="Select province" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="lusaka">Lusaka</SelectItem>
                   <SelectItem value="copperbelt">Copperbelt</SelectItem>
                   <SelectItem value="central">Central</SelectItem>
@@ -562,6 +563,7 @@ const SearchFilters = ({
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="house">House</SelectItem>
                   <SelectItem value="apartment">Apartment</SelectItem>
                   <SelectItem value="commercial">Commercial</SelectItem>
