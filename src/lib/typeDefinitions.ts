@@ -84,7 +84,7 @@ export type LISTING = {
   isFeatured: boolean;
   description: string;
   price: string;
-  coverPhoto: string;
+  coverPhotoIndex: number;
   images: string[];
   propertyType:
     | "standalone"

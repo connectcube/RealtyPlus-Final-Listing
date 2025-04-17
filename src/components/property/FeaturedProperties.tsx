@@ -58,7 +58,7 @@ const FeaturedProperties = ({
         const querySnapshot = await getDocs(q);
 
         const fetchedProperties: LISTING[] = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
+          uid: doc.id,
           ...(doc.data() as Omit<LISTING, "id">),
         }));
 
@@ -225,7 +225,7 @@ const FeaturedProperties = ({
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.coverPhoto}
+                imageUrl={property.images[property.coverPhotoIndex]}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}

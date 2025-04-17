@@ -35,18 +35,10 @@ const firebaseApp = initializeApp(firebaseConfig);
 // Initialize Firebase Auth and Google Provider
 const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
-const githubProvider = new GithubAuthProvider();
 setPersistence(auth, browserLocalPersistence)
   .then(() => console.log("Persistence set to browserLocalPersistence"))
   .catch((error) => console.error("Error setting persistence: ", error));
 // Initialize Firestore
 const fireDataBase = getFirestore(firebaseApp);
 const fireStorage = getStorage(firebaseApp);
-export {
-  firebaseApp,
-  auth,
-  googleProvider,
-  githubProvider,
-  fireDataBase,
-  fireStorage,
-};
+export { firebaseApp, auth, googleProvider, fireDataBase, fireStorage };

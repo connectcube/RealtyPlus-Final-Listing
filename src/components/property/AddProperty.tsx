@@ -24,6 +24,7 @@ import {
   X,
   Check,
   Info,
+  Image,
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
@@ -38,8 +39,8 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { fireDataBase } from "@/lib/firebase";
-import { ref } from "firebase/storage";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 
 const AddProperty = () => {
@@ -79,6 +80,7 @@ const AddProperty = () => {
     propertyCategory: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData({
@@ -102,17 +104,23 @@ const AddProperty = () => {
       const files = e.target.files;
       if (!files) return;
 
+      // Check if user is authenticated
+      if (!user || !user.uid) {
+        toast.error("You must be logged in to upload images");
+        return;
+      }
+
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
       const maxSize = 5 * 1024 * 1024; // 5MB
 
       // Convert FileList to array and validate
       const validFiles = Array.from(files).filter((file) => {
         if (!allowedTypes.includes(file.type)) {
-          alert(`File ${file.name} is not a supported image type`);
+          toast.error(`File ${file.name} is not a supported image type`);
           return false;
         }
         if (file.size > maxSize) {
-          alert(`File ${file.name} is too large. Max size is 5MB`);
+          toast.error(`File ${file.name} is too large. Max size is 5MB`);
           return false;
         }
         return true;
@@ -121,12 +129,27 @@ const AddProperty = () => {
       setUploadedImages([...uploadedImages, ...validFiles]);
     } catch (error) {
       console.error("Error handling image upload:", error);
-      alert("Error handling image upload");
+      toast.error("Error handling image upload");
     }
   };
 
   const removeImage = (index: number) => {
     const newImages = [...uploadedImages];
+
+    // If removing the cover photo, adjust the cover photo index
+    if (index === coverPhotoIndex) {
+      if (newImages.length > 1) {
+        // Set the next image as cover photo, or the previous one if removing the last image
+        const newCoverIndex = index === newImages.length - 1 ? 0 : index;
+        setCoverPhotoIndex(newCoverIndex);
+      } else {
+        setCoverPhotoIndex(0); // Reset to 0 if no images left
+      }
+    } else if (index < coverPhotoIndex) {
+      // If removing an image before the cover photo, decrement the cover photo index
+      setCoverPhotoIndex(coverPhotoIndex - 1);
+    }
+
     newImages.splice(index, 1);
     setUploadedImages(newImages);
   };
@@ -136,6 +159,10 @@ const AddProperty = () => {
     try {
       setIsSubmitting(true);
       console.log(user);
+      if (!user || !user.uid) {
+        toast.error("You must be logged in to submit a property");
+        return;
+      }
       // Get the poster's document reference
       const posterDocRef = doc(fireDataBase, user.userType, user.uid);
 
@@ -146,27 +173,51 @@ const AddProperty = () => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         postedBy: posterDocRef, // Using the document reference instead of just UID
+        createdBy: user.uid,
         userType: user.userType,
         status: "active",
         images: [], // This will be updated after uploading images
+        coverPhotoIndex: 0, // This will be updated after uploading images
       });
 
       // Upload images to Firebase Storage and get their URLs
-      /* const imageUrls = await Promise.all(
-      //  uploadedImages.map(async (image) => {
+      const imageUrls = await Promise.all(
+        uploadedImages.map(async (image) => {
           const storageRef = ref(
-            storage,
-            `listings/${newListingRef.id}/${image.name}`
+            fireStorage,
+            `listings-images/${newListingRef.id}/${image.name}`
           );
-          const uploadResult = await uploadBytes(storageRef, image);
-          return await getDownloadURL(uploadResult.ref);
+
+          // Add metadata to the upload
+          const metadata = {
+            customMetadata: {
+              uid: user.uid,
+              userType: user.userType,
+              uploadedAt: new Date().toISOString(),
+            },
+          };
+
+          // Add this to your handleSubmit function where the image upload occurs
+          try {
+            const uploadResult = await uploadBytes(storageRef, image, metadata);
+            return await getDownloadURL(uploadResult.ref);
+          } catch (error: any) {
+            console.error("Upload error details:", {
+              code: error.code,
+              message: error.message,
+              serverResponse: error.serverResponse,
+              name: error.name,
+            });
+            throw error;
+          }
         })
       );
 
       // Update the listing document with image URLs
       await updateDoc(newListingRef, {
         images: imageUrls,
-      });*/
+        coverPhotoIndex: coverPhotoIndex,
+      });
 
       // Update the user's document with the reference to this listing
       const posterDocSnap = await getDoc(posterDocRef);
@@ -912,12 +963,20 @@ const AddProperty = () => {
                               <h4 className="text-base font-medium mb-3">
                                 Uploaded Images
                               </h4>
+                              <p className="text-sm text-gray-500 mb-3">
+                                Click on the image icon to set it as the cover
+                                photo. The first image will be automatically set
+                                as the cover photo if none is selected.
+                              </p>
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                                 {uploadedImages.map((image, index) => (
                                   <ImagePreview
                                     key={index}
                                     file={image}
+                                    index={index}
                                     onRemove={removeImage}
+                                    isCover={index === coverPhotoIndex}
+                                    onSetCover={setCoverPhotoIndex}
                                   />
                                 ))}
                               </div>
@@ -1126,19 +1185,21 @@ const AddProperty = () => {
 const ImagePreview = ({
   file,
   onRemove,
-  key,
+  index,
+  isCover,
+  onSetCover,
 }: {
   file: File;
   onRemove: (index: number) => void;
-  key: number;
+  index: number;
+  isCover: boolean;
+  onSetCover: (index: number) => void;
 }) => {
   const [preview, setPreview] = useState<string>("");
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
-
-    // Clean up
     return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
 
@@ -1146,17 +1207,33 @@ const ImagePreview = ({
     <div className="relative group">
       <img
         src={preview}
-        alt="Preview"
-        className="w-full h-24 object-cover rounded-md"
+        alt={`Preview ${index + 1}`}
+        className={`w-full h-24 object-cover rounded-md ${
+          isCover ? "ring-2 ring-realtyplus" : ""
+        }`}
       />
-      <button
-        onClick={() => onRemove(key)}
-        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <X className="h-4 w-4" />
-      </button>
+      <div className="absolute top-1 right-0 px-2 py-1 flex gap-1 w-full justify-between">
+        <button
+          onClick={() => onSetCover(index)}
+          className={`bg-realtyplus text-white rounded-full p-1 
+            ${isCover ? "opacity-100" : "opacity-0 group-hover:opacity-100"} 
+            transition-opacity`}
+          title={isCover ? "Cover Photo" : "Set as Cover Photo"}
+        >
+          {isCover ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Image className="h-4 w-4" />
+          )}
+        </button>
+        <button
+          onClick={() => onRemove(index)}
+          className="bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 };
-
 export default AddProperty;

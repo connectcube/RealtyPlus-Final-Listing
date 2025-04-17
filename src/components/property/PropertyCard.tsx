@@ -39,7 +39,7 @@ interface PropertyCardProps {
 }
 
 const PropertyCard = ({
-  id = "prop-1",
+  id,
   title = "Modern 3 Bedroom House in Kabulonga",
   price = 450000,
   location = "Kabulonga, Lusaka",

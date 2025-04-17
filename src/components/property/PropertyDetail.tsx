@@ -693,18 +693,28 @@ ${formData.name}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
               <Carousel className="w-full">
                 <CarouselContent>
-                  {[property.coverPhoto, ...property.images].map(
-                    (image, index) => (
-                      <CarouselItem key={index}>
-                        <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
-                          <img
-                            src={image}
-                            alt={`${property.title} - Image ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </CarouselItem>
-                    )
+                  <CarouselItem key={property.coverPhotoIndex}>
+                    <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
+                      <img
+                        src={property.images[property.coverPhotoIndex]}
+                        alt={`${property.title} - Image ${property.coverPhotoIndex}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CarouselItem>
+                  {property.images.map(
+                    (image, index) =>
+                      property.coverPhotoIndex !== index && (
+                        <CarouselItem key={index}>
+                          <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
+                            <img
+                              src={image}
+                              alt={`${property.title} - Image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </CarouselItem>
+                      )
                   )}
                 </CarouselContent>
                 <CarouselPrevious className="left-2" />
@@ -1157,7 +1167,7 @@ ${formData.name}
           </div>
         </div>
 
-        {/* Similar Properties */}
+        {/* Similar Properties 
         <div className="mt-12">
           <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -1187,7 +1197,7 @@ ${formData.name}
               />
             ))}
           </div>
-        </div>
+        </div>*/}
       </main>
       <Footer />
     </div>
