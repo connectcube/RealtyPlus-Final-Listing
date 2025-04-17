@@ -42,21 +42,28 @@ interface SearchFiltersProps {
 }
 
 interface SearchFilters {
-  location: string;
-  address: string;
-  province: string;
-  priceRange: [string, string];
-  propertyType: string;
-  furnishingStatus: string;
-  yearBuilt: string;
-  bedrooms: string;
-  bathrooms: string;
-  garage: string;
-  amenities: string[];
-  listingType: string;
-  propertyCategory: string;
+  address?: string;
+  province?: string;
+  priceRange?: [number, number];
+  propertyType?: string;
+  furnishingStatus?: string;
+  yearBuilt?: string;
+  bedrooms?: string;
+  bathrooms?: string;
+  garage?: string;
+  amenities?: string[];
+  listingType?: string;
+  propertyCategory?: string;
 }
-
+interface SearchFiltersProps {
+  onSearch?: (filters: SearchFilters) => void;
+  filters?: Partial<SearchFilters>;
+  setFilters: React.Dispatch<React.SetStateAction<Partial<SearchFilters>>>;
+  className?: string;
+  compact?: boolean;
+  type?: string;
+  isLoading?: boolean;
+}
 interface ValidationError {
   field: string;
   message: string;
@@ -64,108 +71,33 @@ interface ValidationError {
 
 const SearchFilters = ({
   onSearch,
+  filters,
+  setFilters,
   className,
   compact = false,
   type = "sale",
-}: SearchFiltersProps = {}) => {
+  isLoading = false,
+}: SearchFiltersProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   // Set different price ranges based on listing type
   const priceRanges = {
     sale: {
-      min: 10,
+      min: 10000,
       max: 5000000,
-      default: ["10", "5000000"],
+      default: [10000, 5000000],
       step: 10000,
     },
-    rent: { min: 10, max: 50000, default: ["100", "50000"], step: 100 },
+    rent: {
+      min: 100,
+      max: 50000,
+      default: [100, 50000],
+      step: 100,
+    },
   };
-
-  const [filters, setFilters] = useState<SearchFilters>({
-    location: "",
-    address: "",
-    province: "",
-    priceRange: [priceRanges[type].default[0], priceRanges[type].default[1]],
-    propertyType: "",
-    furnishingStatus: "",
-    yearBuilt: "",
-    bedrooms: "",
-    bathrooms: "",
-    garage: "",
-    amenities: [],
-    listingType: type,
-    propertyCategory: "",
-  });
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Initialize filters from URL params
-  useEffect(() => {
-    const params = Object.fromEntries(searchParams.entries());
-    setFilters((prev) => ({
-      ...prev,
-      location: params.location || "",
-      province: params.province || "",
-      priceRange: params.priceRange
-        ? (params.priceRange.split(",") as [string, string])
-        : prev.priceRange,
-      propertyType: params.propertyType || "",
-      propertyCategory: params.propertyCategory || "",
-      bedrooms: params.bedrooms || "",
-      bathrooms: params.bathrooms || "",
-      garage: params.garage || "",
-      furnishingStatus: params.furnishingStatus || "",
-      yearBuilt: params.yearBuilt || "",
-      amenities: params.amenities ? params.amenities.split(",") : [],
-      listingType: params.listingType || type,
-    }));
-  }, [searchParams, type]);
-
-  // In SearchFilters.tsx
-  const updateURLParams = (newFilters: SearchFilters) => {
-    const params = new URLSearchParams();
-
-    // Only add non-empty and non-default values to URL
-    if (newFilters.location) params.set("location", newFilters.location);
-    if (newFilters.province) params.set("province", newFilters.province);
-    if (newFilters.propertyType)
-      params.set("propertyType", newFilters.propertyType);
-    if (newFilters.propertyCategory)
-      params.set("propertyCategory", newFilters.propertyCategory);
-    if (newFilters.bedrooms) params.set("bedrooms", newFilters.bedrooms);
-    if (newFilters.bathrooms) params.set("bathrooms", newFilters.bathrooms);
-    if (newFilters.garage) params.set("garage", newFilters.garage);
-    if (newFilters.furnishingStatus)
-      params.set("furnishingStatus", newFilters.furnishingStatus);
-    if (newFilters.yearBuilt) params.set("yearBuilt", newFilters.yearBuilt);
-    if (newFilters.amenities.length > 0)
-      params.set("amenities", newFilters.amenities.join(","));
-
-    if (
-      newFilters.priceRange[0] !==
-        priceRanges[newFilters.listingType].default[0] ||
-      newFilters.priceRange[1] !==
-        priceRanges[newFilters.listingType].default[1]
-    ) {
-      params.set("priceRange", newFilters.priceRange.join(","));
-    }
-
-    setSearchParams(params, { replace: true });
-  };
-  const validatePriceRange = (range: [string, string]): boolean => {
-    // Check if values are valid numbers
-    if (isNaN(Number(range[0])) || isNaN(Number(range[1]))) {
-      return false;
-    }
-
-    // Check if min is less than max
-    if (Number(range[0]) > Number(range[1])) {
-      return false;
-    }
-
-    return true;
-  };
   const validateFilters = (filters: SearchFilters): ValidationError[] => {
     const errors: ValidationError[] = [];
 
@@ -197,11 +129,7 @@ const SearchFilters = ({
     }
 
     try {
-      setIsSubmitting(true);
-      updateURLParams(filters);
-      if (onSearch) {
-        await onSearch(filters);
-      }
+      onSearch(filters);
     } catch (error) {
       setErrors([
         {
@@ -210,29 +138,11 @@ const SearchFilters = ({
             "An error occurred while performing the search. Please try again.",
         },
       ]);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handlePriceRangeChange = (value: number[]) => {
-    const newRange: [string, string] = [
-      value[0].toString(),
-      value[1].toString(),
-    ];
-
-    if (!validatePriceRange(newRange)) {
-      setErrors((prev) => [
-        ...prev.filter((e) => e.field !== "priceRange"),
-        {
-          field: "priceRange",
-          message: "Invalid price range values",
-        },
-      ]);
-      return;
-    }
-
-    setErrors((prev) => prev.filter((error) => error.field !== "priceRange"));
+    const newRange: [number, number] = [value[0], value[1]];
     setFilters((prev) => ({
       ...prev,
       priceRange: newRange,
@@ -242,8 +152,8 @@ const SearchFilters = ({
   const handleReset = () => {
     const defaultPriceRange =
       filters.listingType === "rent"
-        ? (priceRanges.rent.default as [string, string])
-        : (priceRanges.sale.default as [string, string]);
+        ? (priceRanges.rent.default as [number, number])
+        : (priceRanges.sale.default as [number, number]);
 
     const resetFilters = {
       location: "",
@@ -268,8 +178,8 @@ const SearchFilters = ({
   const handleListingTypeChange = (value: string) => {
     const newPriceRange =
       value === "rent"
-        ? (priceRanges.rent.default as [string, string])
-        : (priceRanges.sale.default as [string, string]);
+        ? (priceRanges.rent.default as [number, number])
+        : (priceRanges.sale.default as [number, number]);
 
     setFilters({
       ...filters,
@@ -305,10 +215,10 @@ const SearchFilters = ({
                   id="location"
                   placeholder="Enter location"
                   className="pl-8"
-                  value={filters.location}
-                  onChange={(e) =>
-                    setFilters({ ...filters, location: e.target.value })
-                  }
+                  value={filters.address}
+                  onChange={(e) => {
+                    setFilters({ ...filters, address: e.target.value });
+                  }}
                 />
               </div>
             </div>
@@ -317,9 +227,9 @@ const SearchFilters = ({
               <Label htmlFor="province">Province</Label>
               <Select
                 value={filters.province}
-                onValueChange={(value) =>
-                  setFilters({ ...filters, province: value })
-                }
+                onValueChange={(value) => {
+                  setFilters({ ...filters, province: value });
+                }}
               >
                 <SelectTrigger id="province">
                   <SelectValue placeholder="Select province" />
@@ -340,9 +250,9 @@ const SearchFilters = ({
               <Label htmlFor="propertyType">Property Type</Label>
               <Select
                 value={filters.propertyType}
-                onValueChange={(value) =>
-                  setFilters({ ...filters, propertyType: value })
-                }
+                onValueChange={(value) => {
+                  setFilters({ ...filters, propertyType: value });
+                }}
               >
                 <SelectTrigger id="propertyType">
                   <SelectValue placeholder="Select type" />
@@ -362,9 +272,9 @@ const SearchFilters = ({
               <Label htmlFor="propertyCategory">Property Category</Label>
               <Select
                 value={filters.propertyCategory}
-                onValueChange={(value) =>
-                  setFilters({ ...filters, propertyCategory: value })
-                }
+                onValueChange={(value) => {
+                  setFilters({ ...filters, propertyCategory: value });
+                }}
               >
                 <SelectTrigger id="propertyCategory">
                   <SelectValue placeholder="Select property category" />
@@ -387,18 +297,15 @@ const SearchFilters = ({
             <div className="flex justify-between">
               <Label>Price Range</Label>
               <span className="text-sm text-muted-foreground">
-                K{parseInt(filters.priceRange[0]).toLocaleString()} - K
-                {parseInt(filters.priceRange[1]).toLocaleString()}
+                K{filters.priceRange[0].toLocaleString()} - K
+                {filters.priceRange[1].toLocaleString()}
               </span>
             </div>
             <Slider
               min={parseInt(priceRanges[filters.listingType].min)}
               max={parseInt(priceRanges[filters.listingType].max)}
               step={priceRanges[filters.listingType].step}
-              value={[
-                parseInt(filters.priceRange[0]),
-                parseInt(filters.priceRange[1]),
-              ]}
+              value={[filters.priceRange[0], filters.priceRange[1]]}
               onValueChange={handlePriceRangeChange}
               className="my-4"
             />
@@ -613,9 +520,9 @@ const SearchFilters = ({
                   id="location-rent"
                   placeholder="Enter location"
                   className="pl-8"
-                  value={filters.location}
+                  value={filters.address}
                   onChange={(e) =>
-                    setFilters({ ...filters, location: e.target.value })
+                    setFilters({ ...filters, address: e.target.value })
                   }
                 />
               </div>
@@ -679,10 +586,7 @@ const SearchFilters = ({
               min={parseInt(priceRanges[filters.listingType].min)}
               max={parseInt(priceRanges[filters.listingType].max)}
               step={priceRanges[filters.listingType].step}
-              value={[
-                parseInt(filters.priceRange[0]),
-                parseInt(filters.priceRange[1]),
-              ]}
+              value={[filters.priceRange[0], filters.priceRange[1]]}
               onValueChange={handlePriceRangeChange}
               className="my-4"
             />

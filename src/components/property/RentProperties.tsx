@@ -112,102 +112,102 @@ const mockPropertiesForSale = [
     yearBuilt: 2018,
   },
 ];
-
+interface SearchFiltersProps {
+  address: string;
+  province: string;
+  priceRange: [number, number];
+  propertyType: string;
+  furnishingStatus: string;
+  yearBuilt: string;
+  bedrooms: string;
+  bathrooms: string;
+  garage: string;
+  amenities: string[];
+  listingType: string;
+  propertyCategory: string;
+}
 const RentProperties = () => {
   const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<LISTING[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial fetch of properties
-  useEffect(() => {
-    fetchProperties();
-  }, []);
+  const [filters, setFilters] = useState<SearchFiltersProps>({
+    address: "",
+    province: "",
+    priceRange: [0, 1000000],
+    propertyType: "all",
+    furnishingStatus: "all",
+    yearBuilt: "",
+    bedrooms: "",
+    bathrooms: "",
+    garage: "",
+    amenities: [],
+    listingType: "rent",
+    propertyCategory: "all",
+  });
 
-  const fetchProperties = async () => {
+  const handleSearch = async (filters: SearchFiltersProps) => {
     try {
+      console.log("Filters from handle search:", filters);
+      setLoading(true);
+      setFilters(filters);
+
       const listingsRef = collection(fireDataBase, "listings");
-      const q = query(
-        listingsRef,
-        where("listingType", "==", "sale"),
-        where("status", "==", "active")
-      );
+      let queryConstraints: any[] = [];
 
+      // Base query
+      queryConstraints.push(where("listingType", "==", filters.listingType));
+
+      // Add price range filter
+      if (filters.priceRange[0] && filters.priceRange[1]) {
+        queryConstraints.push(where("price", ">=", filters.priceRange[0]));
+        queryConstraints.push(where("price", "<=", filters.priceRange[1]));
+      }
+
+      // Add property type filter
+      if (filters.propertyType && filters.propertyType !== "all") {
+        queryConstraints.push(
+          where("propertyType", "==", filters.propertyType)
+        );
+      }
+
+      // Add property category filter
+      if (filters.propertyCategory && filters.propertyCategory !== "all") {
+        queryConstraints.push(
+          where("propertyCategory", "==", filters.propertyCategory)
+        );
+      }
+
+      // Add bedrooms filter
+      if (filters.bedrooms) {
+        queryConstraints.push(
+          where("bedrooms", ">=", parseInt(filters.bedrooms))
+        );
+      }
+
+      // Add bathrooms filter
+      if (filters.bathrooms) {
+        queryConstraints.push(
+          where("bathrooms", ">=", parseInt(filters.bathrooms))
+        );
+      }
+      console.log(queryConstraints);
+      // Execute query
+      const q = query(listingsRef, ...queryConstraints);
       const querySnapshot = await getDocs(q);
-      const propertyList: LISTING[] = [];
 
-      querySnapshot.forEach((doc) => {
-        propertyList.push({
-          uid: doc.id,
-          ...(doc.data() as LISTING),
-        });
-      });
-
-      setProperties(propertyList);
-      setFilteredProperties(propertyList);
-    } catch (err) {
-      console.error("Error fetching properties:", err);
-      setError("Failed to load properties. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSearch = async (filters: SearchFilters) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const listingsRef = collection(fireDataBase, "listings");
-      let q: Query<DocumentData> = query(
-        listingsRef,
-        where("listingType", "==", "rent"),
-        where("status", "==", "active")
-      );
-
-      // Build query based on filters
-      if (filters.province) {
-        q = query(q, where("province", "==", filters.province.toLowerCase()));
-      }
-
-      if (filters.propertyType) {
-        q = query(q, where("propertyType", "==", filters.propertyType));
-      }
-
-      if (filters.propertyCategory) {
-        q = query(q, where("propertyCategory", "==", filters.propertyCategory));
-      }
-
-      const querySnapshot = await getDocs(q);
-      let filteredResults = querySnapshot.docs.map((doc) => ({
+      // Process results
+      const fetchedProperties = querySnapshot.docs.map((doc) => ({
         uid: doc.id,
-        ...(doc.data() as LISTING),
-      }));
+        ...doc.data(),
+      })) as LISTING[];
 
-      // Client-side filtering for remaining filters
-      filteredResults = filteredResults.filter((property) => {
-        // Price range filter
-        if (filters.priceRange[0] && filters.priceRange[1]) {
-          const minPrice = parseInt(filters.priceRange[0]);
-          const maxPrice = parseInt(filters.priceRange[1]);
-          if (
-            parseInt(property.price) < minPrice ||
-            parseInt(property.price) > maxPrice
-          ) {
-            return false;
-          }
-        }
-
-        // Location/Address filter (case-insensitive)
-        if (
-          filters.location &&
-          !property.city.toLowerCase().includes(filters.location.toLowerCase())
-        ) {
-          return false;
-        }
-
+      // Apply text-based filters client-side
+      const filteredProperties = fetchedProperties.filter((property) => {
+        // Location filter
         if (
           filters.address &&
           !property.address
@@ -217,71 +217,27 @@ const RentProperties = () => {
           return false;
         }
 
-        // Bedrooms filter
-        if (
-          filters.bedrooms &&
-          parseInt(property.bedrooms) < parseInt(filters.bedrooms)
-        ) {
-          return false;
-        }
-
-        // Bathrooms filter
-        if (
-          filters.bathrooms &&
-          parseInt(property.bathrooms) < parseInt(filters.bathrooms)
-        ) {
-          return false;
-        }
-
-        // Garage filter
-        if (
-          filters.garage &&
-          parseInt(property.garageSpaces) < parseInt(filters.garage)
-        ) {
-          return false;
-        }
-
-        // Year built filter
-        if (
-          filters.yearBuilt &&
-          parseInt(property.yearBuilt) < parseInt(filters.yearBuilt)
-        ) {
-          return false;
-        }
-
-        // Furnishing status filter
-        if (filters.furnishingStatus) {
-          if (
-            filters.furnishingStatus === "furnished" &&
-            !property.isFurnished
-          ) {
-            return false;
-          }
-          if (
-            filters.furnishingStatus === "unfurnished" &&
-            property.isFurnished
-          ) {
-            return false;
-          }
-        }
-
         // Amenities filter
-        if (filters.amenities && filters.amenities.length > 0) {
-          return filters.amenities.every((amenity) => {
-            const amenityKey = amenity.toLowerCase().replace(" ", "");
-            return property.features[amenityKey];
-          });
-        }
+        /*if (filters.amenities.length > 0) {
+          const propertyAmenities = property.amenities || [];
+          if (
+            !filters.amenities.every((amenity) =>
+              propertyAmenities.includes(amenity)
+            )
+          ) {
+            return false;
+          }
+        }*/
 
         return true;
       });
 
-      setFilteredProperties(filteredResults);
-    } catch (err) {
-      console.error("Error searching properties:", err);
-      setError("An error occurred while searching. Please try again.");
+      setProperties(filteredProperties);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+      // Handle error appropriately
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
   const handleFavClick = (propertyId: string) => {
@@ -330,7 +286,14 @@ const RentProperties = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <SearchFilters type="rent" onSearch={handleSearch} />
+        <SearchFilters
+          onSearch={handleSearch}
+          setFilters={setFilters}
+          filters={filters}
+          isLoading={loading}
+          type="rent"
+          className="mb-8"
+        />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
@@ -365,7 +328,7 @@ const RentProperties = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-realtyplus"></div>
           </div>
@@ -381,7 +344,7 @@ const RentProperties = () => {
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.coverPhoto}
+                imageUrl={property.images[property.coverPhotoIndex]}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
@@ -404,7 +367,7 @@ const RentProperties = () => {
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.coverPhoto}
+                imageUrl={property.images[property.coverPhotoIndex]}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
@@ -416,7 +379,7 @@ const RentProperties = () => {
           </div>
         )}
 
-        {!isLoading && filteredProperties.length === 0 && (
+        {!loading && filteredProperties.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
               No properties found matching your criteria.

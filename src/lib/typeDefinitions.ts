@@ -83,7 +83,7 @@ export type LISTING = {
   title: string;
   isFeatured: boolean;
   description: string;
-  price: string;
+  price: number;
   coverPhotoIndex: number;
   images: string[];
   propertyType:
