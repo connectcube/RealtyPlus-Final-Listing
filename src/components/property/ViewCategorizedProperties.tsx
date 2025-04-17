@@ -1,47 +1,23 @@
-import { useCallback, useEffect, memo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { memo, useState } from "react";
 import {
   collection,
   query,
   where,
   getDocs,
-  orderBy,
-  limit,
-  startAfter,
-  DocumentData,
   doc,
   updateDoc,
 } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import PropertyCard from "../property/PropertyCard";
 import { Button } from "../ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import Header from "../layout/Header";
-import { LISTING } from "@/lib/typeDefinitions";
+import { LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import SearchFilters from "../search/SearchFilters";
 import { useZustand } from "@/lib/zustand";
-interface SearchFiltersProps {
-  address: string;
-  province: string;
-  priceRange: [number, number];
-  propertyType: string;
-  furnishingStatus: string;
-  yearBuilt: string;
-  bedrooms: string;
-  bathrooms: string;
-  garage: string;
-  amenities: string[];
-  listingType: string;
-  propertyCategory: string;
-}
+import { LoadingSpinner } from "../globalScreens/Loader";
+
 // Memoized Property Card Component
 const MemoizedPropertyCard = memo(
   ({
@@ -98,7 +74,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: any) => (
 export default function ViewCategorizedProperties() {
   const { user, setUser } = useZustand();
   const [properties, setProperties] = useState<LISTING[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<SearchFiltersProps>({
     address: "",
     province: "",
@@ -254,9 +230,9 @@ export default function ViewCategorizedProperties() {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            {filters?.propertyCategory !== "all"
-              ? `${filters?.propertyCategory} Properties`
+          <h1 className="text-3xl font-bold text-gray-900 mb-4 capitalize">
+            {filters?.propertyType !== "all"
+              ? `${filters?.propertyType} Properties`
               : "All Properties"}
           </h1>
 
@@ -274,9 +250,7 @@ export default function ViewCategorizedProperties() {
             onReset={() => handleSearch(filters as SearchFiltersProps)}
           >
             {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-realtyplus" />
-              </div>
+              <LoadingSpinner />
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

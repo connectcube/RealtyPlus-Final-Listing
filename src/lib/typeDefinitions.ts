@@ -150,3 +150,17 @@ export type Subscription = {
   agentsTotal: number;
   renewalDate: Timestamp;
 };
+export type SearchFiltersProps = {
+  address: string;
+  province: string;
+  priceRange: [number, number];
+  propertyType: string;
+  furnishingStatus: string;
+  yearBuilt: string;
+  bedrooms: string;
+  bathrooms: string;
+  garage: string;
+  amenities: string[];
+  listingType: string;
+  propertyCategory: string;
+};

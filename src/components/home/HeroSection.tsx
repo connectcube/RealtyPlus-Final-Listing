@@ -4,6 +4,9 @@ import { HomeIcon, Building, MapPin } from "lucide-react";
 import SearchFilters from "../search/SearchFilters";
 import { useZustand } from "@/lib/zustand";
 import { useState } from "react";
+import { fireDataBase } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
 interface HeroSectionProps {
   backgroundImage?: string;
 }
@@ -14,19 +17,115 @@ const HeroSection = ({
 }: HeroSectionProps) => {
   const { user } = useZustand();
   const navigate = useNavigate();
+  const [properties, setProperties] = useState<LISTING[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState<SearchFiltersProps>({
+    address: "",
+    province: "",
+    priceRange: [0, 1000000],
+    propertyType: "all",
+    furnishingStatus: "all",
+    yearBuilt: "",
+    bedrooms: "",
+    bathrooms: "",
+    garage: "",
+    amenities: [],
+    listingType: "sale",
+    propertyCategory: "all",
+  });
 
-  const handleSearchSubmit = (searchParams: any) => {
-    // Convert search parameters to URL query string
-    const queryString = new URLSearchParams({
-      ...searchParams,
-      search: searchParams.searchTerm || "",
-      propertyType: searchParams.propertyType || "all",
-      propertyCategory: searchParams.propertyCategory || "all",
-      priceRange: searchParams.priceRange || "all",
-    }).toString();
+  const handleSearch = async (filters: SearchFiltersProps) => {
+    try {
+      console.log("Filters from handle search:", filters);
+      setLoading(true);
+      setFilters(filters);
 
-    // Navigate to properties view with search parameters
-    navigate(`/properties?${queryString}`);
+      const listingsRef = collection(fireDataBase, "listings");
+      let queryConstraints: any[] = [];
+
+      // Base query
+      queryConstraints.push(where("listingType", "==", filters.listingType));
+
+      // Add price range filter
+      if (filters.priceRange[0] && filters.priceRange[1]) {
+        queryConstraints.push(where("price", ">=", filters.priceRange[0]));
+        queryConstraints.push(where("price", "<=", filters.priceRange[1]));
+      }
+
+      // Add property type filter
+      if (filters.propertyType && filters.propertyType !== "all") {
+        queryConstraints.push(
+          where("propertyType", "==", filters.propertyType)
+        );
+      }
+      if (filters.province && filters.province !== "all") {
+        queryConstraints.push(where("province", "==", filters.province));
+      }
+      // Add property category filter
+      if (filters.propertyCategory && filters.propertyCategory !== "all") {
+        queryConstraints.push(
+          where("propertyCategory", "==", filters.propertyCategory)
+        );
+      }
+
+      // Add bedrooms filter
+      if (filters.bedrooms) {
+        queryConstraints.push(
+          where("bedrooms", ">=", parseInt(filters.bedrooms))
+        );
+      }
+
+      // Add bathrooms filter
+      if (filters.bathrooms) {
+        queryConstraints.push(
+          where("bathrooms", ">=", parseInt(filters.bathrooms))
+        );
+      }
+      console.log(queryConstraints);
+      // Execute query
+      const q = query(listingsRef, ...queryConstraints);
+      const querySnapshot = await getDocs(q);
+
+      // Process results
+      const fetchedProperties = querySnapshot.docs.map((doc) => ({
+        uid: doc.id,
+        ...doc.data(),
+      })) as LISTING[];
+
+      // Apply text-based filters client-side
+      const filteredProperties = fetchedProperties.filter((property) => {
+        // Location filter
+        if (
+          filters.address &&
+          !property.address
+            .toLowerCase()
+            .includes(filters.address.toLowerCase())
+        ) {
+          return false;
+        }
+
+        // Amenities filter
+        /*if (filters.amenities.length > 0) {
+          const propertyAmenities = property.amenities || [];
+          if (
+            !filters.amenities.every((amenity) =>
+              propertyAmenities.includes(amenity)
+            )
+          ) {
+            return false;
+          }
+        }*/
+
+        return true;
+      });
+
+      setProperties(filteredProperties);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+      // Handle error appropriately
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <section
@@ -72,8 +171,12 @@ const HeroSection = ({
             )}
           </div>
           <SearchFilters
-            onSearch={handleSearchSubmit}
-            className="border-none shadow-none p-0"
+            onSearch={handleSearch}
+            setFilters={setFilters}
+            filters={filters}
+            isLoading={loading}
+            type="sale"
+            className="shadow-none"
           />
         </div>
       </div>

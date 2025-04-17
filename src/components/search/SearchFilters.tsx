@@ -76,7 +76,6 @@ const SearchFilters = ({
   className,
   compact = false,
   type = "sale",
-  isLoading = false,
 }: SearchFiltersProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [errors, setErrors] = useState<ValidationError[]>([]);
@@ -200,7 +199,7 @@ const SearchFilters = ({
         </div>
       )}
       <Tabs defaultValue={type} onValueChange={handleListingTypeChange}>
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsList className="grid w-full grid-cols-2 mb-4" defaultValue={type}>
           <TabsTrigger value="sale">Buy</TabsTrigger>
           <TabsTrigger value="rent">Rent</TabsTrigger>
         </TabsList>

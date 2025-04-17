@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Search,
   User,
@@ -29,6 +29,7 @@ import { useZustand } from "@/lib/zustand";
 import { LISTING } from "@/lib/typeDefinitions";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
+import { LoadingSpinner } from "../globalScreens/Loader";
 
 interface HeaderProps {
   className?: string;
@@ -47,6 +48,19 @@ const Header = ({ className }: HeaderProps = {}) => {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const { user, clearUser, setUser } = useZustand();
   const navigate = useNavigate();
+  const useCurrentPath = () => {
+    const location = useLocation();
+    return location.pathname;
+  };
+  const currentPath = useCurrentPath();
+
+  // Add this function to check if a link is active
+  const isActivePath = (path: string) => {
+    if (path === "/") {
+      return currentPath === path;
+    }
+    return currentPath.startsWith(path);
+  };
   React.useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -149,31 +163,46 @@ const Header = ({ className }: HeaderProps = {}) => {
             <nav className="hidden md:flex items-center space-x-8">
               <Link
                 to="/properties"
-                className="text-gray-700 hover:text-realtyplus font-medium"
+                className={cn(
+                  "text-gray-700 hover:text-realtyplus font-medium transition-colors",
+                  isActivePath("/properties") && "text-realtyplus"
+                )}
               >
                 All Properties
               </Link>
               <Link
                 to="/buy"
-                className="text-gray-700 hover:text-realtyplus font-medium"
+                className={cn(
+                  "text-gray-700 hover:text-realtyplus font-medium transition-colors",
+                  isActivePath("/buy") && "text-realtyplus"
+                )}
               >
                 Buy
               </Link>
               <Link
                 to="/rent"
-                className="text-gray-700 hover:text-realtyplus font-medium"
+                className={cn(
+                  "text-gray-700 hover:text-realtyplus font-medium transition-colors",
+                  isActivePath("/rent") && "text-realtyplus"
+                )}
               >
                 Rent
               </Link>
               <Link
                 to="/agents"
-                className="text-gray-700 hover:text-realtyplus font-medium"
+                className={cn(
+                  "text-gray-700 hover:text-realtyplus font-medium transition-colors",
+                  isActivePath("/agents") && "text-realtyplus"
+                )}
               >
                 Agents
               </Link>
               <Link
                 to="/agencies"
-                className="text-gray-700 hover:text-realtyplus font-medium"
+                className={cn(
+                  "text-gray-700 hover:text-realtyplus font-medium transition-colors",
+                  isActivePath("/agencies") && "text-realtyplus"
+                )}
               >
                 Agencies
               </Link>
@@ -563,16 +592,15 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
 
   if (isLoading) {
     return (
-      <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-2 text-gray-600">Loading saved properties...</p>
+      <div className="max-h-[500px] w-[320px] overflow-y-auto p-3 divide-y divide-gray-100">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (!savedProperties.length) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center ">
         <div className="text-gray-400 mb-2">
           <Heart className="h-12 w-12 mx-auto" />{" "}
           {/* Import from your icon library */}
@@ -589,7 +617,7 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
   }
 
   return (
-    <div className="max-h-[400px] w-[320px] overflow-y-auto p-3 divide-y divide-gray-100">
+    <div className="max-h-[500px] w-[320px] overflow-y-auto p-3 divide-y divide-gray-100">
       <div className="pb-2 mb-2 flex justify-between items-center">
         <h3 className="font-semibold text-gray-800">Saved Properties</h3>
         <span className="text-sm text-gray-500">
@@ -606,7 +634,7 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
           <div className="flex items-start gap-3">
             <div className="relative">
               <img
-                src={property.coverPhoto}
+                src={property.images[property.coverPhotoIndex]}
                 alt={property.title}
                 className="w-20 h-20 object-cover rounded-lg"
               />
@@ -645,7 +673,7 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
 
               <div className="mt-2 flex justify-between items-center">
                 <div className="text-sm font-semibold text-blue-600">
-                  ${property.price.toLocaleString()}
+                  K {property.price.toLocaleString()}
                 </div>
                 <span className="text-xs text-gray-500">
                   Added {new Date().toLocaleDateString()}

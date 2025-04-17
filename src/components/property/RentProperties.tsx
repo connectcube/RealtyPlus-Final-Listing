@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { LISTING } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
+import { LoadingSpinner } from "../globalScreens/Loader";
 
 // Mock properties for sale data
 const mockPropertiesForSale = [
@@ -131,9 +132,8 @@ const RentProperties = () => {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<LISTING[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<SearchFiltersProps>({
     address: "",
     province: "",
@@ -145,7 +145,7 @@ const RentProperties = () => {
     bathrooms: "",
     garage: "",
     amenities: [],
-    listingType: "rent",
+    listingType: "sale",
     propertyCategory: "all",
   });
 
@@ -173,7 +173,9 @@ const RentProperties = () => {
           where("propertyType", "==", filters.propertyType)
         );
       }
-
+      if (filters.province && filters.province !== "all") {
+        queryConstraints.push(where("province", "==", filters.province));
+      }
       // Add property category filter
       if (filters.propertyCategory && filters.propertyCategory !== "all") {
         queryConstraints.push(
@@ -329,12 +331,10 @@ const RentProperties = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-realtyplus"></div>
-          </div>
+          <LoadingSpinner />
         ) : view === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredProperties.map((property) => (
+            {properties.map((property) => (
               <PropertyCard
                 key={property.uid}
                 id={property.uid}
@@ -357,7 +357,7 @@ const RentProperties = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredProperties.map((property) => (
+            {properties.map((property) => (
               <PropertyCard
                 key={property.uid}
                 id={property.uid}
@@ -379,7 +379,7 @@ const RentProperties = () => {
           </div>
         )}
 
-        {!loading && filteredProperties.length === 0 && (
+        {!loading && properties.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
               No properties found matching your criteria.
@@ -388,7 +388,7 @@ const RentProperties = () => {
               variant="link"
               className="mt-2"
               onClick={() => {
-                setFilteredProperties(properties);
+                setProperties(properties);
                 // You might want to trigger a reset in SearchFilters component
               }}
             >

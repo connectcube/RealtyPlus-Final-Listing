@@ -36,9 +36,5 @@ export function LoadingSpinner({
     );
   }
 
-  return (
-    <div className="flex min-h-[400px] items-center justify-center">
-      {content}
-    </div>
-  );
+  return <div className="flex items-center justify-center">{content}</div>;
 }
