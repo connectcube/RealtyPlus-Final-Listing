@@ -102,11 +102,11 @@ export type LISTING = {
     | "land"
     | "newDevelopment"
     | "other";
-  bedrooms: string;
-  bathrooms: string;
-  area: string;
-  garageSpaces: string;
-  yearBuilt: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  garageSpaces: number;
+  yearBuilt: number;
   isFurnished: false;
   province: string;
   city: string;
@@ -155,11 +155,11 @@ export type SearchFiltersProps = {
   province: string;
   priceRange: [number, number];
   propertyType: string;
-  furnishingStatus: string;
-  yearBuilt: string;
-  bedrooms: string;
-  bathrooms: string;
-  garage: string;
+  isFurnished: boolean;
+  yearBuilt: number;
+  bedrooms: number;
+  bathrooms: number;
+  garage: number;
   amenities: string[];
   listingType: string;
   propertyCategory: string;

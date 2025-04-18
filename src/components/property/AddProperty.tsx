@@ -54,10 +54,10 @@ const AddProperty = () => {
     price: 0,
     propertyType: "",
     listingType: "sale",
-    bedrooms: "",
-    bathrooms: "",
+    bedrooms: 0,
+    bathrooms: 0,
     area: "",
-    garageSpaces: "",
+    garageSpaces: 0,
     yearBuilt: "",
     isFurnished: false,
     isFeatured: false,
@@ -83,8 +83,17 @@ const AddProperty = () => {
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
 
   const handleInputChange = (field: string, value: any) => {
-    // Special handling for price field
-    if (field === "price") {
+    // Array of fields that should be converted to numbers
+    const numericFields = [
+      "bedrooms",
+      "bathrooms",
+      "area",
+      "garageSpaces",
+      "yearBuilt",
+      "price",
+    ];
+
+    if (numericFields.includes(field)) {
       // Convert to number and handle invalid inputs
       const numericValue = Number(value);
       // Only update if it's a valid number
@@ -95,7 +104,7 @@ const AddProperty = () => {
         });
       }
     } else {
-      // Handle other fields normally
+      // Handle non-numeric fields normally
       setFormData({
         ...formData,
         [field]: value,

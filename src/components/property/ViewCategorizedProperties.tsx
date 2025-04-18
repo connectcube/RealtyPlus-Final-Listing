@@ -11,7 +11,7 @@ import { fireDataBase } from "@/lib/firebase";
 import PropertyCard from "../property/PropertyCard";
 import { Button } from "../ui/button";
 import Header from "../layout/Header";
-import { LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
+import { FEATURES, LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import SearchFilters from "../search/SearchFilters";
@@ -80,11 +80,11 @@ export default function ViewCategorizedProperties() {
     province: "",
     priceRange: [0, 1000000],
     propertyType: "all",
-    furnishingStatus: "all",
-    yearBuilt: "",
-    bedrooms: "",
-    bathrooms: "",
-    garage: "",
+    isFurnished: false,
+    yearBuilt: 0, // Change from "" to 0
+    bedrooms: 0, // Change from "" to 0
+    bathrooms: 0, // Change from "" to 0
+    garage: 0, // Change from "" to 0
     amenities: [],
     listingType: "sale",
     propertyCategory: "all",
@@ -129,17 +129,55 @@ export default function ViewCategorizedProperties() {
 
       // Add bedrooms filter
       if (filters.bedrooms) {
-        queryConstraints.push(
-          where("bedrooms", ">=", parseInt(filters.bedrooms))
-        );
+        queryConstraints.push(where("bedrooms", ">=", filters.bedrooms));
       }
 
       // Add bathrooms filter
       if (filters.bathrooms) {
-        queryConstraints.push(
-          where("bathrooms", ">=", parseInt(filters.bathrooms))
-        );
+        queryConstraints.push(where("bathrooms", ">=", filters.bathrooms));
       }
+      if (filters.amenities.length > 0) {
+        const featureMapping: Record<string, keyof FEATURES> = {
+          swimmingPool: "swimmingPool",
+          garden: "garden",
+          securitySystem: "securitySystem",
+          backupPower: "backupPower",
+          borehole: "borehole",
+          airConditioning: "airConditioning",
+          servantsQuarters: "servantsQuarters",
+          fittedKitchen: "fittedKitchen",
+          parking: "parking",
+        };
+
+        filters.amenities.forEach((amenity) => {
+          if (amenity in featureMapping) {
+            queryConstraints.push(
+              where(`features.${featureMapping[amenity]}`, "==", true)
+            );
+          }
+        });
+      }
+      if (filters.yearBuilt) {
+        queryConstraints.push(where("yearBuilt", ">=", filters.yearBuilt));
+      }
+      if (filters.bedrooms && filters.bedrooms > 0) {
+        queryConstraints.push(where("bedrooms", ">=", filters.bedrooms));
+      }
+
+      // Add bathrooms filter
+      if (filters.bathrooms && filters.bathrooms > 0) {
+        queryConstraints.push(where("bathrooms", ">=", filters.bathrooms));
+      }
+
+      // Add garage filter
+      if (filters.garage && filters.garage > 0) {
+        queryConstraints.push(where("garageSpaces", ">=", filters.garage));
+      }
+      // Add furnishing status filter
+      if (filters.isFurnished) {
+        queryConstraints.push(where("isFurnished", "==", filters.isFurnished));
+      }
+
       console.log(queryConstraints);
       // Execute query
       const q = query(listingsRef, ...queryConstraints);
@@ -162,19 +200,6 @@ export default function ViewCategorizedProperties() {
         ) {
           return false;
         }
-
-        // Amenities filter
-        /*if (filters.amenities.length > 0) {
-          const propertyAmenities = property.amenities || [];
-          if (
-            !filters.amenities.every((amenity) =>
-              propertyAmenities.includes(amenity)
-            )
-          ) {
-            return false;
-          }
-        }*/
-
         return true;
       });
 

@@ -46,11 +46,11 @@ interface SearchFilters {
   province?: string;
   priceRange?: [number, number];
   propertyType?: string;
-  furnishingStatus?: string;
-  yearBuilt?: string;
-  bedrooms?: string;
-  bathrooms?: string;
-  garage?: string;
+  isFurnished?: boolean;
+  yearBuilt?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  garage?: number;
   amenities?: string[];
   listingType?: string;
   propertyCategory?: string;
@@ -160,11 +160,11 @@ const SearchFilters = ({
       province: "",
       priceRange: defaultPriceRange,
       propertyType: "",
-      furnishingStatus: "",
-      yearBuilt: "",
-      bedrooms: "",
-      bathrooms: "",
-      garage: "",
+      isFurnished: false,
+      yearBuilt: 0,
+      bedrooms: 0,
+      bathrooms: 0,
+      garage: 0,
       amenities: [],
       propertyCategory: "",
       listingType: filters.listingType,
@@ -359,15 +359,16 @@ const SearchFilters = ({
                 <div>
                   <Label htmlFor="bedrooms">Bedrooms</Label>
                   <Select
-                    value={filters.bedrooms}
+                    value={filters.bedrooms?.toString() || "0"}
                     onValueChange={(value) =>
-                      setFilters({ ...filters, bedrooms: value })
+                      setFilters({ ...filters, bedrooms: parseInt(value) })
                     }
                   >
                     <SelectTrigger id="bedrooms">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">Any</SelectItem>
                       <SelectItem value="1">1+</SelectItem>
                       <SelectItem value="2">2+</SelectItem>
                       <SelectItem value="3">3+</SelectItem>
@@ -376,19 +377,19 @@ const SearchFilters = ({
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
                   <Label htmlFor="bathrooms">Bathrooms</Label>
                   <Select
-                    value={filters.bathrooms}
+                    value={filters.bathrooms?.toString() || "0"}
                     onValueChange={(value) =>
-                      setFilters({ ...filters, bathrooms: value })
+                      setFilters({ ...filters, bathrooms: parseInt(value) })
                     }
                   >
                     <SelectTrigger id="bathrooms">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">Any</SelectItem>
                       <SelectItem value="1">1+</SelectItem>
                       <SelectItem value="2">2+</SelectItem>
                       <SelectItem value="3">3+</SelectItem>
@@ -396,54 +397,54 @@ const SearchFilters = ({
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
                   <Label htmlFor="garage">Garage</Label>
                   <Select
-                    value={filters.garage}
+                    value={filters.garage?.toString() || "0"}
                     onValueChange={(value) =>
-                      setFilters({ ...filters, garage: value })
+                      setFilters({ ...filters, garage: parseInt(value) })
                     }
                   >
                     <SelectTrigger id="garage">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">Any</SelectItem>
                       <SelectItem value="1">1+</SelectItem>
                       <SelectItem value="2">2+</SelectItem>
                       <SelectItem value="3">3+</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
                   <Label htmlFor="furnishingStatus">Furnishing</Label>
-                  <Select
-                    value={filters.furnishingStatus}
-                    onValueChange={(value) =>
-                      setFilters({ ...filters, furnishingStatus: value })
-                    }
-                  >
-                    <SelectTrigger id="furnishingStatus">
-                      <SelectValue placeholder="Any" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="furnished">Furnished</SelectItem>
-                      <SelectItem value="semi-furnished">
-                        Semi-Furnished
-                      </SelectItem>
-                      <SelectItem value="unfurnished">Unfurnished</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Checkbox
+                      id="furnishingStatus"
+                      checked={filters.isFurnished === true}
+                      onCheckedChange={(checked) => {
+                        setFilters({
+                          ...filters,
+                          isFurnished: checked ? true : false,
+                        });
+                      }}
+                    />
+                    <label
+                      htmlFor="furnishingStatus"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Furnished
+                    </label>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="yearBuilt">Year Built</Label>
                 <Select
-                  value={filters.yearBuilt}
+                  value={filters.yearBuilt.toLocaleString()}
                   onValueChange={(value) =>
-                    setFilters({ ...filters, yearBuilt: value })
+                    setFilters({ ...filters, yearBuilt: parseInt(value) })
                   }
                 >
                   <SelectTrigger id="yearBuilt">
@@ -464,14 +465,16 @@ const SearchFilters = ({
                 <Label>Amenities</Label>
                 <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2">
                   {[
-                    "Swimming Pool",
-                    "Garden",
-                    "Security",
-                    "Backup Power",
-                    "Air Conditioning",
-                    "Borehole",
-                    "Staff Quarters",
-                    "Gym",
+                    "swimmingPool",
+                    "garden",
+                    "security",
+                    "backupPower",
+                    "airConditioning",
+                    "borehole",
+                    "servantsQuarters",
+                    "gym",
+                    "parking",
+                    "fittedKitchen",
                   ].map((amenity) => (
                     <div key={amenity} className="flex items-center space-x-2">
                       <Checkbox
@@ -499,7 +502,7 @@ const SearchFilters = ({
                           .replace(" ", "-")}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {amenity}
+                        {Amenities[amenity]}
                       </label>
                     </div>
                   ))}
@@ -642,18 +645,16 @@ const SearchFilters = ({
                 <div>
                   <Label htmlFor="bedrooms-rent">Bedrooms</Label>
                   <Select
-                    value={filters.bedrooms}
+                    value={filters.bedrooms?.toString() || "0"}
                     onValueChange={(value) =>
-                      setFilters({ ...filters, bedrooms: value })
+                      setFilters({ ...filters, bedrooms: parseInt(value) })
                     }
                   >
-                    <SelectTrigger
-                      id="bedrooms-rent"
-                      aria-label="Select number of bedrooms"
-                    >
+                    <SelectTrigger id="bedrooms-rent">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">Any</SelectItem>
                       <SelectItem value="1">1+</SelectItem>
                       <SelectItem value="2">2+</SelectItem>
                       <SelectItem value="3">3+</SelectItem>
@@ -666,18 +667,16 @@ const SearchFilters = ({
                 <div>
                   <Label htmlFor="bathrooms-rent">Bathrooms</Label>
                   <Select
-                    value={filters.bathrooms}
+                    value={filters.bathrooms?.toString() || "0"}
                     onValueChange={(value) =>
-                      setFilters({ ...filters, bathrooms: value })
+                      setFilters({ ...filters, bathrooms: parseInt(value) })
                     }
                   >
-                    <SelectTrigger
-                      id="bathrooms-rent"
-                      aria-label="Select number of bathrooms"
-                    >
+                    <SelectTrigger id="bathrooms-rent">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">Any</SelectItem>
                       <SelectItem value="1">1+</SelectItem>
                       <SelectItem value="2">2+</SelectItem>
                       <SelectItem value="3">3+</SelectItem>
@@ -689,18 +688,16 @@ const SearchFilters = ({
                 <div>
                   <Label htmlFor="garage-rent">Garage</Label>
                   <Select
-                    value={filters.garage}
+                    value={filters.garage?.toString() || "0"}
                     onValueChange={(value) =>
-                      setFilters({ ...filters, garage: value })
+                      setFilters({ ...filters, garage: parseInt(value) })
                     }
                   >
-                    <SelectTrigger
-                      id="garage-rent"
-                      aria-label="Select number of garage spaces"
-                    >
+                    <SelectTrigger id="garage-rent">
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="0">Any</SelectItem>
                       <SelectItem value="1">1+</SelectItem>
                       <SelectItem value="2">2+</SelectItem>
                       <SelectItem value="3">3+</SelectItem>
@@ -709,36 +706,34 @@ const SearchFilters = ({
                 </div>
 
                 <div>
-                  <Label htmlFor="furnishingStatus-rent">Furnishing</Label>
-                  <Select
-                    value={filters.furnishingStatus}
-                    onValueChange={(value) =>
-                      setFilters({ ...filters, furnishingStatus: value })
-                    }
-                  >
-                    <SelectTrigger
+                  <Label htmlFor="furnishingStatus">Furnishing</Label>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Checkbox
                       id="furnishingStatus-rent"
-                      aria-label="Select furnishing status"
+                      checked={filters.isFurnished === true}
+                      onCheckedChange={(checked) => {
+                        setFilters({
+                          ...filters,
+                          isFurnished: checked ? true : false,
+                        });
+                      }}
+                    />
+                    <label
+                      htmlFor="furnishingStatus"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      <SelectValue placeholder="Any" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="furnished">Furnished</SelectItem>
-                      <SelectItem value="semi-furnished">
-                        Semi-Furnished
-                      </SelectItem>
-                      <SelectItem value="unfurnished">Unfurnished</SelectItem>
-                    </SelectContent>
-                  </Select>
+                      Furnished
+                    </label>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="yearBuilt-rent">Year Built</Label>
                 <Select
-                  value={filters.yearBuilt}
+                  value={filters.yearBuilt.toLocaleString()}
                   onValueChange={(value) =>
-                    setFilters({ ...filters, yearBuilt: value })
+                    setFilters({ ...filters, yearBuilt: parseInt(value) })
                   }
                 >
                   <SelectTrigger
@@ -822,4 +817,17 @@ const SearchFilters = ({
   );
 };
 
+const Amenities = {
+  swimmingPool: "Swimming Pool",
+  garden: "Garden",
+  security: "Security",
+  backupPower: "Backup Power",
+  airConditioning: "Air Conditioning",
+  borehole: "Borehole",
+  fittedKitchen: "Fitted Kitchen",
+  parking: "Parking",
+  servantsQuarters: "Staff Quarters",
+  gym: "Gym",
+  securitySystem: "Security System",
+};
 export default SearchFilters;
