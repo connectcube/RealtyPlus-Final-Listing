@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   collection,
   query,
@@ -17,6 +17,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import SearchFilters from "../search/SearchFilters";
 import { useZustand } from "@/lib/zustand";
 import { LoadingSpinner } from "../globalScreens/Loader";
+import { useSearchParams } from "react-router-dom";
 
 // Memoized Property Card Component
 const MemoizedPropertyCard = memo(
@@ -72,6 +73,8 @@ const ErrorFallback = ({ error, resetErrorBoundary }: any) => (
 
 // ViewCategorizedProperties.tsx
 export default function ViewCategorizedProperties() {
+  const [searchParams] = useSearchParams();
+  const categoryFromUrl = searchParams.get("propertyCategory");
   const { user, setUser } = useZustand();
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,20 +83,27 @@ export default function ViewCategorizedProperties() {
     province: "",
     priceRange: [0, 1000000],
     propertyType: "all",
-    isFurnished: false,
+    isFurnished: null,
     yearBuilt: 0, // Change from "" to 0
     bedrooms: 0, // Change from "" to 0
     bathrooms: 0, // Change from "" to 0
     garage: 0, // Change from "" to 0
     amenities: [],
     listingType: "sale",
-    propertyCategory: "all",
+    propertyCategory: categoryFromUrl || "all",
   });
   // Add these state variables at the top of the component with other states
   const [currentPage, setCurrentPage] = useState(1);
   const [propertiesPerPage] = useState(9); // 9 items per page (3x3 grid)
   const [totalPages, setTotalPages] = useState(1);
 
+  useEffect(() => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      propertyCategory: categoryFromUrl || "all",
+    }));
+    handleSearch(filters as SearchFiltersProps);
+  }, [categoryFromUrl, filters]);
   const handleSearch = async (filters: SearchFiltersProps) => {
     try {
       setLoading(true);
@@ -164,7 +174,7 @@ export default function ViewCategorizedProperties() {
         queryConstraints.push(where("garageSpaces", ">=", filters.garage));
       }
       // Add furnishing status filter
-      if (filters.isFurnished) {
+      if (filters.isFurnished !== null) {
         queryConstraints.push(where("isFurnished", "==", filters.isFurnished));
       }
 
@@ -280,6 +290,10 @@ export default function ViewCategorizedProperties() {
               <LoadingSpinner />
             ) : (
               <>
+                <p className="text-gray-600 mb-4">
+                  <span className="font-semibold">{properties.length}</span>{" "}
+                  propertie(s) found
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {getCurrentPageProperties().map((property) => (
                     <MemoizedPropertyCard

@@ -19,11 +19,11 @@ import {
 import { FEATURES, LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
 import { LoadingSpinner } from "../globalScreens/Loader";
+import { useSearchParams } from "react-router-dom";
 const BuyProperties = () => {
   const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [properties, setProperties] = useState<LISTING[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<LISTING[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<SearchFiltersProps>({
@@ -31,7 +31,7 @@ const BuyProperties = () => {
     province: "",
     priceRange: [0, 1000000],
     propertyType: "all",
-    isFurnished: false,
+    isFurnished: null,
     yearBuilt: 0,
     bedrooms: 0,
     bathrooms: 0,
@@ -112,7 +112,7 @@ const BuyProperties = () => {
         queryConstraints.push(where("garageSpaces", ">=", filters.garage));
       }
       // Add furnishing status filter
-      if (filters.isFurnished) {
+      if (filters.isFurnished !== null) {
         queryConstraints.push(where("isFurnished", "==", filters.isFurnished));
       }
       console.log(queryConstraints);
@@ -198,7 +198,9 @@ const BuyProperties = () => {
     }
   };
 
-  // And the isFavorite check would be simpler too:
+  useEffect(() => {
+    handleSearch(filters as SearchFiltersProps);
+  }, [filters]);
   const handleCheckFav = (propertyId: string) => {
     if (!user || !user.savedProperties) return false;
     return user.savedProperties.includes(propertyId);
@@ -225,8 +227,8 @@ const BuyProperties = () => {
         <div className="flex justify-between items-center my-6">
           <div className="text-gray-600">
             <p>
-              <span className="font-semibold">{filteredProperties.length}</span>{" "}
-              properties found
+              <span className="font-semibold">{properties.length}</span>{" "}
+              propertie(s) found
             </p>
           </div>
           <div className="flex gap-2">

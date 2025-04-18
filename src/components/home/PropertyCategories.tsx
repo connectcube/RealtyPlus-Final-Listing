@@ -60,7 +60,7 @@ const PropertyCategories = () => {
       description: "Brand new properties and developments",
       imageUrl:
         "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
-      link: "/properties?propertyCategory=new-developments",
+      link: "/properties?propertyCategory=newDevelopment",
     },
   ];
 

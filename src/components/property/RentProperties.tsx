@@ -125,7 +125,7 @@ const RentProperties = () => {
     province: "",
     priceRange: [0, 1000000],
     propertyType: "all",
-    isFurnished: false,
+    isFurnished: null,
     yearBuilt: 0,
     bedrooms: 0,
     bathrooms: 0,
@@ -205,7 +205,7 @@ const RentProperties = () => {
         queryConstraints.push(where("garageSpaces", ">=", filters.garage));
       }
       // Add furnishing status filter
-      if (filters.isFurnished) {
+      if (filters.isFurnished !== null) {
         queryConstraints.push(where("isFurnished", "==", filters.isFurnished));
       }
       console.log(queryConstraints);
@@ -230,19 +230,6 @@ const RentProperties = () => {
         ) {
           return false;
         }
-
-        // Amenities filter
-        /*if (filters.amenities.length > 0) {
-          const propertyAmenities = property.amenities || [];
-          if (
-            !filters.amenities.every((amenity) =>
-              propertyAmenities.includes(amenity)
-            )
-          ) {
-            return false;
-          }
-        }*/
-
         return true;
       });
 
@@ -254,6 +241,9 @@ const RentProperties = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    handleSearch(filters as SearchFiltersProps);
+  }, [filters]);
   const handleFavClick = (propertyId: string) => {
     try {
       if (!user) {
@@ -318,8 +308,8 @@ const RentProperties = () => {
         <div className="flex justify-between items-center my-6">
           <div className="text-gray-600">
             <p>
-              <span className="font-semibold">{filteredProperties.length}</span>{" "}
-              properties found
+              <span className="font-semibold">{properties.length}</span>{" "}
+              propertie(s) found
             </p>
           </div>
           <div className="flex gap-2">
