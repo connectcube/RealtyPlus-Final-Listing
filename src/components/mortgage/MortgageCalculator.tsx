@@ -233,10 +233,17 @@ const MortgageCalculator = () => {
 
                   <div className="mt-6 space-y-4">
                     <Button className="w-full bg-realtyplus hover:bg-realtyplus-dark">
-                      Get Pre-Approved
+                      <a href="https://zambianhomeloans.com/" target="_blank">
+                        Get Pre-Approved
+                      </a>
                     </Button>
                     <Button variant="outline" className="w-full">
-                      Talk to a Mortgage Advisor
+                      <a
+                        href="https://zambianhomeloans.com/contact-us/"
+                        target="_blank"
+                      >
+                        Talk to a Mortgage Advisor
+                      </a>
                     </Button>
                   </div>
                 </div>
