@@ -40,117 +40,9 @@ import {
 import { fireDataBase } from "@/lib/firebase";
 import { USER } from "@/lib/typeDefinitions";
 
-// Mock agent data
-const mockAgents = [
-  {
-    id: "1",
-    name: "John Mwanza",
-    email: "john.mwanza@realtyzambia.com",
-    phone: "+260 97 1234567",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    role: "Senior Agent",
-    agency: "RealtyPlus Zambia",
-    location: "Lusaka, Zambia",
-    bio: "Experienced real estate agent specializing in luxury properties in Lusaka. Over 10 years of experience in the Zambian property market.",
-    listings: 12,
-    specialties: ["Luxury Homes", "Commercial", "Investment Properties"],
-    languages: ["English", "Bemba", "Nyanja"],
-    rating: 4.8,
-    reviews: 24,
-  },
-  {
-    id: "2",
-    name: "Mary Banda",
-    email: "mary.banda@realtyzambia.com",
-    phone: "+260 97 7654321",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mary",
-    role: "Agent",
-    agency: "Zambia Homes",
-    location: "Kitwe, Zambia",
-    bio: "Dedicated real estate professional focusing on residential properties in the Copperbelt region. Committed to finding the perfect home for every client.",
-    listings: 8,
-    specialties: ["Residential", "First-time Buyers", "Rentals"],
-    languages: ["English", "Bemba"],
-    rating: 4.6,
-    reviews: 15,
-  },
-  {
-    id: "3",
-    name: "David Phiri",
-    email: "david.phiri@realtyzambia.com",
-    phone: "+260 97 9876543",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
-    role: "Junior Agent",
-    agency: "Copperbelt Properties",
-    location: "Ndola, Zambia",
-    bio: "Energetic new agent with a fresh perspective on the Zambian real estate market. Specializing in affordable housing solutions.",
-    listings: 3,
-    specialties: ["Affordable Housing", "Land", "Rentals"],
-    languages: ["English", "Bemba", "Tonga"],
-    rating: 4.2,
-    reviews: 5,
-  },
-  {
-    id: "4",
-    name: "Sarah Tembo",
-    email: "sarah.tembo@realtyzambia.com",
-    phone: "+260 97 5678901",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    role: "Senior Agent",
-    agency: "RealtyPlus Zambia",
-    location: "Lusaka, Zambia",
-    bio: "Award-winning real estate agent with expertise in high-end properties and international clients. Providing exceptional service since 2010.",
-    listings: 15,
-    specialties: [
-      "Luxury Homes",
-      "International Clients",
-      "Investment Properties",
-    ],
-    languages: ["English", "French", "Nyanja"],
-    rating: 4.9,
-    reviews: 32,
-  },
-  {
-    id: "5",
-    name: "Michael Zulu",
-    email: "michael.zulu@realtyzambia.com",
-    phone: "+260 97 2345678",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael",
-    role: "Agent",
-    agency: "Livingstone Realty",
-    location: "Livingstone, Zambia",
-    bio: "Specialized in tourism and vacation properties in Livingstone and Victoria Falls area. Helping investors find the perfect tourism opportunity.",
-    listings: 10,
-    specialties: ["Tourism Properties", "Vacation Homes", "Land"],
-    languages: ["English", "Tonga"],
-    rating: 4.7,
-    reviews: 18,
-  },
-  {
-    id: "6",
-    name: "Grace Mutale",
-    email: "grace.mutale@realtyzambia.com",
-    phone: "+260 97 8765432",
-    photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Grace",
-    role: "Agent",
-    agency: "Zambia Homes",
-    location: "Lusaka, Zambia",
-    bio: "Passionate about helping families find their dream homes. Specializing in residential properties in Lusaka's growing suburbs.",
-    listings: 9,
-    specialties: ["Residential", "Family Homes", "Suburbs"],
-    languages: ["English", "Nyanja", "Bemba"],
-    rating: 4.5,
-    reviews: 14,
-  },
-];
-
 const AgencyPage = () => {
   const [agency, setAgency] = useState<USER[]>([]);
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(
-    null
-  );
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
@@ -174,7 +66,7 @@ const AgencyPage = () => {
         );
         const snapshot = await getDocs(q);
         const agentData = snapshot.docs.map((doc) => ({
-          id: doc.id,
+          uid: doc.id,
           ...doc.data(),
         }));
         setAgency(agentData as USER[]);
@@ -320,7 +212,7 @@ const AgencyPage = () => {
           {!loading ? (
             filteredAgency.map((agent) => (
               <Card
-                key={agent.id}
+                key={agent.uid}
                 className="overflow-hidden hover:shadow-lg transition-shadow"
               >
                 <div className="bg-realtyplus/10 p-6 flex flex-col items-center text-center">
@@ -440,7 +332,7 @@ const AgencyPage = () => {
                   <div className="w-full flex flex-col sm:flex-row gap-3">
                     <Button className="flex-1 bg-realtyplus hover:bg-realtyplus-dark">
                       <Link
-                        to={`/agency/${agent.id}`}
+                        to={`/agency/${agent.uid}`}
                         className="text-white w-full"
                       >
                         View Profile
@@ -448,7 +340,7 @@ const AgencyPage = () => {
                     </Button>
                     <Button variant="outline" className="flex-1">
                       <Link
-                        to={`/agency/${agent.id}/properties`}
+                        to={`/agency/${agent.uid}/properties`}
                         className="w-full"
                       >
                         View Listings ({agent.myListings?.length || 0})

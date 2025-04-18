@@ -89,10 +89,13 @@ export default function ViewCategorizedProperties() {
     listingType: "sale",
     propertyCategory: "all",
   });
+  // Add these state variables at the top of the component with other states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [propertiesPerPage] = useState(9); // 9 items per page (3x3 grid)
+  const [totalPages, setTotalPages] = useState(1);
 
   const handleSearch = async (filters: SearchFiltersProps) => {
     try {
-      console.log("Filters from handle search:", filters);
       setLoading(true);
       setFilters(filters);
 
@@ -175,6 +178,9 @@ export default function ViewCategorizedProperties() {
         return true;
       });
 
+      setTotalPages(Math.ceil(filteredProperties.length / propertiesPerPage));
+      // Reset to first page when search filters change
+      setCurrentPage(1);
       setProperties(filteredProperties);
     } catch (error) {
       console.error("Error fetching properties:", error);
@@ -183,6 +189,12 @@ export default function ViewCategorizedProperties() {
       setLoading(false);
     }
   };
+  const getCurrentPageProperties = () => {
+    const indexOfLastProperty = currentPage * propertiesPerPage;
+    const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
+    return properties.slice(indexOfFirstProperty, indexOfLastProperty);
+  };
+
   const handleFavClick = (propertyId: string) => {
     try {
       if (!user) {
@@ -254,7 +266,7 @@ export default function ViewCategorizedProperties() {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {properties.map((property) => (
+                  {getCurrentPageProperties().map((property) => (
                     <MemoizedPropertyCard
                       key={property.uid}
                       id={property.uid}
@@ -276,6 +288,14 @@ export default function ViewCategorizedProperties() {
                   ))}
                 </div>
 
+                {properties.length > 0 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => setCurrentPage(page)}
+                  />
+                )}
+
                 {properties.length === 0 && (
                   <div className="text-center py-12">
                     <h3 className="text-xl font-semibold text-gray-700">
@@ -294,3 +314,47 @@ export default function ViewCategorizedProperties() {
     </div>
   );
 }
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) => {
+  return (
+    <div className="flex justify-center items-center gap-2 mt-8">
+      <Button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        variant="outline"
+        className="px-4 py-2"
+      >
+        Previous
+      </Button>
+
+      <div className="flex items-center gap-2">
+        {[...Array(totalPages)].map((_, index) => (
+          <Button
+            key={index + 1}
+            onClick={() => onPageChange(index + 1)}
+            variant={currentPage === index + 1 ? "default" : "outline"}
+            className="px-4 py-2"
+          >
+            {index + 1}
+          </Button>
+        ))}
+      </div>
+
+      <Button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        variant="outline"
+        className="px-4 py-2"
+      >
+        Next
+      </Button>
+    </div>
+  );
+};
