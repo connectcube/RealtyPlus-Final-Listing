@@ -16,7 +16,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { LISTING } from "@/lib/typeDefinitions";
+import { FEATURES, LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
 import { LoadingSpinner } from "../globalScreens/Loader";
 
@@ -113,20 +113,6 @@ const mockPropertiesForSale = [
     yearBuilt: 2018,
   },
 ];
-interface SearchFiltersProps {
-  address: string;
-  province: string;
-  priceRange: [number, number];
-  propertyType: string;
-  furnishingStatus: string;
-  yearBuilt: string;
-  bedrooms: string;
-  bathrooms: string;
-  garage: string;
-  amenities: string[];
-  listingType: string;
-  propertyCategory: string;
-}
 const RentProperties = () => {
   const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -139,11 +125,11 @@ const RentProperties = () => {
     province: "",
     priceRange: [0, 1000000],
     propertyType: "all",
-    furnishingStatus: "all",
-    yearBuilt: "",
-    bedrooms: "",
-    bathrooms: "",
-    garage: "",
+    isFurnished: false,
+    yearBuilt: 0,
+    bedrooms: 0,
+    bathrooms: 0,
+    garage: 0,
     amenities: [],
     listingType: "sale",
     propertyCategory: "all",
@@ -182,19 +168,45 @@ const RentProperties = () => {
           where("propertyCategory", "==", filters.propertyCategory)
         );
       }
+      if (filters.amenities.length > 0) {
+        const featureMapping: Record<string, keyof FEATURES> = {
+          swimmingPool: "swimmingPool",
+          garden: "garden",
+          securitySystem: "securitySystem",
+          backupPower: "backupPower",
+          borehole: "borehole",
+          airConditioning: "airConditioning",
+          servantsQuarters: "servantsQuarters",
+          fittedKitchen: "fittedKitchen",
+          parking: "parking",
+        };
 
-      // Add bedrooms filter
-      if (filters.bedrooms) {
-        queryConstraints.push(
-          where("bedrooms", ">=", parseInt(filters.bedrooms))
-        );
+        filters.amenities.forEach((amenity) => {
+          if (amenity in featureMapping) {
+            queryConstraints.push(
+              where(`features.${featureMapping[amenity]}`, "==", true)
+            );
+          }
+        });
+      }
+      if (filters.yearBuilt) {
+        queryConstraints.push(where("yearBuilt", ">=", filters.yearBuilt));
+      }
+      if (filters.bedrooms && filters.bedrooms > 0) {
+        queryConstraints.push(where("bedrooms", ">=", filters.bedrooms));
       }
 
       // Add bathrooms filter
-      if (filters.bathrooms) {
-        queryConstraints.push(
-          where("bathrooms", ">=", parseInt(filters.bathrooms))
-        );
+      if (filters.bathrooms && filters.bathrooms > 0) {
+        queryConstraints.push(where("bathrooms", ">=", filters.bathrooms));
+      }
+      // Add garage filter
+      if (filters.garage && filters.garage > 0) {
+        queryConstraints.push(where("garageSpaces", ">=", filters.garage));
+      }
+      // Add furnishing status filter
+      if (filters.isFurnished) {
+        queryConstraints.push(where("isFurnished", "==", filters.isFurnished));
       }
       console.log(queryConstraints);
       // Execute query

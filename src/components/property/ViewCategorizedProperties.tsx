@@ -127,15 +127,6 @@ export default function ViewCategorizedProperties() {
         );
       }
 
-      // Add bedrooms filter
-      if (filters.bedrooms) {
-        queryConstraints.push(where("bedrooms", ">=", filters.bedrooms));
-      }
-
-      // Add bathrooms filter
-      if (filters.bathrooms) {
-        queryConstraints.push(where("bathrooms", ">=", filters.bathrooms));
-      }
       if (filters.amenities.length > 0) {
         const featureMapping: Record<string, keyof FEATURES> = {
           swimmingPool: "swimmingPool",
@@ -168,7 +159,6 @@ export default function ViewCategorizedProperties() {
       if (filters.bathrooms && filters.bathrooms > 0) {
         queryConstraints.push(where("bathrooms", ">=", filters.bathrooms));
       }
-
       // Add garage filter
       if (filters.garage && filters.garage > 0) {
         queryConstraints.push(where("garageSpaces", ">=", filters.garage));
