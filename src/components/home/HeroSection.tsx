@@ -164,10 +164,6 @@ const HeroSection = ({
     }
   };
 
-  useEffect(() => {
-    handleSearch(filters as SearchFiltersProps);
-  }, [filters]);
-
   return (
     <section
       className="relative bg-cover bg-center h-[600px]"

@@ -43,6 +43,7 @@ import {
   UserPlus,
   Shield,
   ShieldCheck,
+  Server,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -58,132 +59,122 @@ import { adminService } from "./services/createNewAdmin";
 import { LoadingSpinner } from "../globalScreens/Loader";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { auth, fireDataBase } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { last } from "lodash";
 
-// Define permission types for admin roles
 const PERMISSIONS = {
-  USERS: {
-    VIEW: "users:view",
-    EDIT: "users:edit",
-    DELETE: "users:delete",
-    MANAGE_ADMINS: "users:manage_admins",
+  USER: {
+    READ: "userRead",
+    WRITE: "userWrite",
   },
-  PROPERTIES: {
-    VIEW: "properties:view",
-    EDIT: "properties:edit",
-    DELETE: "properties:delete",
-    APPROVE: "properties:approve",
+  LISTING: {
+    READ: "listingRead",
+    WRITE: "listingWrite",
   },
-  AGENTS: {
-    VIEW: "agents:view",
-    EDIT: "agents:edit",
-    DELETE: "agents:delete",
-    APPROVE: "agents:approve",
+  AGENT: {
+    READ: "agentRead",
+    WRITE: "agentWrite",
   },
-  AGENCIES: {
-    VIEW: "agencies:view",
-    EDIT: "agencies:edit",
-    DELETE: "agencies:delete",
-    APPROVE: "agencies:approve",
+  AGENCY: {
+    READ: "agencyRead",
+    WRITE: "agencyWrite",
   },
-  SETTINGS: {
-    VIEW: "settings:view",
-    EDIT: "settings:edit",
+  ADMIN: {
+    MANAGEMENT: "adminManagement",
+  },
+  SUBSCRIPTION: {
+    MANAGEMENT: "subscriptionManagement",
   },
 };
 
-// Admin role definitions
+// Update the admin roles accordingly
 const ADMIN_ROLES = {
   SUPER_ADMIN: {
-    name: "Super Admin",
-    permissions: [
-      ...Object.values(PERMISSIONS.USERS),
-      ...Object.values(PERMISSIONS.PROPERTIES),
-      ...Object.values(PERMISSIONS.AGENTS),
-      ...Object.values(PERMISSIONS.AGENCIES),
-      ...Object.values(PERMISSIONS.SETTINGS),
-    ],
+    name: "super admin",
+    permissions: {
+      userRead: true,
+      userWrite: true,
+      listingRead: true,
+      listingWrite: true,
+      agentRead: true,
+      agentWrite: true,
+      agencyRead: true,
+      agencyWrite: true,
+      adminManagement: true,
+      subscriptionManagement: true,
+    },
   },
   CONTENT_ADMIN: {
-    name: "Content Admin",
-    permissions: [
-      PERMISSIONS.USERS.VIEW,
-      PERMISSIONS.PROPERTIES.VIEW,
-      PERMISSIONS.PROPERTIES.EDIT,
-      PERMISSIONS.PROPERTIES.APPROVE,
-      PERMISSIONS.AGENTS.VIEW,
-      PERMISSIONS.AGENCIES.VIEW,
-    ],
+    name: "content admin",
+    permissions: {
+      userRead: true,
+      userWrite: false,
+      listingRead: true,
+      listingWrite: true,
+      agentRead: true,
+      agentWrite: false,
+      agencyRead: true,
+      agencyWrite: false,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
   },
   USER_ADMIN: {
-    name: "User Admin",
-    permissions: [
-      PERMISSIONS.USERS.VIEW,
-      PERMISSIONS.USERS.EDIT,
-      PERMISSIONS.AGENTS.VIEW,
-      PERMISSIONS.AGENTS.EDIT,
-      PERMISSIONS.AGENCIES.VIEW,
-    ],
+    name: "user admin",
+    permissions: {
+      userRead: true,
+      userWrite: true,
+      listingRead: false,
+      listingWrite: false,
+      agentRead: true,
+      agentWrite: true,
+      agencyRead: true,
+      agencyWrite: false,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
   },
 };
 
 export default function AdminManagementPage() {
-  const [admin, setAdmin] = useState<ADMIN | null>(null);
+  const [admin, setAdmin] = useState<ADMIN>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [admins, setAdmins] = useState([
-    {
-      id: 1,
-      name: "Mwamba Tembo",
-      email: "mwamba@realtyplus.com",
-      adminRole: "Super Admin",
-      permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
-      status: "Active",
-      joined: "Jan 01, 2023",
-    },
-    {
-      id: 2,
-      name: "Lubinda Habeenzu",
-      email: "lubinda@realtyplus.com",
-      adminRole: "Content Admin",
-      permissions: ADMIN_ROLES.CONTENT_ADMIN.permissions,
-      status: "Active",
-      joined: "Feb 15, 2023",
-    },
-    {
-      id: 3,
-      name: "Namakau Mulwanda",
-      email: "namakau@realtyplus.com",
-      adminRole: "User Admin",
-      permissions: ADMIN_ROLES.USER_ADMIN.permissions,
-      status: "Active",
-      joined: "Mar 22, 2023",
-    },
-    {
-      id: 4,
-      name: "Chimwemwe Banda",
-      email: "chimwemwe@realtyplus.com",
-      adminRole: "Custom",
-      permissions: [
-        PERMISSIONS.USERS.VIEW,
-        PERMISSIONS.PROPERTIES.VIEW,
-        PERMISSIONS.PROPERTIES.APPROVE,
-      ],
-      status: "Inactive",
-      joined: "Apr 10, 2023",
-    },
-  ]);
-  const [adminToDelete, setAdminToDelete] = useState(null);
+  const [admins, setAdmins] = useState<ADMIN[]>([]);
+  const [adminToDelete, setAdminToDelete] = useState<ADMIN | null>(null);
+  const [selectedAdmin, setSelectedAdmin] = useState<ADMIN | null>(null);
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddAdminDialogOpen, setIsAddAdminDialogOpen] = useState(false);
   const [isEditPermissionsDialogOpen, setIsEditPermissionsDialogOpen] =
     useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState(null);
-  const [newAdminData, setNewAdminData] = useState({
-    name: "",
+  const [newAdminData, setNewAdminData] = useState<ADMIN>({
+    uid: "",
+    firstName: "",
+    lastName: "",
     email: "",
-    adminRole: "User Admin",
-    customPermissions: [],
+    adminType: "user admin",
+    status: "Active",
+    isApproved: false,
+    createdAt: null,
+    permissions: {
+      userRead: false,
+      userWrite: false,
+      listingRead: false,
+      listingWrite: false,
+      agentRead: false,
+      agentWrite: false,
+      agencyRead: false,
+      agencyWrite: false,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
   });
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
@@ -223,81 +214,28 @@ export default function AdminManagementPage() {
     const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
     return () => unsubscribe();
   }, []);
-  // Simulate current user as Super Admin for this demo
-  const currentUser = {
-    id: 1,
-    name: "Mwamba Tembo",
-    email: "mwamba@realtyplus.com",
-    adminRole: "Super Admin",
-    permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
-  };
 
-  const createNewAdmin = async () => {
-    try {
-      // Prepare admin data
-      const adminData = {
-        name: newAdminData.name,
-        email: newAdminData.email,
-        adminRole: newAdminData.adminRole,
-        permissions:
-          newAdminData.adminRole === "Custom"
-            ? newAdminData.customPermissions
-            : ADMIN_ROLES[
-                newAdminData.adminRole.toUpperCase().replace(" ", "_")
-              ]?.permissions || [],
-      };
-
-      // Call backend API through service
-      const createdAdmin = await adminService.createAdmin(adminData);
-
-      // Update local state with the response from backend
-      const newAdmin = {
-        id: createdAdmin.uid,
-        name: createdAdmin.name,
-        email: createdAdmin.email,
-        adminRole: createdAdmin.adminRole,
-        permissions: createdAdmin.permissions,
-        status: "Active",
-        joined: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "2-digit",
-          year: "numeric",
-        }),
-      };
-
-      setAdmins([...admins, newAdmin]);
-      toast({
-        title: "Admin created",
-        description: `${newAdmin.name} has been added as a ${newAdmin.adminRole}.`,
-      });
-      setIsAddAdminDialogOpen(false);
-      setNewAdminData({
-        name: "",
-        email: "",
-        adminRole: "User Admin",
-        customPermissions: [],
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error creating admin",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-  const handleDeleteAdmin = (admin) => {
+  const handleDeleteAdmin = (admin: ADMIN) => {
     setAdminToDelete(admin);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleEditPermissions = (admin: ADMIN) => {
+    setSelectedAdmin(admin);
+    setIsEditPermissionsDialogOpen(true);
   };
 
   const confirmDelete = () => {
     if (adminToDelete) {
       // In a real application, you would make an API call here
       // For now, we'll just update the local state
-      setAdmins(admins.filter((admin) => admin.id !== adminToDelete.id));
+      setAdmins(
+        admins &&
+          admins.filter((admin) => admin && admin.uid !== adminToDelete.uid)
+      );
       toast({
         title: "Admin deleted",
-        description: `${adminToDelete.name} has been permanently removed as an admin.`,
+        description: `${adminToDelete.firstName} has been permanently removed as an admin.`,
       });
       setIsDeleteDialogOpen(false);
       setAdminToDelete(null);
@@ -308,49 +246,54 @@ export default function AdminManagementPage() {
     setIsAddAdminDialogOpen(true);
   };
 
-  const handleEditPermissions = (admin) => {
-    setSelectedAdmin(admin);
-    setIsEditPermissionsDialogOpen(true);
-  };
+  const saveNewAdmin = async () => {
+    try {
+      // Create the admin object
+      const newAdminRef = doc(collection(fireDataBase, "admins"));
+      const newAdminId = newAdminRef.id; // This gets a unique Firebase ID
 
-  const saveNewAdmin = () => {
-    // In a real application, you would make an API call here
-    const newAdmin = {
-      id: admins.length + 1,
-      name: newAdminData.name,
-      email: newAdminData.email,
-      adminRole: newAdminData.adminRole,
-      permissions:
-        newAdminData.adminRole === "Custom"
-          ? newAdminData.customPermissions
-          : ADMIN_ROLES[newAdminData.adminRole.toUpperCase().replace(" ", "_")]
-              ?.permissions || [],
-      status: "Active",
-      joined: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      }),
-    };
+      const newAdmin: ADMIN = {
+        uid: newAdminId, // Using Firebase generated ID instead of length
+        firstName: newAdminData.firstName,
+        lastName: newAdminData.lastName,
+        email: newAdminData.email,
+        adminType: newAdminData.adminType,
+        permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
+        status: "Active",
+        isApproved: false,
+        createdAt: serverTimestamp(),
+      };
 
-    setAdmins([...admins, newAdmin]);
-    toast({
-      title: "Admin created",
-      description: `${newAdmin.name} has been added as a ${newAdmin.adminRole}.`,
-    });
-    setIsAddAdminDialogOpen(false);
-    setNewAdminData({
-      name: "",
-      email: "",
-      adminRole: "User Admin",
-      customPermissions: [],
-    });
+      // Save to Firestore using the generated ID
+      await setDoc(newAdminRef, newAdmin);
+
+      // Update local state
+      setAdmins((prevAdmins) => [...prevAdmins, newAdmin]);
+
+      // Show success message
+      toast({
+        title: "Admin created",
+        description: `${newAdmin.firstName} has been added as a ${newAdmin.adminType}.`,
+        duration: 5000,
+      });
+
+      // Close the dialog
+      setIsAddAdminDialogOpen(false);
+    } catch (error) {
+      // Handle any errors
+      console.error("Error adding admin:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create admin. Please try again.",
+        duration: 5000,
+      });
+    }
   };
 
   const savePermissions = () => {
     // In a real application, you would make an API call here
     const updatedAdmins = admins.map((admin) => {
-      if (admin.id === selectedAdmin.id) {
+      if (admin.uid === selectedAdmin.uid) {
         return selectedAdmin;
       }
       return admin;
@@ -359,7 +302,7 @@ export default function AdminManagementPage() {
     setAdmins(updatedAdmins);
     toast({
       title: "Permissions updated",
-      description: `${selectedAdmin.name}'s permissions have been updated.`,
+      description: `${selectedAdmin.firstName}'s permissions have been updated.`,
     });
     setIsEditPermissionsDialogOpen(false);
     setSelectedAdmin(null);
@@ -367,11 +310,11 @@ export default function AdminManagementPage() {
 
   const filteredAdmins = admins.filter(
     (admin) =>
-      admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admin.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getAdminRoleColor = (role) => {
+  const getAdminTypeColor = (role) => {
     switch (role) {
       case "Super Admin":
         return "bg-red-100 text-red-800";
@@ -406,7 +349,7 @@ export default function AdminManagementPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="font-bold text-2xl tracking-tight">
               Admin Management
             </h2>
             <p className="text-muted-foreground">
@@ -414,16 +357,16 @@ export default function AdminManagementPage() {
             </p>
           </div>
           <Button className="flex items-center gap-2" onClick={handleAddAdmin}>
-            <ShieldCheck className="h-4 w-4" />
+            <ShieldCheck className="w-4 h-4" />
             Add New Admin
           </Button>
         </div>
 
         <Card>
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
+            <div className="flex sm:flex-row flex-col justify-between gap-4 mb-6">
               <div className="relative w-full sm:w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 transform" />
                 <Input
                   placeholder="Search admins..."
                   value={searchTerm}
@@ -432,12 +375,12 @@ export default function AdminManagementPage() {
                 />
               </div>
               <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
+                <Filter className="w-4 h-4" />
                 Filter
               </Button>
             </div>
 
-            <div className="rounded-md border">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -451,34 +394,39 @@ export default function AdminManagementPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredAdmins.length > 0 ? (
-                    filteredAdmins.map((admin) => (
-                      <TableRow key={admin.id}>
+                    filteredAdmins.map((adminS) => (
+                      <TableRow key={adminS.uid}>
                         <TableCell className="font-medium">
-                          {admin.name}
+                          {adminS.firstName}
                         </TableCell>
-                        <TableCell>{admin.email}</TableCell>
+                        <TableCell>{adminS.email}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getAdminRoleColor(admin.adminRole)}
+                            className={getAdminTypeColor(adminS.adminType)}
                           >
-                            {admin.adminRole}
+                            {adminS.adminType}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getStatusColor(admin.status)}
+                            className={getStatusColor(adminS.status)}
                           >
                             {admin.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{admin.joined}</TableCell>
+                        <TableCell>
+                          {adminS.createdAt && "toDate" in adminS.createdAt
+                            ? adminS.createdAt.toDate().toLocaleDateString()
+                            : ""}
+                        </TableCell>
+
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
+                              <Button variant="ghost" className="p-0 w-8 h-8">
+                                <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -487,11 +435,11 @@ export default function AdminManagementPage() {
                               >
                                 Manage Permissions
                               </DropdownMenuItem>
-                              {admin.status === "Active" ? (
+                              {adminS.status === "Active" ? (
                                 <DropdownMenuItem className="text-amber-600">
                                   Suspend
                                 </DropdownMenuItem>
-                              ) : admin.status === "Suspended" ? (
+                              ) : adminS.status === "Suspended" ? (
                                 <DropdownMenuItem className="text-green-600">
                                   Reactivate
                                 </DropdownMenuItem>
@@ -500,7 +448,7 @@ export default function AdminManagementPage() {
                                   Activate
                                 </DropdownMenuItem>
                               )}
-                              {admin.id !== currentUser.id && (
+                              {adminS.uid !== admin.uid && (
                                 <DropdownMenuItem
                                   className="text-red-600"
                                   onClick={() => handleDeleteAdmin(admin)}
@@ -537,7 +485,10 @@ export default function AdminManagementPage() {
             <AlertDialogDescription>
               This action cannot be undone. This will permanently remove
               {adminToDelete && (
-                <span className="font-semibold"> {adminToDelete.name} </span>
+                <span className="font-semibold">
+                  {" "}
+                  {adminToDelete.firstName}{" "}
+                </span>
               )}
               as an admin and revoke all their admin privileges.
             </AlertDialogDescription>
@@ -566,21 +517,35 @@ export default function AdminManagementPage() {
               Create a new admin user with specific permissions.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
+          <div className="gap-4 grid py-4">
+            <div className="items-center gap-4 grid grid-cols-4">
               <Label htmlFor="name" className="text-right">
-                Name
+                First Name
               </Label>
               <Input
-                id="name"
-                value={newAdminData.name}
+                id="firstName"
+                value={newAdminData.firstName}
                 onChange={(e) =>
-                  setNewAdminData({ ...newAdminData, name: e.target.value })
+                  setNewAdminData({
+                    ...newAdminData,
+                    firstName: e.target.value,
+                  })
+                }
+                className="col-span-3"
+              />
+              <Label htmlFor="name" className="text-right">
+                Last Name
+              </Label>
+              <Input
+                id="lastName"
+                value={newAdminData.lastName}
+                onChange={(e) =>
+                  setNewAdminData({ ...newAdminData, lastName: e.target.value })
                 }
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="items-center gap-4 grid grid-cols-4">
               <Label htmlFor="email" className="text-right">
                 Email
               </Label>
@@ -594,14 +559,17 @@ export default function AdminManagementPage() {
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="items-center gap-4 grid grid-cols-4">
               <Label htmlFor="role" className="text-right">
                 Admin Role
               </Label>
               <Select
-                value={newAdminData.adminRole}
+                value={newAdminData.adminType}
                 onValueChange={(value) =>
-                  setNewAdminData({ ...newAdminData, adminRole: value })
+                  setNewAdminData({
+                    ...newAdminData,
+                    adminType: value as ADMIN["adminType"],
+                  })
                 }
               >
                 <SelectTrigger className="col-span-3">
@@ -616,157 +584,71 @@ export default function AdminManagementPage() {
               </Select>
             </div>
 
-            {newAdminData.adminRole === "Custom" && (
-              <div className="grid grid-cols-4 gap-4">
-                <div className="text-right pt-2">
+            {/*newAdminData.adminType === "Custom" && (
+              <div className="gap-4 grid grid-cols-4">
+                <div className="pt-2 text-right">
                   <Label>Permissions</Label>
                 </div>
-                <div className="col-span-3 space-y-4">
+                <div className="space-y-4 col-span-3">
                   <div className="space-y-2">
-                    <h4 className="font-medium">Users</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                    <h4 className="font-medium">User Permissions</h4>
+                    <div className="gap-2 grid grid-cols-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
-                          id="users-view"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.VIEW
-                          )}
+                          id="user-read"
+                          checked={newAdminData.permissions.userRead}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.VIEW,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW
-                                  ),
-                              });
-                            }
+                            setNewAdminData({
+                              ...newAdminData,
+                              permissions: {
+                                ...newAdminData.permissions,
+                                userRead: checked as boolean,
+                              },
+                            });
                           }}
                         />
-                        <Label htmlFor="users-view">View</Label>
+                        <Label htmlFor="user-read">Read Users</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
-                          id="users-edit"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.EDIT
-                          )}
+                          id="user-write"
+                          checked={newAdminData.permissions.userWrite}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.EDIT,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT
-                                  ),
-                              });
-                            }
+                            setNewAdminData({
+                              ...newAdminData,
+                              permissions: {
+                                ...newAdminData.permissions,
+                                userWrite: checked as boolean,
+                              },
+                            });
                           }}
                         />
-                        <Label htmlFor="users-edit">Edit</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="users-delete"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.DELETE
-                          )}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.DELETE,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE
-                                  ),
-                              });
-                            }
-                          }}
-                        />
-                        <Label htmlFor="users-delete">Delete</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="users-manage-admins"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.MANAGE_ADMINS
-                          )}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.MANAGE_ADMINS,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
-                                  ),
-                              });
-                            }
-                          }}
-                        />
-                        <Label htmlFor="users-manage-admins">
-                          Manage Admins
-                        </Label>
+                        <Label htmlFor="user-write">Modify Users</Label>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <h4 className="font-medium">Properties</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="gap-2 grid grid-cols-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="properties-view"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.VIEW
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
                             if (checked) {
                               setNewAdminData({
                                 ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.PROPERTIES.VIEW,
-                                ],
+                                permissions: {
+                                  ...newAdminData.permissions,
+                                },
                               });
                             } else {
                               setNewAdminData({
                                 ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
-                                  ),
+                                permissions: newAdminData.permissions.filter(
+                                  (p) => p !== PERMISSIONS.PROPERTIES.VIEW
+                                ),
                               });
                             }
                           }}
@@ -861,7 +743,7 @@ export default function AdminManagementPage() {
                   </div>
                 </div>
               </div>
-            )}
+            )*/}
           </div>
           <DialogFooter>
             <Button type="submit" onClick={saveNewAdmin}>
@@ -881,21 +763,22 @@ export default function AdminManagementPage() {
             <DialogHeader>
               <DialogTitle>Edit Admin Permissions</DialogTitle>
               <DialogDescription>
-                Modify permissions for {selectedAdmin.name}
+                Modify permissions for{" "}
+                {`${selectedAdmin.firstName} ${selectedAdmin.lastName}`}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
+            <div className="gap-4 grid py-4">
+              <div className="items-center gap-4 grid grid-cols-4">
                 <Label htmlFor="edit-role" className="text-right">
                   Admin Role
                 </Label>
                 <Select
-                  value={selectedAdmin.adminRole}
+                  value={selectedAdmin.adminType}
                   onValueChange={(value) => {
                     if (value !== "Custom") {
                       setSelectedAdmin({
                         ...selectedAdmin,
-                        adminRole: value,
+                        adminType: value as ADMIN["adminType"],
                         permissions:
                           ADMIN_ROLES[value.toUpperCase().replace(" ", "_")]
                             ?.permissions || [],
@@ -903,7 +786,7 @@ export default function AdminManagementPage() {
                     } else {
                       setSelectedAdmin({
                         ...selectedAdmin,
-                        adminRole: value,
+                        adminType: value as ADMIN["adminType"],
                       });
                     }
                   }}
@@ -920,15 +803,15 @@ export default function AdminManagementPage() {
                 </Select>
               </div>
 
-              {selectedAdmin.adminRole === "Custom" && (
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-right pt-2">
+              {/*selectedAdmin.adminType === "Custom" && (
+                <div className="gap-4 grid grid-cols-4">
+                  <div className="pt-2 text-right">
                     <Label>Permissions</Label>
                   </div>
-                  <div className="col-span-3 space-y-4">
+                  <div className="space-y-4 col-span-3">
                     <div className="space-y-2">
                       <h4 className="font-medium">Users</h4>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="gap-2 grid grid-cols-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-users-view"
@@ -1044,7 +927,7 @@ export default function AdminManagementPage() {
 
                     <div className="space-y-2">
                       <h4 className="font-medium">Properties</h4>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="gap-2 grid grid-cols-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-properties-view"
@@ -1103,7 +986,7 @@ export default function AdminManagementPage() {
                     </div>
                   </div>
                 </div>
-              )}
+              )*/}
             </div>
             <DialogFooter>
               <Button type="submit" onClick={savePermissions}>

@@ -1,4 +1,4 @@
-import { DocumentReference, Timestamp } from "firebase/firestore";
+import { DocumentReference, FieldValue, Timestamp } from "firebase/firestore";
 export interface ZustandStore {
   user: USER | null;
   setUser: (user: USER | null) => void;
@@ -54,8 +54,8 @@ export type ADMIN = {
   firstName: string;
   lastName: string;
   email: string;
-  adminType: "Super Admin" | "Content Admin" | "User Admin" | "Custom"; // Updated to match actual roles
-  createdAt: Timestamp;
+  adminType: "super admin" | "content admin" | "user admin" | "custom"; // Updated to match actual roles
+  createdAt: Timestamp | FieldValue | null;
   isApproved: boolean;
   permissions: ADMINPERMISSIONS;
   status: "Active" | "Inactive" | "Suspended";
