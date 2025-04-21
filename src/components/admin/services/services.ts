@@ -43,7 +43,7 @@ export const adminService = {
         firstName: adminData.firstName,
         lastName: adminData.lastName,
         email: adminData.email,
-        adminType: adminData.adminType,
+        adminType: adminData.adminType.toLowerCase(),
         permissions:
           ADMIN_ROLES[generateAdminType(adminData.adminType)]?.permissions,
         status: "Active",
