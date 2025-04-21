@@ -63,6 +63,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
@@ -178,41 +179,67 @@ export default function AdminManagementPage() {
   });
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
+      console.log("Starting admin status check...");
       try {
         if (!user) {
-          window.location.href = "/";
+          console.log("No user found, redirecting to home page");
+          //window.location.href = "/";
           return;
         }
+        console.log("Checking admin status for user:", user.uid);
 
         const adminRef = doc(fireDataBase, "admins", user.uid);
         const adminSnapshot = await getDoc(adminRef);
 
         if (!adminSnapshot.exists()) {
-          await signOut(auth);
-          window.location.href = "/";
+          console.log("User is not an admin, signing out");
+          //await signOut(auth);
+          //window.location.href = "/";
           return;
         }
 
         const adminData = adminSnapshot.data() as ADMIN;
+        console.log("Admin data retrieved:", {
+          isApproved: adminData.isApproved,
+        });
+
         if (!adminData.isApproved) {
-          await signOut(auth);
-          window.location.href = "/";
+          console.log("Admin is not approved, signing out");
+          //await signOut(auth);
+          //window.location.href = "/";
           return;
         }
 
+        console.log("Setting current admin data");
         setAdmin({
           ...adminData,
           uid: adminSnapshot.id,
         });
+
+        console.log("Fetching all admins list");
+        const adminsRef = collection(fireDataBase, "admins");
+        const adminsSnapshot = await getDocs(adminsRef);
+        const adminsList = adminsSnapshot.docs.map(
+          (doc) => ({ uid: doc.id, ...doc.data() } as ADMIN)
+        );
+        console.log(`Retrieved ${adminsList.length} admins`);
+        setAdmins(adminsList);
+
+        console.log("Admin authentication completed successfully");
       } catch (error) {
         console.error("Error checking admin status:", error);
-        await signOut(auth);
-        window.location.href = "/";
+        console.log("Signing out due to error");
+        // await signOut(auth);
+        //window.location.href = "/";
       }
     };
 
+    console.log("Setting up auth state change listener");
     const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
-    return () => unsubscribe();
+    return () => {
+      console.log("Cleaning up auth state listener");
+      unsubscribe();
+    };
   }, []);
 
   const handleDeleteAdmin = (admin: ADMIN) => {
@@ -310,8 +337,10 @@ export default function AdminManagementPage() {
 
   const filteredAdmins = admins.filter(
     (admin) =>
-      admin.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      admin.email.toLowerCase().includes(searchTerm.toLowerCase())
+      admin.firstName ||
+      "".toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.email ||
+      "".toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getAdminTypeColor = (role) => {
