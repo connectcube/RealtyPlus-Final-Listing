@@ -74,6 +74,7 @@ const SearchFilters = ({
   filters,
   setFilters,
   className,
+  isLoading = false,
   compact = false,
   type = "sale",
 }: SearchFiltersProps) => {
@@ -160,7 +161,7 @@ const SearchFilters = ({
       province: "",
       priceRange: defaultPriceRange,
       propertyType: "",
-      isFurnished: false,
+      isFurnished: null,
       yearBuilt: 0,
       bedrooms: 0,
       bathrooms: 0,
@@ -190,7 +191,7 @@ const SearchFilters = ({
   return (
     <div className={cn("bg-white p-4 rounded-lg shadow-md", className)}>
       {errors.length > 0 && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <div className="bg-red-50 mb-4 p-4 border border-red-200 rounded-md">
           {errors.map((error) => (
             <p key={error.field} className="text-red-600 text-sm">
               {error.message}
@@ -199,17 +200,17 @@ const SearchFilters = ({
         </div>
       )}
       <Tabs defaultValue={type} onValueChange={handleListingTypeChange}>
-        <TabsList className="grid w-full grid-cols-2 mb-4" defaultValue={type}>
+        <TabsList className="grid grid-cols-2 mb-4 w-full" defaultValue={type}>
           <TabsTrigger value="sale">Buy</TabsTrigger>
           <TabsTrigger value="rent">Rent</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sale" className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+          <div className="flex md:flex-row flex-col gap-3 md:gap-4">
             <div className="flex-1">
               <Label htmlFor="location">Location</Label>
               <div className="relative">
-                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <MapPin className="top-2.5 left-2 absolute w-4 h-4 text-muted-foreground" />
                 <Input
                   id="location"
                   placeholder="Enter location"
@@ -295,7 +296,7 @@ const SearchFilters = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <Label>Price Range</Label>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 K{filters.priceRange[0].toLocaleString()} - K
                 {filters.priceRange[1].toLocaleString()}
               </span>
@@ -311,18 +312,18 @@ const SearchFilters = ({
           </div>
 
           {!compact && (
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2">
+            <div className="flex sm:flex-row flex-col justify-between items-start sm:items-center gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-xs w-full sm:w-auto"
+                className="w-full sm:w-auto text-xs"
               >
                 {showAdvanced ? "Hide" : "Show"} Advanced Filters
-                <Filter className="ml-1 h-3 w-3" />
+                <Filter className="ml-1 w-3 h-3" />
               </Button>
 
-              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <div className="flex gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
@@ -337,15 +338,15 @@ const SearchFilters = ({
                   className="flex-1 sm:flex-none"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                       Searching...
                     </>
                   ) : (
                     <>
                       Search
-                      <Search className="ml-1 h-3 w-3" />
+                      <Search className="ml-1 w-3 h-3" />
                     </>
                   )}
                 </Button>
@@ -354,8 +355,8 @@ const SearchFilters = ({
           )}
 
           {showAdvanced && !compact && (
-            <div className="pt-4 space-y-4 border-t mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="space-y-4 mt-4 pt-4 border-t">
+              <div className="gap-3 md:gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                 <div>
                   <Label htmlFor="bedrooms">Bedrooms</Label>
                   <Select
@@ -431,7 +432,7 @@ const SearchFilters = ({
                     />
                     <label
                       htmlFor="furnishingStatus"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="peer-disabled:opacity-70 font-medium text-sm leading-none peer-disabled:cursor-not-allowed"
                     >
                       Furnished
                     </label>
@@ -463,7 +464,7 @@ const SearchFilters = ({
 
               <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="gap-2 grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4">
                   {[
                     "swimmingPool",
                     "garden",
@@ -500,7 +501,7 @@ const SearchFilters = ({
                         htmlFor={`buy-${amenity
                           .toLowerCase()
                           .replace(" ", "-")}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="peer-disabled:opacity-70 font-medium text-sm leading-none peer-disabled:cursor-not-allowed"
                       >
                         {Amenities[amenity]}
                       </label>
@@ -513,11 +514,11 @@ const SearchFilters = ({
         </TabsContent>
 
         <TabsContent value="rent" className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+          <div className="flex md:flex-row flex-col gap-3 md:gap-4">
             <div className="flex-1">
               <Label htmlFor="location-rent">Location</Label>
               <div className="relative">
-                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <MapPin className="top-2.5 left-2 absolute w-4 h-4 text-muted-foreground" />
                 <Input
                   id="location-rent"
                   placeholder="Enter location"
@@ -581,7 +582,7 @@ const SearchFilters = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <Label>Price Range</Label>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 K{filters.priceRange[0].toLocaleString()} - K
                 {filters.priceRange[1].toLocaleString()}
               </span>
@@ -597,18 +598,18 @@ const SearchFilters = ({
           </div>
 
           {!compact && (
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2">
+            <div className="flex sm:flex-row flex-col justify-between items-start sm:items-center gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-xs w-full sm:w-auto"
+                className="w-full sm:w-auto text-xs"
               >
                 {showAdvanced ? "Hide" : "Show"} Advanced Filters
-                <Filter className="ml-1 h-3 w-3" />
+                <Filter className="ml-1 w-3 h-3" />
               </Button>
 
-              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <div className="flex gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
@@ -625,13 +626,13 @@ const SearchFilters = ({
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                       Searching...
                     </>
                   ) : (
                     <>
                       Search
-                      <Search className="ml-1 h-3 w-3" />
+                      <Search className="ml-1 w-3 h-3" />
                     </>
                   )}
                 </Button>
@@ -640,8 +641,8 @@ const SearchFilters = ({
           )}
 
           {showAdvanced && !compact && (
-            <div className="pt-4 space-y-4 border-t mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="space-y-4 mt-4 pt-4 border-t">
+              <div className="gap-3 md:gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                 <div>
                   <Label htmlFor="bedrooms-rent">Bedrooms</Label>
                   <Select
@@ -720,7 +721,7 @@ const SearchFilters = ({
                     />
                     <label
                       htmlFor="furnishingStatus"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="peer-disabled:opacity-70 font-medium text-sm leading-none peer-disabled:cursor-not-allowed"
                     >
                       Furnished
                     </label>
@@ -756,7 +757,7 @@ const SearchFilters = ({
               <div className="space-y-2">
                 <Label>Amenities</Label>
                 <div
-                  className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2"
+                  className="gap-2 grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4"
                   role="group"
                   aria-labelledby="amenities-label"
                 >
@@ -801,7 +802,7 @@ const SearchFilters = ({
                         htmlFor={`rent-${amenity
                           .toLowerCase()
                           .replace(" ", "-")}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="peer-disabled:opacity-70 font-medium text-sm leading-none peer-disabled:cursor-not-allowed"
                       >
                         {amenity}
                       </label>

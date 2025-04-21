@@ -107,15 +107,15 @@ const Header = ({ className }: HeaderProps = {}) => {
   return (
     <>
       {/* Top Bar */}
-      <div className="bg-realtyplus text-white py-2 hidden md:block">
-        <div className="container mx-auto px-4 flex justify-between items-center">
+      <div className="hidden md:block bg-realtyplus py-2 text-white">
+        <div className="flex justify-between items-center mx-auto px-4 container">
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center">
-              <Phone className="h-4 w-4 mr-2" />
+              <Phone className="mr-2 w-4 h-4" />
               <span>+260 97 1234567</span>
             </div>
             <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-2" />
+              <MapPin className="mr-2 w-4 h-4" />
               <span>123 Cairo Road, Lusaka, Zambia</span>
             </div>
           </div>
@@ -136,25 +136,25 @@ const Header = ({ className }: HeaderProps = {}) => {
       {/* Main Header */}
       <header
         className={cn(
-          "w-full bg-white sticky top-0 z-50 transition-all duration-300",
+          "w-full bg-white sticky top-0 z-0 transition-all duration-300",
           isScrolled ? "shadow-md py-2" : "shadow-sm py-4",
           className
         )}
       >
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
+        <div className="mx-auto px-4 container">
+          <div className="flex justify-between items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center">
               <img
                 src="/realtyplus-logo.svg"
                 alt="RealtyPlus Logo"
-                className="h-8 sm:h-10 w-auto"
+                className="w-auto h-8 sm:h-10"
                 onError={(e) => {
                   e.currentTarget.src =
                     "https://api.dicebear.com/7.x/initials/svg?seed=RP";
                 }}
               />
-              <span className="ml-2 text-lg sm:text-xl font-bold text-realtyplus hidden sm:inline">
+              <span className="hidden sm:inline ml-2 font-bold text-realtyplus text-lg sm:text-xl">
                 RealtyPlus
               </span>
             </Link>
@@ -207,7 +207,7 @@ const Header = ({ className }: HeaderProps = {}) => {
                 Agencies
               </Link>
               <DropdownMenu>
-                <DropdownMenuTrigger className="text-gray-700 hover:text-realtyplus font-medium">
+                <DropdownMenuTrigger className="font-medium text-gray-700 hover:text-realtyplus">
                   More
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -241,9 +241,9 @@ const Header = ({ className }: HeaderProps = {}) => {
                 <Input
                   type="text"
                   placeholder="Search properties..."
-                  className="w-full sm:w-64 pl-10 pr-4 py-2 rounded-full border-gray-300 focus:border-realtyplus focus:ring focus:ring-realtyplus/20 focus:ring-opacity-50"
+                  className="focus:ring-opacity-50 py-2 pr-4 pl-10 border-gray-300 focus:border-realtyplus rounded-full focus:ring focus:ring-realtyplus/20 w-full sm:w-64"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="top-1/2 left-3 absolute w-5 h-5 text-gray-400 -translate-y-1/2 transform" />
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -253,18 +253,18 @@ const Header = ({ className }: HeaderProps = {}) => {
                     className="relative"
                     onClick={() => setIsFavOpen(!isFavOpen)}
                   >
-                    <Heart className="h-5 w-5 text-gray-600" />
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
+                    <Heart className="w-5 h-5 text-gray-600" />
+                    <Badge className="-top-1 -right-1 absolute flex justify-center items-center bg-realtyplus p-0 w-5 h-5">
                       {user?.savedProperties?.length || 0}
                     </Badge>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="transform translate-x-1/2 left-1/2"
+                  className="left-1/2 translate-x-1/2 transform"
                 >
                   <div className="bg-slate-50 p-2 border border-gray-400 rounded">
-                    <p className="text-xs text-gray-600">Favorites</p>
+                    <p className="text-gray-600 text-xs">Favorites</p>
                     <SavedPropertiesDropDown user={user} setUser={setUser} />
                   </div>
                 </DropdownMenuContent>
@@ -275,23 +275,23 @@ const Header = ({ className }: HeaderProps = {}) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full relative"
+                    className="relative rounded-full"
                   >
-                    <User className="h-5 w-5" />
-                    {/* <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-realtyplus">
+                    <User className="w-5 h-5" />
+                    {/* <Badge className="-top-1 -right-1 absolute flex justify-center items-center bg-realtyplus p-0 w-5 h-5">
                       3
                     </Badge>*/}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-56 transform translate-x-1/2 left-1/2"
+                  className="left-1/2 w-56 translate-x-1/2 transform"
                 >
                   <div className="p-2 text-center">
-                    <p className="text-sm font-medium">
+                    <p className="font-medium text-sm">
                       Welcome to RealtyZambia
                     </p>
-                    <p className="text-sm font-medium">
+                    <p className="font-medium text-sm">
                       {user && `You are ${getUserType()}`}
                     </p>
                   </div>
@@ -320,13 +320,13 @@ const Header = ({ className }: HeaderProps = {}) => {
                           <img
                             src={user.pfp || "/default-avatar.png"}
                             alt="Profile"
-                            className="w-6 h-6 rounded-full"
+                            className="rounded-full w-6 h-6"
                           />
                           <span>
                             {`${user.firstName} ${user.lastName}` || user.email}
                           </span>
 
-                          <span className="text-center overflow-hidden">
+                          <span className="overflow-hidden text-center">
                             {user.email}
                           </span>
                         </div>
@@ -335,7 +335,7 @@ const Header = ({ className }: HeaderProps = {}) => {
                       <DropdownMenuItem>
                         <button
                           onClick={handleSignOut}
-                          className=" mx-auto  text-left text-red-600 hover:text-red-700"
+                          className="mx-auto text-red-600 hover:text-red-700 text-left"
                         >
                           Sign Out
                         </button>
@@ -363,17 +363,17 @@ const Header = ({ className }: HeaderProps = {}) => {
                   <DropdownMenuItem>
                     <Link
                       to="/saved-properties"
-                      className="w-full flex items-center"
+                      className="flex items-center w-full"
                     >
-                      <Heart className="mr-2 h-4 w-4" /> Saved Properties
+                      <Heart className="mr-2 w-4 h-4" /> Saved Properties
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Link
                       to="/notifications"
-                      className="w-full flex items-center"
+                      className="flex items-center w-full"
                     >
-                      <Bell className="mr-2 h-4 w-4" /> Notifications
+                      <Bell className="mr-2 w-4 h-4" /> Notifications
                     </Link>
                   </DropdownMenuItem>
                   {user !== null && user.userType === "agents" && (
@@ -409,9 +409,9 @@ const Header = ({ className }: HeaderProps = {}) => {
               onClick={toggleMenu}
             >
               {isMenuOpen ? (
-                <X className="h-6 w-6" />
+                <X className="w-6 h-6" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="w-6 h-6" />
               )}
             </Button>
           </div>
@@ -422,67 +422,67 @@ const Header = ({ className }: HeaderProps = {}) => {
               <nav className="flex flex-col space-y-4">
                 <Link
                   to="/properties"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   All Properties
                 </Link>
                 <Link
                   to="/buy"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Buy
                 </Link>
                 <Link
                   to="/rent"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Rent
                 </Link>
                 <Link
                   to="/agents"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Agents
                 </Link>
                 <Link
                   to="/mortgage-calculator"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Mortgage Calculator
                 </Link>
                 <Link
                   to="/saved-properties"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2 flex items-center"
+                  className="flex items-center py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
-                  <Heart className="mr-2 h-4 w-4" /> Saved Properties
+                  <Heart className="mr-2 w-4 h-4" /> Saved Properties
                 </Link>
                 <Link
                   to="/login"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Login
                 </Link>
                 <Link
                   to="/register"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Register
                 </Link>
                 <Link
                   to="/agent/signup"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Register as Agent/Agency
                 </Link>
                 <Link
                   to="/agent/dashboard"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Agent Dashboard
                 </Link>
                 <Link
                   to="/agent/subscription"
-                  className="text-gray-700 hover:text-realtyplus font-medium py-2"
+                  className="py-2 font-medium text-gray-700 hover:text-realtyplus"
                 >
                   Subscription Packages
                 </Link>
@@ -490,11 +490,11 @@ const Header = ({ className }: HeaderProps = {}) => {
                   <Input
                     type="text"
                     placeholder="Search properties..."
-                    className="w-full pl-10 pr-4 py-2 rounded-full border-gray-300 focus:border-realtyplus focus:ring focus:ring-realtyplus/20 focus:ring-opacity-50"
+                    className="focus:ring-opacity-50 py-2 pr-4 pl-10 border-gray-300 focus:border-realtyplus rounded-full focus:ring focus:ring-realtyplus/20 w-full"
                   />
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Search className="top-1/2 left-3 absolute w-5 h-5 text-gray-400 -translate-y-1/2 transform" />
                 </div>
-                <Button className="bg-realtyplus hover:bg-realtyplus-dark text-white w-full mt-2">
+                <Button className="bg-realtyplus hover:bg-realtyplus-dark mt-2 w-full text-white">
                   <Link to="/list-property" className="w-full text-white">
                     List Property
                   </Link>
@@ -592,7 +592,7 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
 
   if (isLoading) {
     return (
-      <div className="max-h-[500px] w-[320px] overflow-y-auto p-3 divide-y divide-gray-100">
+      <div className="p-3 divide-y divide-gray-100 w-[320px] max-h-[500px] overflow-y-auto">
         <LoadingSpinner />
       </div>
     );
@@ -600,15 +600,15 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
 
   if (!savedProperties.length) {
     return (
-      <div className="p-6 text-center ">
-        <div className="text-gray-400 mb-2">
-          <Heart className="h-12 w-12 mx-auto" />{" "}
+      <div className="p-6 text-center">
+        <div className="mb-2 text-gray-400">
+          <Heart className="mx-auto w-12 h-12" />{" "}
           {/* Import from your icon library */}
         </div>
         <p className="text-gray-600">No saved properties yet</p>
         <button
           onClick={() => navigate("/properties")}
-          className="mt-3 text-sm text-blue-600 hover:text-blue-700"
+          className="mt-3 text-blue-600 hover:text-blue-700 text-sm"
         >
           Browse Properties
         </button>
@@ -617,10 +617,10 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
   }
 
   return (
-    <div className="max-h-[500px] w-[320px] overflow-y-auto p-3 divide-y divide-gray-100">
-      <div className="pb-2 mb-2 flex justify-between items-center">
+    <div className="p-3 divide-y divide-gray-100 w-[320px] max-h-[500px] overflow-y-auto">
+      <div className="flex justify-between items-center mb-2 pb-2">
         <h3 className="font-semibold text-gray-800">Saved Properties</h3>
-        <span className="text-sm text-gray-500">
+        <span className="text-gray-500 text-sm">
           {savedProperties.length} items
         </span>
       </div>
@@ -629,53 +629,53 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
         <div
           key={property.uid}
           onClick={() => handlePropertyClick(property.uid)}
-          className="group w-full text-wrap p-3 hover:bg-gray-50 transition-all cursor-pointer rounded-lg"
+          className="group hover:bg-gray-50 p-3 rounded-lg w-full text-wrap transition-all cursor-pointer"
         >
           <div className="flex items-start gap-3">
             <div className="relative">
               <img
                 src={property.images[property.coverPhotoIndex]}
                 alt={property.title}
-                className="w-20 h-20 object-cover rounded-lg"
+                className="rounded-lg w-20 h-20 object-cover"
               />
-              <span className="absolute top-1 right-1 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+              <span className="top-1 right-1 absolute bg-blue-600 px-2 py-1 rounded text-white text-xs">
                 {property.propertyCategory}
               </span>
             </div>
 
             <div className="flex-1">
-              <div className="flex  justify-between items-start">
-                <h3 className="font-medium text-sm group-hover:text-blue-600 truncate">
+              <div className="flex justify-between items-start">
+                <h3 className="font-medium group-hover:text-blue-600 text-sm truncate">
                   {property.title}
                 </h3>
                 <button
                   onClick={(e) => handleRemoveFavorite(property.uid, e)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                  className="hover:bg-gray-100 opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
                 >
-                  <X className="h-4 w-4 text-gray-500" />{" "}
+                  <X className="w-4 h-4 text-gray-500" />{" "}
                   {/* Import from your icon library */}
                 </button>
               </div>
 
-              <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+              <div className="flex items-center gap-2 mt-1 text-gray-600 text-xs">
                 <span className="flex items-center">
-                  <Home className="h-3 w-3 mr-1" />{" "}
+                  <Home className="mr-1 w-3 h-3" />{" "}
                   {/* Import from your icon library */}
                   {property.propertyType}
                 </span>
                 <span>•</span>
                 <span className="flex items-center">
-                  <MapPinIcon className="h-3 w-3 mr-1" />{" "}
+                  <MapPinIcon className="mr-1 w-3 h-3" />{" "}
                   {/* Import from your icon library */}
                   {property.address}
                 </span>
               </div>
 
-              <div className="mt-2 flex justify-between items-center">
-                <div className="text-sm font-semibold text-blue-600">
+              <div className="flex justify-between items-center mt-2">
+                <div className="font-semibold text-blue-600 text-sm">
                   K {property.price.toLocaleString()}
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-gray-500 text-xs">
                   Added {new Date().toLocaleDateString()}
                 </span>
               </div>
