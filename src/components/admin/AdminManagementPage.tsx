@@ -55,7 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { adminService } from "./services/createNewAdmin";
+import { adminService } from "./services/services";
 import { LoadingSpinner } from "../globalScreens/Loader";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { auth, fireDataBase } from "@/lib/firebase";
@@ -68,35 +68,9 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { last } from "lodash";
-
-const PERMISSIONS = {
-  USER: {
-    READ: "userRead",
-    WRITE: "userWrite",
-  },
-  LISTING: {
-    READ: "listingRead",
-    WRITE: "listingWrite",
-  },
-  AGENT: {
-    READ: "agentRead",
-    WRITE: "agentWrite",
-  },
-  AGENCY: {
-    READ: "agencyRead",
-    WRITE: "agencyWrite",
-  },
-  ADMIN: {
-    MANAGEMENT: "adminManagement",
-  },
-  SUBSCRIPTION: {
-    MANAGEMENT: "subscriptionManagement",
-  },
-};
 
 // Update the admin roles accordingly
-const ADMIN_ROLES = {
+export const ADMIN_ROLES = {
   SUPER_ADMIN: {
     name: "super admin",
     permissions: {
@@ -275,43 +249,32 @@ export default function AdminManagementPage() {
 
   const saveNewAdmin = async () => {
     try {
-      // Create the admin object
-      const newAdminRef = doc(collection(fireDataBase, "admins"));
-      const newAdminId = newAdminRef.id; // This gets a unique Firebase ID
+      // Validate required fields
+      if (!newAdminData.email || !newAdminData.firstName) {
+        toast({
+          title: "Error",
+          description: "Please fill all required fields",
+          duration: 5000,
+        });
+        return;
+      }
 
-      const newAdmin: ADMIN = {
-        uid: newAdminId, // Using Firebase generated ID instead of length
-        firstName: newAdminData.firstName,
-        lastName: newAdminData.lastName,
-        email: newAdminData.email,
-        adminType: newAdminData.adminType,
-        permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
-        status: "Active",
-        isApproved: false,
-        createdAt: serverTimestamp(),
-      };
+      const temporaryPassword = "RealtyPlus@123"; // Implement secure password generation
+      const response = await adminService.createAdmin(newAdminData);
 
-      // Save to Firestore using the generated ID
-      await setDoc(newAdminRef, newAdmin);
-
-      // Update local state
-      setAdmins((prevAdmins) => [...prevAdmins, newAdmin]);
-
-      // Show success message
-      toast({
-        title: "Admin created",
-        description: `${newAdmin.firstName} has been added as a ${newAdmin.adminType}.`,
-        duration: 5000,
-      });
-
-      // Close the dialog
-      setIsAddAdminDialogOpen(false);
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: `Admin created successfully. Temporary password: ${temporaryPassword}`,
+          duration: 5000,
+        });
+        setIsAddAdminDialogOpen(false);
+      }
     } catch (error) {
-      // Handle any errors
-      console.error("Error adding admin:", error);
+      console.error("Error creating admin:", error);
       toast({
         title: "Error",
-        description: "Failed to create admin. Please try again.",
+        description: error.message || "Failed to create admin",
         duration: 5000,
       });
     }
