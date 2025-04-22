@@ -39,28 +39,28 @@ const PropertyCategories = () => {
       description: "Find your dream home in prime locations",
       imageUrl:
         "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-      link: "/properties?type=residential",
+      link: "/properties?propertyCategory=residential",
     },
     {
       title: "Commercial",
       description: "Office spaces and retail properties",
       imageUrl:
         "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&q=80",
-      link: "/properties?type=commercial",
+      link: "/properties?propertyCategory=commercial",
     },
     {
       title: "Land",
       description: "Plots and development opportunities",
       imageUrl:
         "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
-      link: "/properties?type=land",
+      link: "/properties?propertyCategory=land",
     },
     {
       title: "New Developments",
       description: "Brand new properties and developments",
       imageUrl:
         "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
-      link: "/properties?type=new-developments",
+      link: "/properties?propertyCategory=newDevelopment",
     },
   ];
 

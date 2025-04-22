@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -33,6 +33,9 @@ import {
 import { Checkbox } from "../ui/checkbox";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import agencySignUp from "./helpers/agentAndAgencies/agencySignUp";
+import { toast } from "react-toastify";
+import { Loader } from "lucide-react";
 
 const formSchema = z
   .object({
@@ -40,11 +43,9 @@ const formSchema = z
       .string()
       .min(2, { message: "Company name must be at least 2 characters." }),
     businessType: z.enum(["real_estate_agency", "property_developer", "other"]),
-    businessRegistrationNumber: z
-      .string()
-      .min(5, {
-        message: "Registration number must be at least 5 characters.",
-      }),
+    businessRegistrationNumber: z.string().min(5, {
+      message: "Registration number must be at least 5 characters.",
+    }),
     firstName: z
       .string()
       .min(2, { message: "First name must be at least 2 characters." }),
@@ -82,6 +83,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 const AgencySignup = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -103,12 +106,26 @@ const AgencySignup = () => {
       termsAccepted: false,
     },
   });
-
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    // Here you would typically send the data to your backend
-    // For now, we'll just navigate to the subscription page
-    navigate("/agent/subscription");
+  const onSubmit = async (data: FormValues) => {
+    try {
+      if (!data.termsAccepted) {
+        alert("Kindly accept terms of usage.");
+      } else {
+        setIsLoading(true);
+        console.log("Data from component", data);
+        const user = await agencySignUp(data);
+        if (user) {
+          toast.success("Signin successfull");
+          setIsLoading(false);
+          navigate("/login");
+        }
+      }
+    } catch (error) {
+      console.error("Error during registration:", error);
+      setIsLoading(false);
+      toast.error("Error during registration");
+      // Handle error appropriately (show error message to user)
+    }
   };
 
   return (
@@ -464,7 +481,14 @@ const AgencySignup = () => {
                     type="submit"
                     className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
                   >
-                    Register Agency & Continue to Subscription
+                    {isLoading ? (
+                      <span className="flex gap-2 items-center justify-center">
+                        Registering you in...{" "}
+                        <Loader className="animate-spin" />{" "}
+                      </span>
+                    ) : (
+                      "Register Agency & Continue to Subscription"
+                    )}
                   </Button>
                 </CardFooter>
               </form>

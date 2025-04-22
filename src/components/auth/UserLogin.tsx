@@ -24,6 +24,8 @@ import {
 import { Checkbox } from "../ui/checkbox";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import signIn from "./helpers/signIn";
+import { useZustand } from "@/lib/zustand";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -36,6 +38,9 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const UserLogin = () => {
+  const { setUser } = useZustand();
+  const [isLoading, setIsLoading] = React.useState(false);
+
   const navigate = useNavigate();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -46,11 +51,30 @@ const UserLogin = () => {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    // Here you would typically authenticate the user
-    // For now, we'll just navigate to the home page
-    navigate("/");
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsLoading(true);
+      const userType = await signIn(data, setUser);
+      if (typeof userType === "object" && userType.role === "agents") {
+        userType.isActive
+          ? navigate("/agent/dashboard")
+          : navigate("/subscription");
+      } else if (typeof userType === "object" && userType.role === "admins") {
+        navigate("/admin/dashboard");
+      } else if (typeof userType === "object" && userType.role === "agencies") {
+        userType.isActive
+          ? navigate("/agency/dashboard")
+          : navigate("/subscription");
+      } else {
+        navigate("/");
+      }
+    } catch (error: any) {
+      console.error("Error signing in:", error.message);
+      // You might want to show an error message to the user
+      // For example, using a toast notification
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -135,8 +159,9 @@ const UserLogin = () => {
                 <Button
                   type="submit"
                   className="w-full bg-realtyplus hover:bg-realtyplus-dark"
+                  disabled={isLoading}
                 >
-                  Sign In
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </Form>

@@ -9,8 +9,58 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AdminLayout from "@/components/layout/AdminLayout";
+import { auth, fireDataBase } from "@/lib/firebase";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { ADMIN } from "@/lib/typeDefinitions";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { LoadingSpinner } from "../globalScreens/Loader";
 
 export default function AdminDashboard() {
+  const [admin, setAdmin] = useState<ADMIN | null>(null);
+
+  useEffect(() => {
+    const checkAdminStatus = async (user: any) => {
+      try {
+        if (!user) {
+          window.location.href = "/";
+          return;
+        }
+
+        const adminRef = doc(fireDataBase, "admins", user.uid);
+        const adminSnapshot = await getDoc(adminRef);
+
+        if (!adminSnapshot.exists()) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        const adminData = adminSnapshot.data() as ADMIN;
+        if (!adminData.isApproved) {
+          await signOut(auth);
+          window.location.href = "/";
+          return;
+        }
+
+        setAdmin({
+          ...adminData,
+          uid: adminSnapshot.id,
+        });
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        await signOut(auth);
+        window.location.href = "/";
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
+    return () => unsubscribe();
+  }, []);
+
+  if (!admin) {
+    return <LoadingSpinner />;
+  }
   // Mock data for dashboard stats
   const stats = [
     {
@@ -91,7 +141,9 @@ export default function AdminDashboard() {
     },
   ];
 
-  return (
+  return !admin ? (
+    <LoadingSpinner />
+  ) : (
     <AdminLayout>
       <div className="space-y-6">
         <div>
@@ -144,10 +196,10 @@ export default function AdminDashboard() {
                       activity.type === "property"
                         ? "bg-blue-100 text-blue-600"
                         : activity.type === "agent"
-                          ? "bg-purple-100 text-purple-600"
-                          : activity.type === "subscription"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-gray-100 text-gray-600"
+                        ? "bg-purple-100 text-purple-600"
+                        : activity.type === "subscription"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {activity.type === "property" ? (

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -31,6 +31,9 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
+import { toast } from "react-toastify";
+import agentSignUp from "./helpers/agentAndAgencies/agentSignUp";
+import { Loader } from "lucide-react";
 
 const formSchema = z
   .object({
@@ -70,6 +73,7 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 const AgentSignup = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -90,11 +94,24 @@ const AgentSignup = () => {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    // Here you would typically send the data to your backend
-    // For now, we'll just navigate to the subscription page
-    navigate("/agent/subscription");
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsLoading(true);
+      if (!data.termsAccepted) {
+        alert("Kindly accept terms of usage.");
+      } else {
+        const user = await agentSignUp(data);
+        if (user) {
+          toast.success("Signin successfull");
+          setIsLoading(false);
+          navigate("/login");
+        }
+      }
+    } catch (error) {
+      console.error("Error during registration:", error);
+      toast.error("Error during registration");
+      // Handle error appropriately (show error message to user)
+    }
   };
 
   return (
@@ -132,7 +149,6 @@ const AgentSignup = () => {
                             <SelectItem value="individual">
                               Individual Agent
                             </SelectItem>
-                            <SelectItem value="agency">Agency</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -359,7 +375,13 @@ const AgentSignup = () => {
                   type="submit"
                   className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
                 >
-                  Register & Continue to Subscription
+                  {isLoading ? (
+                    <span className="flex gap-2 items-center justify-center">
+                      Registering you in... <Loader className="animate-spin" />{" "}
+                    </span>
+                  ) : (
+                    "Register & Continue to Subscription"
+                  )}
                 </Button>
               </CardFooter>
             </form>

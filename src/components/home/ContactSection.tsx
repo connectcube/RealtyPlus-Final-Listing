@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { MapPin, Phone, Mail } from "lucide-react";
+import { submitContactForm } from "@/services/googleSheetsService";
+import { toast } from "react-toastify";
+import { useZustand } from "@/lib/zustand";
 
 interface ContactSectionProps {
   address?: string;
@@ -13,6 +16,41 @@ const ContactSection = ({
   phone = "+260 97 1234567",
   email = "info@realtyzambia.com",
 }: ContactSectionProps) => {
+  const { user } = useZustand();
+  const [formData, setFormData] = useState({
+    name: `${user?.firstName} ${user?.lastName}` || "",
+    email: user?.email || "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      await submitContactForm({
+        ...formData,
+        timestamp: new Date().toISOString(),
+      });
+
+      toast.success("Message sent successfully!");
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      toast.error("Failed to send message. Please try again.");
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
@@ -49,7 +87,7 @@ const ContactSection = ({
           </div>
           <div className="bg-white p-8 rounded-lg shadow-md">
             <h3 className="text-2xl font-semibold mb-6">Send us a Message</h3>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
                   htmlFor="name"
@@ -60,6 +98,10 @@ const ContactSection = ({
                 <input
                   type="text"
                   id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                   placeholder="Enter your name"
                 />
@@ -74,6 +116,10 @@ const ContactSection = ({
                 <input
                   type="email"
                   id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                   placeholder="Enter your email"
                 />
@@ -87,13 +133,21 @@ const ContactSection = ({
                 </label>
                 <textarea
                   id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
                   rows={4}
                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
                   placeholder="How can we help you?"
                 ></textarea>
               </div>
-              <Button className="w-full bg-realtyplus hover:bg-realtyplus-dark text-white py-3">
-                Send Message
+              <Button
+                type="submit"
+                className="w-full bg-realtyplus hover:bg-realtyplus-dark text-white py-3"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </div>

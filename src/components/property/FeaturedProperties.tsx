@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -12,134 +12,69 @@ import {
 } from "../ui/pagination";
 import { ChevronLeft, ChevronRight, Grid3X3, List } from "lucide-react";
 import PropertyCard from "./PropertyCard";
-
-interface Property {
-  id: string;
-  title: string;
-  price: number;
-  location: string;
-  bedrooms: number;
-  bathrooms: number;
-  area: number;
-  imageUrl: string;
-  propertyType: "standalone" | "semi-detached" | "apartment" | "other";
-  isFeatured: boolean;
-  isFurnished: boolean;
-  yearBuilt: number;
-}
+import {
+  collection,
+  doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { useZustand } from "@/lib/zustand";
+import { LISTING } from "@/lib/typeDefinitions";
 
 interface FeaturedPropertiesProps {
-  properties?: Property[];
+  properties?: LISTING[];
   title?: string;
   subtitle?: string;
   loading?: boolean;
 }
 
 const FeaturedProperties = ({
-  properties = [
-    {
-      id: "prop-1",
-      title: "Modern 3 Bedroom House in Kabulonga",
-      price: 450000,
-      location: "Kabulonga, Lusaka",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 240,
-      imageUrl:
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-      propertyType: "standalone",
-      isFeatured: true,
-      isFurnished: true,
-      yearBuilt: 2020,
-    },
-    {
-      id: "prop-2",
-      title: "Luxury Apartment in Woodlands",
-      price: 320000,
-      location: "Woodlands, Lusaka",
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 180,
-      imageUrl:
-        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
-      propertyType: "apartment",
-      isFeatured: true,
-      isFurnished: true,
-      yearBuilt: 2021,
-    },
-    {
-      id: "prop-3",
-      title: "Family Home in Roma",
-      price: 550000,
-      location: "Roma, Lusaka",
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 320,
-      imageUrl:
-        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
-      propertyType: "standalone",
-      isFeatured: true,
-      isFurnished: false,
-      yearBuilt: 2019,
-    },
-    {
-      id: "prop-4",
-      title: "Semi-Detached House in Olympia",
-      price: 380000,
-      location: "Olympia, Lusaka",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 210,
-      imageUrl:
-        "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80",
-      propertyType: "semi-detached",
-      isFeatured: true,
-      isFurnished: true,
-      yearBuilt: 2022,
-    },
-    {
-      id: "prop-5",
-      title: "Modern Apartment in Longacres",
-      price: 290000,
-      location: "Longacres, Lusaka",
-      bedrooms: 2,
-      bathrooms: 1,
-      area: 150,
-      imageUrl:
-        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
-      propertyType: "apartment",
-      isFeatured: false,
-      isFurnished: true,
-      yearBuilt: 2021,
-    },
-    {
-      id: "prop-6",
-      title: "Spacious Family Home in Ibex Hill",
-      price: 620000,
-      location: "Ibex Hill, Lusaka",
-      bedrooms: 5,
-      bathrooms: 4,
-      area: 450,
-      imageUrl:
-        "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
-      propertyType: "standalone",
-      isFeatured: true,
-      isFurnished: false,
-      yearBuilt: 2018,
-    },
-  ],
   title = "Featured Properties",
   subtitle = "Discover our handpicked selection of premium properties across Zambia",
-  loading = false,
 }: FeaturedPropertiesProps) => {
+  const { user, setUser } = useZustand();
+  const [properties, setProperties] = useState<LISTING[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("all");
 
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
+        const listingsRef = collection(fireDataBase, "listings");
+        const q = query(
+          listingsRef,
+          where("isFeatured", "==", true),
+          orderBy("createdAt", "desc"),
+          limit(12)
+        );
+        const querySnapshot = await getDocs(q);
+
+        const fetchedProperties: LISTING[] = querySnapshot.docs.map((doc) => ({
+          uid: doc.id,
+          ...(doc.data() as Omit<LISTING, "id">),
+        }));
+
+        setProperties(fetchedProperties);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
   // Filter properties based on active tab
   const filteredProperties = properties.filter((property) => {
     if (activeTab === "all") return true;
-    if (activeTab === "featured") return property.isFeatured;
     if (activeTab === "standalone")
       return property.propertyType === "standalone";
     if (activeTab === "apartment") return property.propertyType === "apartment";
@@ -155,7 +90,7 @@ const FeaturedProperties = ({
   const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
   const currentProperties = filteredProperties.slice(
     indexOfFirstProperty,
-    indexOfLastProperty,
+    indexOfLastProperty
   );
 
   const handlePageChange = (page: number) => {
@@ -166,17 +101,52 @@ const FeaturedProperties = ({
       behavior: "smooth",
     });
   };
-
-  const handleFavorite = (id: string) => {
-    // Handle favorite functionality
-    console.log(`Property ${id} added to favorites`);
-  };
-
   const handlePropertyClick = (id: string) => {
     // Navigate to property details page
     console.log(`Navigating to property ${id} details`);
   };
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        console.log("User not logged in");
+        return;
+      }
 
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  // And the isFavorite check would be simpler too:
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   return (
     <section id="featured-properties" className="py-12 bg-gray-50">
       <div className="container mx-auto px-4">
@@ -188,12 +158,11 @@ const FeaturedProperties = ({
         <div className="flex justify-between items-center mb-6">
           <Tabs
             defaultValue="all"
-            className="w-full max-w-md"
+            className="w-full max-w-lg"
             onValueChange={setActiveTab}
           >
-            <TabsList className="grid grid-cols-5 w-full">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="featured">Featured</TabsTrigger>
+            <TabsList className="flex justify-between w-full">
+              <TabsTrigger value="all">All Properties</TabsTrigger>
               <TabsTrigger value="standalone">Houses</TabsTrigger>
               <TabsTrigger value="apartment">Apartments</TabsTrigger>
               <TabsTrigger value="semi-detached">Semi-Detached</TabsTrigger>
@@ -248,20 +217,21 @@ const FeaturedProperties = ({
           >
             {currentProperties.map((property) => (
               <PropertyCard
-                key={property.id}
-                id={property.id}
+                key={property.uid}
+                id={property.uid}
                 title={property.title}
                 price={property.price}
-                location={property.location}
+                location={property.address}
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.imageUrl}
+                imageUrl={property.images[property.coverPhotoIndex]}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
-                onFavorite={handleFavorite}
+                onFavorite={handleFavClick}
+                isFavorite={() => handleCheckFav(property.uid)}
                 onClick={handlePropertyClick}
               />
             ))}

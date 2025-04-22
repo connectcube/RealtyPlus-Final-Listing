@@ -15,22 +15,31 @@ import { Link } from "react-router-dom";
 interface PropertyCardProps {
   id?: string;
   title?: string;
-  price?: number;
+  price?: number | string;
   location?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  area?: number;
+  bedrooms?: number | string;
+  bathrooms?: number | string;
+  area?: number | string;
   imageUrl?: string;
-  propertyType?: "standalone" | "semi-detached" | "apartment" | "other";
+  propertyType?:
+    | "standalone"
+    | "semi-detached"
+    | "apartment"
+    | "house"
+    | "commercial"
+    | "farmhouse"
+    | "townhouse"
+    | "other";
   isFeatured?: boolean;
   isFurnished?: boolean;
-  yearBuilt?: number;
+  isFavorite: () => boolean;
+  yearBuilt?: number | string;
   onFavorite?: (id: string) => void;
   onClick?: (id: string) => void;
 }
 
 const PropertyCard = ({
-  id = "prop-1",
+  id,
   title = "Modern 3 Bedroom House in Kabulonga",
   price = 450000,
   location = "Kabulonga, Lusaka",
@@ -41,6 +50,7 @@ const PropertyCard = ({
   propertyType = "standalone",
   isFeatured = false,
   isFurnished = true,
+  isFavorite = () => false,
   yearBuilt = 2020,
   onFavorite = () => {},
   onClick = () => {},
@@ -53,7 +63,7 @@ const PropertyCard = ({
   const handleCardClick = () => {
     onClick(id);
   };
-
+  const isFavorited = isFavorite();
   return (
     <Card
       className="overflow-hidden transition-all duration-300 hover:shadow-lg bg-white cursor-pointer h-full flex flex-col"
@@ -70,7 +80,10 @@ const PropertyCard = ({
                   className="rounded-full bg-white/80 hover:bg-white"
                   onClick={handleFavoriteClick}
                 >
-                  <Heart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+                  <Heart
+                    fill={isFavorited ? "#ef4444" : "#ffffff"}
+                    className="h-5 w-5 text-gray-600 hover:text-red-500"
+                  />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -119,7 +132,7 @@ const PropertyCard = ({
               propertyType === "apartment" &&
                 "bg-purple-50 text-purple-700 border-purple-200",
               propertyType === "other" &&
-                "bg-gray-50 text-gray-700 border-gray-200",
+                "bg-gray-50 text-gray-700 border-gray-200"
             )}
           >
             {propertyType.charAt(0).toUpperCase() + propertyType.slice(1)}
@@ -131,7 +144,7 @@ const PropertyCard = ({
               "text-xs",
               isFurnished
                 ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                : "text-gray-600",
+                : "text-gray-600"
             )}
           >
             {isFurnished ? "Furnished" : "Unfurnished"}
@@ -165,7 +178,7 @@ const PropertyCard = ({
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 border-t border-gray-100 flex justify-between items-center">
+      <CardFooter className="p-4 pt-3 border-t border-gray-100 flex justify-between items-center">
         <div className="font-bold text-lg text-primary">
           K{price.toLocaleString()}
         </div>

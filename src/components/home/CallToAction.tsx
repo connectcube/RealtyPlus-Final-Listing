@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "../ui/button";
 import { Link } from "react-router-dom";
+import { useZustand } from "@/lib/zustand";
 
 interface CallToActionProps {
   title?: string;
@@ -19,6 +20,7 @@ const CallToAction = ({
   secondaryButtonText = "List Your Property",
   secondaryButtonLink = "/list-property",
 }: CallToActionProps) => {
+  const { user } = useZustand();
   return (
     <section className="py-16 bg-realtyplus text-white">
       <div className="container mx-auto px-4 text-center">
@@ -30,11 +32,13 @@ const CallToAction = ({
               {primaryButtonText}
             </Link>
           </Button>
-          <Button className="bg-realtyplus-dark hover:bg-realtyplus/90 text-white text-lg py-6 px-8">
-            <Link to={secondaryButtonLink} className="w-full">
-              {secondaryButtonText}
-            </Link>
-          </Button>
+          {user !== null && user.userType !== "users" && (
+            <Button className="bg-realtyplus-dark hover:bg-realtyplus/90 text-white text-lg py-6 px-8">
+              <Link to={secondaryButtonLink} className="w-full">
+                {secondaryButtonText}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </section>

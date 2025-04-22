@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,26 +24,43 @@ import {
   X,
   Check,
   Info,
+  Image,
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
+import { NearbyPlace } from "@/lib/typeDefinitions";
+import { useZustand } from "@/lib/zustand";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  increment,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { toast } from "react-toastify";
 
 const AddProperty = () => {
+  const { user, setUser } = useZustand();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    price: "",
+    price: 0,
     propertyType: "",
     listingType: "sale",
-    bedrooms: "",
-    bathrooms: "",
+    bedrooms: 0,
+    bathrooms: 0,
     area: "",
-    garageSpaces: "",
+    garageSpaces: 0,
     yearBuilt: "",
     isFurnished: false,
+    isFeatured: false,
     province: "",
     city: "",
     neighborhood: "",
@@ -59,13 +76,40 @@ const AddProperty = () => {
       fittedKitchen: false,
       parking: false,
     },
+    nearby_places: [] as NearbyPlace[],
+    propertyCategory: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
+    // Array of fields that should be converted to numbers
+    const numericFields = [
+      "bedrooms",
+      "bathrooms",
+      "area",
+      "garageSpaces",
+      "yearBuilt",
+      "price",
+    ];
+
+    if (numericFields.includes(field)) {
+      // Convert to number and handle invalid inputs
+      const numericValue = Number(value);
+      // Only update if it's a valid number
+      if (!isNaN(numericValue)) {
+        setFormData({
+          ...formData,
+          [field]: numericValue, // This will store as number instead of string
+        });
+      }
+    } else {
+      // Handle non-numeric fields normally
+      setFormData({
+        ...formData,
+        [field]: value,
+      });
+    }
   };
 
   const handleFeatureChange = (feature: string, checked: boolean) => {
@@ -78,31 +122,151 @@ const AddProperty = () => {
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = e.target.files;
+      if (!files) return;
 
-    // In a real app, you would upload these to a server
-    // Here we're just creating local URLs for preview
-    const newImages = Array.from(files).map((file) =>
-      URL.createObjectURL(file),
-    );
-    setUploadedImages([...uploadedImages, ...newImages]);
+      // Check if user is authenticated
+      if (!user || !user.uid) {
+        toast.error("You must be logged in to upload images");
+        return;
+      }
+
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      // Convert FileList to array and validate
+      const validFiles = Array.from(files).filter((file) => {
+        if (!allowedTypes.includes(file.type)) {
+          toast.error(`File ${file.name} is not a supported image type`);
+          return false;
+        }
+        if (file.size > maxSize) {
+          toast.error(`File ${file.name} is too large. Max size is 5MB`);
+          return false;
+        }
+        return true;
+      });
+
+      setUploadedImages([...uploadedImages, ...validFiles]);
+    } catch (error) {
+      console.error("Error handling image upload:", error);
+      toast.error("Error handling image upload");
+    }
   };
 
   const removeImage = (index: number) => {
     const newImages = [...uploadedImages];
+
+    // If removing the cover photo, adjust the cover photo index
+    if (index === coverPhotoIndex) {
+      if (newImages.length > 1) {
+        // Set the next image as cover photo, or the previous one if removing the last image
+        const newCoverIndex = index === newImages.length - 1 ? 0 : index;
+        setCoverPhotoIndex(newCoverIndex);
+      } else {
+        setCoverPhotoIndex(0); // Reset to 0 if no images left
+      }
+    } else if (index < coverPhotoIndex) {
+      // If removing an image before the cover photo, decrement the cover photo index
+      setCoverPhotoIndex(coverPhotoIndex - 1);
+    }
+
     newImages.splice(index, 1);
     setUploadedImages(newImages);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    console.log("Uploaded images:", uploadedImages);
-    // In a real app, you would send this data to your backend
-    alert("Property listing submitted successfully!");
-    navigate("/");
+    try {
+      setIsSubmitting(true);
+      console.log(user);
+      if (!user || !user.uid) {
+        toast.error("You must be logged in to submit a property");
+        return;
+      }
+      // Get the poster's document reference
+      const posterDocRef = doc(fireDataBase, user.userType, user.uid);
+
+      // First, create a new listing document in the "listings" collection
+      const listingsCollectionRef = collection(fireDataBase, "listings");
+      const newListingRef = await addDoc(listingsCollectionRef, {
+        ...formData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        postedBy: posterDocRef, // Using the document reference instead of just UID
+        createdBy: user.uid,
+        userType: user.userType,
+        status: "active",
+        images: [], // This will be updated after uploading images
+        coverPhotoIndex: 0, // This will be updated after uploading images
+      });
+
+      // Upload images to Firebase Storage and get their URLs
+      const imageUrls = await Promise.all(
+        uploadedImages.map(async (image) => {
+          const storageRef = ref(
+            fireStorage,
+            `listings-images/${newListingRef.id}/${image.name}`
+          );
+
+          // Add metadata to the upload
+          const metadata = {
+            customMetadata: {
+              uid: user.uid,
+              userType: user.userType,
+              uploadedAt: new Date().toISOString(),
+            },
+          };
+
+          // Add this to your handleSubmit function where the image upload occurs
+          try {
+            const uploadResult = await uploadBytes(storageRef, image, metadata);
+            return await getDownloadURL(uploadResult.ref);
+          } catch (error: any) {
+            console.error("Upload error details:", {
+              code: error.code,
+              message: error.message,
+              serverResponse: error.serverResponse,
+              name: error.name,
+            });
+            throw error;
+          }
+        })
+      );
+
+      // Update the listing document with image URLs
+      await updateDoc(newListingRef, {
+        images: imageUrls,
+        coverPhotoIndex: coverPhotoIndex,
+      });
+
+      // Update the user's document with the reference to this listing
+      const posterDocSnap = await getDoc(posterDocRef);
+
+      const existingListings = await posterDocSnap.data().myListings;
+
+      await updateDoc(posterDocRef, {
+        myListings: [
+          ...existingListings,
+          {
+            position: user.userType,
+            ref: newListingRef,
+          },
+        ],
+        "subscription.listingsUsed": increment(1),
+      });
+
+      toast.success("Property listed successfully!");
+      setIsSubmitting(false);
+      navigate(`/property/${newListingRef.id}`);
+    } catch (error) {
+      console.error("Error submitting property:", error);
+      toast.error("Failed to list property. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const nextTab = () => {
@@ -205,7 +369,21 @@ const AddProperty = () => {
                             }
                           />
                         </div>
-
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="isFurnished"
+                            checked={formData.isFeatured}
+                            onCheckedChange={(checked) =>
+                              handleInputChange("isFeatured", checked)
+                            }
+                          />
+                          <Label
+                            htmlFor="isFurnished"
+                            className="text-base font-medium"
+                          >
+                            Make this a featured property
+                          </Label>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <div>
                             <Label
@@ -285,10 +463,41 @@ const AddProperty = () => {
                               <SelectItem value="farmhouse">
                                 Farmhouse
                               </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label
+                            htmlFor="propertyCategory"
+                            className="text-base font-medium"
+                          >
+                            Property Category
+                          </Label>
+                          <Select
+                            value={formData.propertyCategory}
+                            onValueChange={(value) =>
+                              handleInputChange("propertyCategory", value)
+                            }
+                          >
+                            <SelectTrigger
+                              id="propertyCategory"
+                              className="mt-1"
+                            >
+                              <SelectValue placeholder="Select property category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="residential">
+                                Residential
+                              </SelectItem>
                               <SelectItem value="commercial">
-                                Commercial Property
+                                Commercial
                               </SelectItem>
                               <SelectItem value="land">Land</SelectItem>
+                              <SelectItem value="newDevelopment">
+                                New Development
+                              </SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -392,6 +601,75 @@ const AddProperty = () => {
                           </p>
                         </div>
                       </div>
+                      {/*<div className="mt-6">
+                        <div className="mb-4 flex flex-col gap-4">
+                          <Label
+                            htmlFor="nearbyPlaces"
+                            className="text-base font-medium"
+                          >
+                            Nearby Places
+                          </Label>
+
+                          
+                          {formData.nearby_places.map((place, index) => (
+                            <div key={index} className="flex gap-4 mb-2">
+                              <input
+                                type="text"
+                                placeholder="Place name"
+                                value={place.name}
+                                onChange={(e) =>
+                                  updateNearbyPlace(
+                                    index,
+                                    "name",
+                                    e.target.value
+                                  )
+                                }
+                                className="border rounded px-2 py-1"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Distance (km)"
+                                value={place.distance}
+                                onChange={(e) =>
+                                  updateNearbyPlace(
+                                    index,
+                                    "distance",
+                                    e.target.value
+                                  )
+                                }
+                                className="border rounded px-2 py-1"
+                              />
+                              <select
+                                value={place.type}
+                                onChange={(e) =>
+                                  updateNearbyPlace(
+                                    index,
+                                    "type",
+                                    e.target.value
+                                  )
+                                }
+                                className="border rounded px-2 py-1"
+                              >
+                                <option value="">Select type</option>
+                                <option value="school">School</option>
+                                <option value="hospital">Hospital</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="restaurant">Restaurant</option>
+                                <option value="park">Park</option>
+                              </select>
+                            </div>
+                          ))}
+
+                          
+                          <button
+                            type="button"
+                            onClick={addNearbyPlace}
+                            className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+                          >
+                            Add a place
+                          </button>
+                        </div>
+                      </div>*/}
                     </TabsContent>
 
                     {/* Details Tab */}
@@ -452,7 +730,7 @@ const AddProperty = () => {
                               onChange={(e) =>
                                 handleInputChange(
                                   "garageSpaces",
-                                  e.target.value,
+                                  e.target.value
                                 )
                               }
                             />
@@ -533,7 +811,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "swimmingPool",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -547,7 +825,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "garden",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -561,7 +839,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "securitySystem",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -577,7 +855,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "backupPower",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -591,7 +869,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "borehole",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -605,7 +883,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "airConditioning",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -621,7 +899,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "servantsQuarters",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -637,7 +915,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "fittedKitchen",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -653,7 +931,7 @@ const AddProperty = () => {
                               onCheckedChange={(checked) =>
                                 handleFeatureChange(
                                   "parking",
-                                  checked as boolean,
+                                  checked as boolean
                                 )
                               }
                             />
@@ -708,22 +986,21 @@ const AddProperty = () => {
                               <h4 className="text-base font-medium mb-3">
                                 Uploaded Images
                               </h4>
+                              <p className="text-sm text-gray-500 mb-3">
+                                Click on the image icon to set it as the cover
+                                photo. The first image will be automatically set
+                                as the cover photo if none is selected.
+                              </p>
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                                 {uploadedImages.map((image, index) => (
-                                  <div key={index} className="relative group">
-                                    <img
-                                      src={image}
-                                      alt={`Property image ${index + 1}`}
-                                      className="w-full h-20 sm:h-24 object-cover rounded-md"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeImage(index)}
-                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    </button>
-                                  </div>
+                                  <ImagePreview
+                                    key={index}
+                                    file={image}
+                                    index={index}
+                                    onRemove={removeImage}
+                                    isCover={index === coverPhotoIndex}
+                                    onSetCover={setCoverPhotoIndex}
+                                  />
                                 ))}
                               </div>
                             </div>
@@ -746,8 +1023,35 @@ const AddProperty = () => {
                       <Button
                         onClick={handleSubmit}
                         className="bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm px-2 sm:px-4"
+                        disabled={isSubmitting}
                       >
-                        Submit Listing
+                        {isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <svg
+                              className="animate-spin h-4 w-4"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            Submitting...
+                          </div>
+                        ) : (
+                          "Submit Listing"
+                        )}
                       </Button>
                     ) : (
                       <Button
@@ -786,7 +1090,7 @@ const AddProperty = () => {
                         </h4>
                         <p className="font-medium">
                           {formData.price
-                            ? `K${parseInt(formData.price).toLocaleString()}`
+                            ? `K ${formData.price}`
                             : "Not specified yet"}
                         </p>
                       </div>
@@ -872,7 +1176,7 @@ const AddProperty = () => {
                         </div>
                         <div className="flex items-center">
                           {Object.values(formData.features).some(
-                            (value) => value,
+                            (value) => value
                           ) ? (
                             <Check className="h-4 w-4 text-green-500 mr-2" />
                           ) : (
@@ -901,5 +1205,58 @@ const AddProperty = () => {
     </div>
   );
 };
+const ImagePreview = ({
+  file,
+  onRemove,
+  index,
+  isCover,
+  onSetCover,
+}: {
+  file: File;
+  onRemove: (index: number) => void;
+  index: number;
+  isCover: boolean;
+  onSetCover: (index: number) => void;
+}) => {
+  const [preview, setPreview] = useState<string>("");
 
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div className="relative group">
+      <img
+        src={preview}
+        alt={`Preview ${index + 1}`}
+        className={`w-full h-24 object-cover rounded-md ${
+          isCover ? "ring-2 ring-realtyplus" : ""
+        }`}
+      />
+      <div className="absolute top-1 right-0 px-2 py-1 flex gap-1 w-full justify-between">
+        <button
+          onClick={() => onSetCover(index)}
+          className={`bg-realtyplus text-white rounded-full p-1 
+            ${isCover ? "opacity-100" : "opacity-0 group-hover:opacity-100"} 
+            transition-opacity`}
+          title={isCover ? "Cover Photo" : "Set as Cover Photo"}
+        >
+          {isCover ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Image className="h-4 w-4" />
+          )}
+        </button>
+        <button
+          onClick={() => onRemove(index)}
+          className="bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 export default AddProperty;

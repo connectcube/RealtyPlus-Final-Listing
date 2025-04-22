@@ -1,25 +1,43 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { useRoutes, Routes, Route } from "react-router-dom";
 import Home from "./components/home";
-import PropertyDetail from "./components/property/PropertyDetail";
-import AddProperty from "./components/property/AddProperty";
 import routes from "tempo-routes";
-
+import { ToastContainer } from "react-toastify";
+import AdminLogin from "./components/admin/auth/AdminLogin";
 // Lazy load agent and subscription components
+const PropertyDetail = lazy(
+  () => import("./components/property/PropertyDetail")
+);
+const AddProperty = lazy(() => import("./components/property/AddProperty"));
+const AgencyProfile = lazy(() => import("./components/agent/AgencyProfile"));
+const AgentProfile = lazy(() => import("./components/agent/AgentProfile"));
+const AgentPublicProfile = lazy(
+  () => import("./components/publicProfiles/AgentPublicProfile")
+);
+const AgencyPublicProfile = lazy(
+  () => import("./components/publicProfiles/AgencyPublicProfile")
+);
+const AgencyPage = lazy(() => import("./components/agency/AgencyPage"));
+const ViewPropertiesByPoster = lazy(
+  () => import("./components/property/ViewPropertiesByPoster")
+);
+const ViewCategorizedProperties = lazy(
+  () => import("./components/property/ViewCategorizedProperties")
+);
 const AgentSignup = lazy(() => import("./components/auth/AgentSignup"));
-const AgencySignup = lazy(() => import("./components/agent/AgencySignup"));
+const AgencySignup = lazy(() => import("./components/auth/AgencySignup"));
 const SubscriptionPage = lazy(
-  () => import("./components/subscription/SubscriptionPage"),
+  () => import("./components/subscription/SubscriptionPage")
 );
 const SubscriptionSuccess = lazy(
-  () => import("./components/subscription/SubscriptionSuccess"),
+  () => import("./components/subscription/SubscriptionSuccess")
 );
 const AgentDashboard = lazy(() => import("./components/agent/AgentDashboard"));
 const AgencyDashboard = lazy(
-  () => import("./components/agent/AgencyDashboard"),
+  () => import("./components/agent/AgencyDashboard")
 );
 const MortgageCalculator = lazy(
-  () => import("./components/mortgage/MortgageCalculator"),
+  () => import("./components/mortgage/MortgageCalculator")
 );
 const AgentsPage = lazy(() => import("./components/agent/AgentsPage"));
 
@@ -30,7 +48,7 @@ const ForgotPassword = lazy(() => import("./components/auth/ForgotPassword"));
 
 // Property listing pages
 const RentProperties = lazy(
-  () => import("./components/property/RentProperties"),
+  () => import("./components/property/RentProperties")
 );
 const BuyProperties = lazy(() => import("./components/property/BuyProperties"));
 
@@ -45,22 +63,27 @@ const PropertiesPage = lazy(() => import("./components/admin/PropertiesPage"));
 const AdminAgentsPage = lazy(() => import("./components/admin/AgentsPage"));
 const AgenciesPage = lazy(() => import("./components/admin/AgenciesPage"));
 const AdminManagementPage = lazy(
-  () => import("./components/admin/AdminManagementPage"),
+  () => import("./components/admin/AdminManagementPage")
 );
 
 function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <>
+        <ToastContainer />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/property/:id" element={<PropertyDetail />} />
+          <Route path="/agents/*" element={<ViewPropertiesByPoster />} />
+          <Route path="/agency/*" element={<ViewPropertiesByPoster />} />
+
           <Route path="/list-property" element={<AddProperty />} />
-          <Route path="/properties" element={<Home />} />
+          <Route path="/properties" element={<ViewCategorizedProperties />} />
           <Route path="/buy" element={<BuyProperties />} />
           <Route path="/rent" element={<RentProperties />} />
           <Route path="/mortgage-calculator" element={<MortgageCalculator />} />
           <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/agencies" element={<AgencyPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
@@ -72,15 +95,20 @@ function App() {
           {/* Agent routes */}
           <Route path="/agent/signup" element={<AgentSignup />} />
           <Route path="/agency/signup" element={<AgencySignup />} />
-          <Route path="/agent/subscription" element={<SubscriptionPage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
           <Route
             path="/agent/subscription/success"
             element={<SubscriptionSuccess />}
           />
           <Route path="/agent/dashboard" element={<AgentDashboard />} />
-          <Route path="/agency/dashboard" element={<AgencyDashboard />} />
+          <Route path="/agent/profile" element={<AgentProfile />} />
+          <Route path="/agent/:id" element={<AgentPublicProfile />} />
 
+          <Route path="/agency/dashboard" element={<AgencyDashboard />} />
+          <Route path="/agency/profile" element={<AgencyProfile />} />
+          <Route path="/agency/:id" element={<AgencyPublicProfile />} />
           {/* Admin routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="/admin/properties" element={<PropertiesPage />} />
