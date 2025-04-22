@@ -61,6 +61,7 @@ import { ADMIN } from "@/lib/typeDefinitions";
 import { auth, fireDataBase } from "@/lib/firebase";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -230,6 +231,8 @@ export default function AdminManagementPage() {
     if (adminToDelete) {
       const adminId = adminToDelete.uid;
       const response = await adminService.deleteAdmin(adminId);
+      const adminRef = doc(fireDataBase, "admins", adminId);
+      await deleteDoc(adminRef);
       if (response.success && response === adminId) {
         setAdmins(
           admins &&
