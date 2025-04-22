@@ -308,13 +308,13 @@ export default function AdminManagementPage() {
 
   const getAdminTypeColor = (role) => {
     switch (role) {
-      case "Super Admin":
+      case "super admin":
         return "bg-red-100 text-red-800";
-      case "Content Admin":
+      case "content admin":
         return "bg-purple-100 text-purple-800";
-      case "User Admin":
+      case "user admin":
         return "bg-blue-100 text-blue-800";
-      case "Custom":
+      case "custom":
         return "bg-amber-100 text-amber-800";
       default:
         return "bg-gray-100 text-gray-800";

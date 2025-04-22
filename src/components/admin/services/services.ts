@@ -2,6 +2,7 @@ import { fireDataBase } from "@/lib/firebase";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { ADMIN_ROLES } from "../AdminManagementPage";
+import { authService } from "./authServices";
 
 const API_URL = "http://localhost:3000/api";
 
@@ -9,12 +10,14 @@ const API_URL = "http://localhost:3000/api";
 export const adminService = {
   createAdmin: async (adminData: ADMIN) => {
     const temporaryPassword = "realtyplus@123"; // Temporary password for the new admin
+    const headers = await authService.getAuthHeader();
     try {
       // Call backend API to create auth user
       const response = await fetch("http://localhost:3000/api/admin/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...headers,
         },
         body: JSON.stringify({ ...adminData, password: temporaryPassword }),
       });
@@ -51,6 +54,25 @@ export const adminService = {
         createdAt: serverTimestamp(),
       });
 
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  deleteAdmin: async (adminId: string) => {
+    const headers = await authService.getAuthHeader();
+    try {
+      const response = await fetch(`${API_URL}/admin/delete/${adminId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       return result;
     } catch (error) {
       throw error;
