@@ -230,16 +230,15 @@ export default function AdminManagementPage() {
     if (adminToDelete) {
       const adminId = adminToDelete.uid;
       const response = await adminService.deleteAdmin(adminId);
-      setAdmins(
-        admins &&
-          admins.filter((admin) => admin && admin.uid !== adminToDelete.uid)
-      );
-      toast({
-        title: "Admin deleted",
-        description: `${adminToDelete.firstName} has been permanently removed as an admin.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setAdminToDelete(null);
+      if (response.success && response === adminId) {
+        setAdmins(
+          admins &&
+            admins.filter((admin) => admin && admin.uid !== adminToDelete.uid)
+        );
+      } else {
+        setIsDeleteDialogOpen(false);
+        setAdminToDelete(null);
+      }
     }
   };
 

@@ -35,7 +35,7 @@ const formSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   rememberMe: z.boolean().default(false),
 });
-
+const API_URL = "http://localhost:3000/api";
 export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -50,7 +50,6 @@ export default function AdminLogin() {
     },
   });
 
-  // Add error handling specifically for permission errors
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
@@ -62,7 +61,36 @@ export default function AdminLogin() {
         values.password
       );
 
-      // Check for permissions
+      const userToken = await userCredential.user.getIdToken();
+
+      const response = await fetch(`${API_URL}/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({ token: userToken, email: values.email }),
+      });
+      console.log("Response from backend", response);
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle specific error cases from backend
+        switch (response.status) {
+          case 400:
+            throw new Error("Missing required fields");
+          case 401:
+            throw new Error("Authentication failed");
+          case 403:
+            throw new Error(data.error || "Access denied");
+          case 500:
+            throw new Error("Server error");
+          default:
+            throw new Error(data.error || "Login failed");
+        }
+      }
+
+      // Check admin permissions in Firestore
       try {
         const adminDoc = await getDoc(
           doc(fireDataBase, "admins", userCredential.user.uid)
@@ -73,13 +101,7 @@ export default function AdminLogin() {
           throw new Error("Access denied: Not an admin user");
         }
 
-        // Check if you can actually access the data
         const adminData = adminDoc.data() as ADMIN;
-
-        if (!adminData) {
-          await auth.signOut();
-          throw new Error("Error accessing admin data");
-        }
 
         if (!adminData.isApproved) {
           await auth.signOut();
@@ -87,8 +109,18 @@ export default function AdminLogin() {
             "Your admin account is pending approval. Please contact the super admin."
           );
         }
+
+        // Store the session token from backend
+        if (data.token) {
+          // You might want to store this in a secure way
+          localStorage.setItem("adminToken", data.token);
+        }
+
+        // Navigate on success
+        navigate("/admin");
       } catch (firestoreError: any) {
-        // Handle Firestore permission errors specifically
+        console.error("Firestore Error:", firestoreError);
+
         if (firestoreError.code === "permission-denied") {
           throw new Error(
             "Missing or insufficient permissions to access admin data"
@@ -96,10 +128,12 @@ export default function AdminLogin() {
         }
         throw firestoreError;
       }
-
-      navigate("/admin");
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("Login Error:", {
+        message: error.message,
+        code: error.code,
+        timestamp: new Date().toISOString(),
+      });
 
       // Handle different types of errors
       if (error.code === "permission-denied") {
@@ -125,11 +159,11 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className=" h-[100svh] flex justify-center items-center ">
-      <main className="flex-grow container mx-auto py-10 px-4 md:px-6">
-        <Card className="max-w-md mx-auto bg-white shadow-lg">
-          <CardHeader className="space-y-1 text-center bg-realtyplus text-white rounded-t-lg py-6">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+    <div className="flex justify-center items-center h-[100svh]">
+      <main className="flex-grow mx-auto px-4 md:px-6 py-10 container">
+        <Card className="bg-white shadow-lg mx-auto max-w-md">
+          <CardHeader className="space-y-1 bg-realtyplus py-6 rounded-t-lg text-white text-center">
+            <CardTitle className="font-bold text-2xl">Welcome Back</CardTitle>
             <CardDescription className="text-gray-100">
               Sign in to your RealtyPlus admin account
             </CardDescription>
@@ -137,7 +171,7 @@ export default function AdminLogin() {
           <CardContent className="pt-6">
             {error && (
               <div
-                className="mb-6 p-4 text-sm border rounded-lg flex items-start gap-2"
+                className="flex items-start gap-2 mb-6 p-4 border rounded-lg text-sm"
                 role="alert"
                 aria-live="polite"
                 style={{
@@ -148,7 +182,7 @@ export default function AdminLogin() {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mt-0.5 flex-shrink-0"
+                  className="flex-shrink-0 mt-0.5 w-5 h-5"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -205,7 +239,7 @@ export default function AdminLogin() {
                 />
 
                 {/* Remember me and Forgot password */}
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   <FormField
                     control={form.control}
                     name="rememberMe"
@@ -217,7 +251,7 @@ export default function AdminLogin() {
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-normal">
+                        <FormLabel className="font-normal text-sm">
                           Remember me
                         </FormLabel>
                       </FormItem>
@@ -225,7 +259,7 @@ export default function AdminLogin() {
                   />
                   <Link
                     to="/forgot-password"
-                    className="text-sm text-realtyplus hover:underline"
+                    className="text-realtyplus text-sm hover:underline"
                   >
                     Forgot password?
                   </Link>
@@ -234,7 +268,7 @@ export default function AdminLogin() {
                 {/* Submit button */}
                 <Button
                   type="submit"
-                  className="w-full bg-realtyplus hover:bg-realtyplus-dark"
+                  className="bg-realtyplus hover:bg-realtyplus-dark w-full"
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
