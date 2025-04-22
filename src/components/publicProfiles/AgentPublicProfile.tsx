@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, Award, Briefcase, Home } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { LISTING, USER } from "@/lib/typeDefinitions";
 import Header from "../layout/Header";
 import PropertyCard from "../property/PropertyCard";
+import { useZustand } from "@/lib/zustand";
+import { toast } from "react-toastify";
 
 export default function AgentPublicProfile() {
+  const { user, setUser } = useZustand();
   const { id } = useParams();
   const [agent, setAgent] = useState<USER | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function AgentPublicProfile() {
 
         // Combine document data with ID
         const agentData = {
-          id: agentDoc.id,
+          uid: agentDoc.id,
           ...agentDoc.data(),
         } as USER;
 
@@ -69,10 +72,50 @@ export default function AgentPublicProfile() {
     };
     fetchAgentProfile();
   }, [id]);
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        toast.error("Please log in to save properties");
+        return;
+      }
 
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex justify-center items-center min-h-[400px]">
         Loading...
       </div>
     );
@@ -80,7 +123,7 @@ export default function AgentPublicProfile() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-red-500">
+      <div className="flex justify-center items-center min-h-[400px] text-red-500">
         Error: {error}
       </div>
     );
@@ -88,7 +131,7 @@ export default function AgentPublicProfile() {
 
   if (!agent) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex justify-center items-center min-h-[400px]">
         Agent not found
       </div>
     );
@@ -97,10 +140,10 @@ export default function AgentPublicProfile() {
   return (
     <>
       <Header />
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
+      <div className="space-y-6 mx-auto p-4 max-w-7xl">
         <Card>
           <CardContent className="p-6">
-            <div className="grid md:grid-cols-[200px_1fr] gap-6">
+            <div className="gap-6 grid md:grid-cols-[200px_1fr]">
               <div className="flex flex-col items-center space-y-4">
                 <Avatar className="w-48 h-48">
                   <AvatarImage
@@ -113,23 +156,23 @@ export default function AgentPublicProfile() {
 
               <div className="space-y-4">
                 <div>
-                  <h1 className="text-3xl font-bold">{`${agent?.firstName} ${agent?.lastName}`}</h1>
+                  <h1 className="font-bold text-3xl">{`${agent?.firstName} ${agent?.lastName}`}</h1>
                   <p className="text-muted-foreground">Real Estate Agent</p>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="gap-2 grid">
                   <div className="flex items-center gap-2">
-                    <Briefcase className="h-5 w-5 text-realtyplus" />
+                    <Briefcase className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Experience:</span>
                     <span>{agent.experience} years</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-realtyplus" />
+                    <Mail className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Email:</span>
                     <span>{agent.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-5 w-5 text-realtyplus" />
+                    <Phone className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Phone:</span>
                     <span>{agent.phone}</span>
                   </div>
@@ -137,7 +180,7 @@ export default function AgentPublicProfile() {
 
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Award className="h-5 w-5 text-realtyplus" />
+                    <Award className="w-5 h-5 text-realtyplus" />
                     <h3 className="font-semibold">Specializations</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -150,7 +193,7 @@ export default function AgentPublicProfile() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Award className="h-5 w-5 text-realtyplus" />
+                    <Award className="w-5 h-5 text-realtyplus" />
                     <h3 className="font-semibold">Languages</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -169,7 +212,7 @@ export default function AgentPublicProfile() {
         {/* About Section */}
         <Card>
           <CardHeader>
-            <h2 className="text-2xl font-semibold">About Me</h2>
+            <h2 className="font-semibold text-2xl">About Me</h2>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">{agent.bio}</p>
@@ -179,11 +222,11 @@ export default function AgentPublicProfile() {
         {listings.length > 0 && (
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Home className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-semibold">Listings</h2>
+              <Home className="w-6 h-6 text-primary" />
+              <h2 className="font-semibold text-2xl">Listings</h2>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="gap-4 grid md:grid-cols-2 lg:grid-cols-3">
                 {listings.map(
                   (listing, index) =>
                     listing && (
@@ -196,11 +239,14 @@ export default function AgentPublicProfile() {
                         bedrooms={listing.bedrooms}
                         bathrooms={listing.bathrooms}
                         area={listing.area}
-                        imageUrl={listing.coverPhoto}
+                        imageUrl={listing.images[listing.coverPhotoIndex]}
                         propertyType={listing.propertyType}
                         isFeatured={listing.isFeatured}
                         isFurnished={listing.isFurnished}
                         yearBuilt={listing.yearBuilt}
+                        onFavorite={handleFavClick}
+                        isFavorite={() => handleCheckFav(listing.uid)}
+                        onClick={() => console.log(listing.uid)}
                       />
                     )
                 )}
@@ -213,7 +259,7 @@ export default function AgentPublicProfile() {
       {agent.reviews.length > 0 && (
         <Card>
           <CardHeader>
-            <h2 className="text-2xl font-semibold">Client Reviews</h2>
+            <h2 className="font-semibold text-2xl">Client Reviews</h2>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -223,7 +269,7 @@ export default function AgentPublicProfile() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="font-semibold">{review.author}</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                           {review.date}
                         </p>
                       </div>

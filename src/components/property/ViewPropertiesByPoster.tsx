@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import PropertyCard from "./PropertyCard";
 import { LISTING } from "@/lib/typeDefinitions";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { Loader2 } from "lucide-react";
 import Header from "../layout/Header";
+import { useZustand } from "@/lib/zustand";
+import { toast } from "react-toastify";
 
 const ViewPropertiesByPoster = () => {
+  const { user, setUser } = useZustand();
   const [properties, setProperties] = useState<LISTING[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,18 +65,58 @@ const ViewPropertiesByPoster = () => {
       fetchProperties();
     }
   }, [posterId, posterType]);
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        toast.error("Please log in to save properties");
+        return;
+      }
 
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-red-500">
+      <div className="flex justify-center items-center min-h-screen text-red-500">
         {error}
       </div>
     );
@@ -82,18 +125,18 @@ const ViewPropertiesByPoster = () => {
   return (
     <>
       <Header />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">
+      <div className="mx-auto px-4 py-8 container">
+        <h1 className="mb-6 font-bold text-2xl">
           {posterType === "agents" ? "Agent's" : "Agency's"} Properties
         </h1>
 
         {properties.length === 0 ? (
-          <div className="text-center text-gray-500">
+          <div className="text-gray-500 text-center">
             No properties found for this{" "}
             {posterType === "agents" ? "agent" : "agency"}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="gap-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {properties.map((property) => (
               <PropertyCard
                 key={property.uid}
@@ -104,19 +147,14 @@ const ViewPropertiesByPoster = () => {
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}
-                imageUrl={property.coverPhoto}
+                imageUrl={property.images[property.coverPhotoIndex]}
                 propertyType={property.propertyType}
                 isFeatured={property.isFeatured}
                 isFurnished={property.isFurnished}
                 yearBuilt={property.yearBuilt}
-                onFavorite={(id) => {
-                  // Implement favorite functionality
-                  console.log("Favorite clicked:", id);
-                }}
-                onClick={(id) => {
-                  // Implement click functionality
-                  console.log("Property clicked:", id);
-                }}
+                onFavorite={handleFavClick}
+                isFavorite={() => handleCheckFav(property.uid)}
+                onClick={() => console.log(property.uid)}
               />
             ))}
           </div>

@@ -60,11 +60,11 @@ MemoizedPropertyCard.displayName = "MemoizedPropertyCard";
 
 // Error Fallback Component
 const ErrorFallback = ({ error, resetErrorBoundary }: any) => (
-  <div className="text-center py-12">
-    <h3 className="text-xl font-semibold text-gray-700">
+  <div className="py-12 text-center">
+    <h3 className="font-semibold text-gray-700 text-xl">
       Something went wrong loading properties
     </h3>
-    <p className="text-gray-500 mt-2">{error.message}</p>
+    <p className="mt-2 text-gray-500">{error.message}</p>
     <Button onClick={resetErrorBoundary} className="mt-4">
       Try again
     </Button>
@@ -257,17 +257,16 @@ export default function ViewCategorizedProperties() {
     }
   };
 
-  // And the isFavorite check would be simpler too:
   const handleCheckFav = (propertyId: string) => {
     if (!user || !user.savedProperties) return false;
     return user.savedProperties.includes(propertyId);
   };
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50 min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="mx-auto px-4 py-8 container">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4 capitalize">
+          <h1 className="mb-4 font-bold text-gray-900 text-3xl capitalize">
             {filters?.propertyType !== "all"
               ? `${filters?.propertyType} Properties`
               : "All Properties"}
@@ -290,11 +289,11 @@ export default function ViewCategorizedProperties() {
               <LoadingSpinner />
             ) : (
               <>
-                <p className="text-gray-600 mb-4">
+                <p className="mb-4 text-gray-600">
                   <span className="font-semibold">{properties.length}</span>{" "}
                   propertie(s) found
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="gap-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {getCurrentPageProperties().map((property) => (
                     <MemoizedPropertyCard
                       key={property.uid}
@@ -326,11 +325,11 @@ export default function ViewCategorizedProperties() {
                 )}
 
                 {properties.length === 0 && (
-                  <div className="text-center py-12">
-                    <h3 className="text-xl font-semibold text-gray-700">
+                  <div className="py-12 text-center">
+                    <h3 className="font-semibold text-gray-700 text-xl">
                       No properties found
                     </h3>
-                    <p className="text-gray-500 mt-2">
+                    <p className="mt-2 text-gray-500">
                       Try adjusting your filters or search terms
                     </p>
                   </div>

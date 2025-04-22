@@ -6,14 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Mail,
   Phone,
-  Award,
-  Briefcase,
   Home,
   Users,
   Eye,
   DollarSign,
   Users2,
-  Twitter,
   Linkedin,
   X,
   Building2,
@@ -22,7 +19,7 @@ import {
   Star,
   Loader2,
 } from "lucide-react";
-import { doc, DocumentReference, getDoc } from "firebase/firestore";
+import { doc, DocumentReference, getDoc, updateDoc } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { LISTING, USER } from "@/lib/typeDefinitions";
 import Header from "../layout/Header";
@@ -30,8 +27,11 @@ import PropertyCard from "../property/PropertyCard";
 import { LoadingSpinner } from "../globalScreens/Loader";
 import { ErrorMessage } from "../globalScreens/Error";
 import { NotFound } from "../globalScreens/Message";
+import { useZustand } from "@/lib/zustand";
+import { toast } from "react-toastify";
 
 export default function AgencyPublicProfile() {
+  const { user, setUser } = useZustand();
   const { id } = useParams();
   const [agents, setAgents] = useState<Array<USER & { position: string }>>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
@@ -39,6 +39,47 @@ export default function AgencyPublicProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [listings, setListings] = useState<LISTING[]>([]);
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        toast.error("Please log in to save properties");
+        return;
+      }
+
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
 
   useEffect(() => {
     if (!id) {
@@ -77,7 +118,7 @@ export default function AgencyPublicProfile() {
     }
 
     const agencyData = {
-      id: agencyDoc.id,
+      uid: agencyDoc.id,
       ...agencyDoc.data(),
     } as USER;
 
@@ -131,7 +172,7 @@ export default function AgencyPublicProfile() {
             if (agentDoc.exists()) {
               return {
                 ...agentDoc.data(),
-                id: agentDoc.id,
+                uid: agentDoc.id,
                 position,
               } as USER & { position: string };
             }
@@ -170,10 +211,10 @@ export default function AgencyPublicProfile() {
   return (
     <>
       <Header />
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
+      <div className="space-y-6 mx-auto p-4 max-w-7xl">
         <Card>
           <CardContent className="p-6">
-            <div className="grid md:grid-cols-[200px_1fr] gap-6">
+            <div className="gap-6 grid md:grid-cols-[200px_1fr]">
               <div className="flex flex-col items-center space-y-4">
                 <Avatar className="w-48 h-48">
                   <AvatarImage
@@ -205,34 +246,34 @@ export default function AgencyPublicProfile() {
 
               <div className="space-y-4">
                 <div>
-                  <h1 className="text-3xl font-bold">{agency.companyName}</h1>
+                  <h1 className="font-bold text-3xl">{agency.companyName}</h1>
                   <p className="text-muted-foreground">{agency.businessType}</p>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="gap-2 grid">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-realtyplus" />
+                    <Building2 className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Business Registration:</span>
                     <span>{agency.businessRegistrationNumber}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-realtyplus" />
+                    <Mail className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Email:</span>
                     <span>{agency.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-5 w-5 text-realtyplus" />
+                    <Phone className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Phone:</span>
                     <span>{agency.phone}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-realtyplus" />
+                    <MapPin className="w-5 h-5 text-realtyplus" />
                     <span className="font-medium">Location:</span>
                     <span>{`${agency.address}, ${agency.city}`}</span>
                   </div>
                   {agency.website && (
                     <div className="flex items-center gap-2">
-                      <Globe className="h-5 w-5 text-realtyplus" />
+                      <Globe className="w-5 h-5 text-realtyplus" />
                       <span className="font-medium">Website:</span>
                       <a
                         href={agency.website}
@@ -255,7 +296,7 @@ export default function AgencyPublicProfile() {
                         rel="noopener noreferrer"
                         className="text-realtyplus hover:text-realtyplus/80"
                       >
-                        <Linkedin className="h-5 w-5" />
+                        <Linkedin className="w-5 h-5" />
                       </a>
                     )}
                     {agency.social.twitter && (
@@ -265,7 +306,7 @@ export default function AgencyPublicProfile() {
                         rel="noopener noreferrer"
                         className="text-realtyplus hover:text-realtyplus/80"
                       >
-                        <X className="h-5 w-5" />
+                        <X className="w-5 h-5" />
                       </a>
                     )}
                   </div>
@@ -278,7 +319,7 @@ export default function AgencyPublicProfile() {
         {/* About Section */}
         <Card>
           <CardHeader>
-            <h2 className="text-2xl font-semibold">About Company</h2>
+            <h2 className="font-semibold text-2xl">About Company</h2>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
@@ -290,33 +331,33 @@ export default function AgencyPublicProfile() {
         {/* Company Stats */}
         <Card>
           <CardHeader>
-            <h2 className="text-2xl font-semibold">Company Overview</h2>
+            <h2 className="font-semibold text-2xl">Company Overview</h2>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-realtyplus/5 rounded-lg">
-                <Users className="h-8 w-8 mx-auto mb-2 text-realtyplus" />
-                <p className="text-sm text-muted-foreground">Total Agents</p>
-                <p className="text-2xl font-bold">
+            <div className="gap-4 grid grid-cols-2 md:grid-cols-4">
+              <div className="bg-realtyplus/5 p-4 rounded-lg text-center">
+                <Users className="mx-auto mb-2 w-8 h-8 text-realtyplus" />
+                <p className="text-muted-foreground text-sm">Total Agents</p>
+                <p className="font-bold text-2xl">
                   {agency.numberOfAgents || "0"}
                 </p>
               </div>
-              <div className="text-center p-4 bg-realtyplus/5 rounded-lg">
-                <Home className="h-8 w-8 mx-auto mb-2 text-realtyplus" />
-                <p className="text-sm text-muted-foreground">Active Listings</p>
-                <p className="text-2xl font-bold">
+              <div className="bg-realtyplus/5 p-4 rounded-lg text-center">
+                <Home className="mx-auto mb-2 w-8 h-8 text-realtyplus" />
+                <p className="text-muted-foreground text-sm">Active Listings</p>
+                <p className="font-bold text-2xl">
                   {agency.myListings?.length || "0"}
                 </p>
               </div>
-              <div className="text-center p-4 bg-realtyplus/5 rounded-lg">
-                <Eye className="h-8 w-8 mx-auto mb-2 text-realtyplus" />
-                <p className="text-sm text-muted-foreground">Profile Views</p>
-                <p className="text-2xl font-bold">{agency.views || "0"}</p>
+              <div className="bg-realtyplus/5 p-4 rounded-lg text-center">
+                <Eye className="mx-auto mb-2 w-8 h-8 text-realtyplus" />
+                <p className="text-muted-foreground text-sm">Profile Views</p>
+                <p className="font-bold text-2xl">{agency.views || "0"}</p>
               </div>
-              <div className="text-center p-4 bg-realtyplus/5 rounded-lg">
-                <DollarSign className="h-8 w-8 mx-auto mb-2 text-realtyplus" />
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="text-2xl font-bold">{agency.totalSales || "0"}</p>
+              <div className="bg-realtyplus/5 p-4 rounded-lg text-center">
+                <DollarSign className="mx-auto mb-2 w-8 h-8 text-realtyplus" />
+                <p className="text-muted-foreground text-sm">Total Sales</p>
+                <p className="font-bold text-2xl">{agency.totalSales || "0"}</p>
               </div>
             </div>
           </CardContent>
@@ -326,21 +367,21 @@ export default function AgencyPublicProfile() {
         {agency.myAgents && agency.myAgents.length > 0 && (
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Users2 className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-semibold">Our Team</h2>
+              <Users2 className="w-6 h-6 text-primary" />
+              <h2 className="font-semibold text-2xl">Our Team</h2>
             </CardHeader>
             <CardContent>
               {loadingAgents ? (
                 <div className="flex justify-center items-center h-40">
-                  <Loader2 className="h-8 w-8 animate-spin text-realtyplus" />
+                  <Loader2 className="w-8 h-8 text-realtyplus animate-spin" />
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="gap-4 grid md:grid-cols-2 lg:grid-cols-3">
                   {agents.map((agent) => (
-                    <Card key={agent.id} className="overflow-hidden">
+                    <Card key={agent.uid} className="overflow-hidden">
                       <CardContent className="p-0">
-                        <div className="p-4 flex flex-col items-center text-center">
-                          <Avatar className="w-20 h-20 mb-3">
+                        <div className="flex flex-col items-center p-4 text-center">
+                          <Avatar className="mb-3 w-20 h-20">
                             <AvatarImage
                               src={
                                 agent.pfp ||
@@ -356,20 +397,20 @@ export default function AgencyPublicProfile() {
                           <h3 className="font-semibold text-lg">
                             {agent.firstName} {agent.lastName}
                           </h3>
-                          <p className="text-sm text-muted-foreground mb-2">
+                          <p className="mb-2 text-muted-foreground text-sm">
                             {agent.position}
                           </p>
 
-                          <div className="w-full space-y-2 mt-2">
-                            <div className="flex items-center justify-center gap-2 text-sm">
-                              <Mail className="h-4 w-4 text-realtyplus" />
+                          <div className="space-y-2 mt-2 w-full">
+                            <div className="flex justify-center items-center gap-2 text-sm">
+                              <Mail className="w-4 h-4 text-realtyplus" />
                               <span className="text-gray-600">
                                 {agent.email}
                               </span>
                             </div>
                             {agent.phone && (
-                              <div className="flex items-center justify-center gap-2 text-sm">
-                                <Phone className="h-4 w-4 text-realtyplus" />
+                              <div className="flex justify-center items-center gap-2 text-sm">
+                                <Phone className="w-4 h-4 text-realtyplus" />
                                 <span className="text-gray-600">
                                   {agent.phone}
                                 </span>
@@ -380,7 +421,7 @@ export default function AgencyPublicProfile() {
                           {agent.specialties &&
                             agent.specialties.length > 0 && (
                               <div className="mt-3">
-                                <div className="flex flex-wrap gap-1 justify-center">
+                                <div className="flex flex-wrap justify-center gap-1">
                                   {agent.specialties
                                     .slice(0, 3)
                                     .map((specialty, index) => (
@@ -405,10 +446,10 @@ export default function AgencyPublicProfile() {
                             )}
                         </div>
 
-                        <div className="border-t bg-gray-50 p-4 flex justify-center">
+                        <div className="flex justify-center bg-gray-50 p-4 border-t">
                           <Link
-                            to={`/agent/${agent.id}`}
-                            className="text-sm text-realtyplus hover:text-realtyplus/80 font-medium"
+                            to={`/agent/${agent.uid}`}
+                            className="font-medium text-realtyplus hover:text-realtyplus/80 text-sm"
                           >
                             View Profile
                           </Link>
@@ -426,11 +467,11 @@ export default function AgencyPublicProfile() {
         {listings.length > 0 && (
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Home className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-semibold">Properties</h2>
+              <Home className="w-6 h-6 text-primary" />
+              <h2 className="font-semibold text-2xl">Properties</h2>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="gap-4 grid md:grid-cols-2 lg:grid-cols-3">
                 {listings.map(
                   (listing) =>
                     listing && (
@@ -443,11 +484,14 @@ export default function AgencyPublicProfile() {
                         bedrooms={listing.bedrooms}
                         bathrooms={listing.bathrooms}
                         area={listing.area}
-                        imageUrl={listing.coverPhoto}
+                        imageUrl={listing.images[listing.coverPhotoIndex]}
                         propertyType={listing.propertyType}
                         isFeatured={listing.isFeatured}
                         isFurnished={listing.isFurnished}
                         yearBuilt={listing.yearBuilt}
+                        onFavorite={handleFavClick}
+                        isFavorite={() => handleCheckFav(listing.uid)}
+                        onClick={() => console.log(listing.uid)}
                       />
                     )
                 )}

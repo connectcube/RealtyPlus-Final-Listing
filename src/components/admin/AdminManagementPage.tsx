@@ -226,10 +226,10 @@ export default function AdminManagementPage() {
     setIsEditPermissionsDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (adminToDelete) {
-      // In a real application, you would make an API call here
-      // For now, we'll just update the local state
+      const adminId = adminToDelete.uid;
+      const response = await adminService.deleteAdmin(adminId);
       setAdmins(
         admins &&
           admins.filter((admin) => admin && admin.uid !== adminToDelete.uid)

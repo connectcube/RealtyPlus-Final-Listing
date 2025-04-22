@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
-import PropertyCard from "./PropertyCard";
 import {
   Carousel,
   CarouselContent,
@@ -165,7 +164,7 @@ ${formData.name}
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen">
         <LoadingSpinner />
       </div>
     );
@@ -173,14 +172,14 @@ ${formData.name}
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen">
         <ErrorMessage message={error} />
       </div>
     );
   }
   if (!property) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen">
         <NotFound message="Property doe not exist" />
       </div>
     );
@@ -624,13 +623,13 @@ ${formData.name}
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gray-50"
+      className="flex flex-col bg-gray-50 min-h-screen"
       ref={propertyContentRef}
     >
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow mx-auto px-4 py-8 container">
         {/* Breadcrumb */}
-        <div className="text-sm text-gray-500 mb-4">
+        <div className="mb-4 text-gray-500 text-sm">
           <a href="/" className="hover:text-realtyplus">
             Home
           </a>{" "}
@@ -643,13 +642,13 @@ ${formData.name}
         </div>
 
         {/* Property Title and Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div className="flex md:flex-row flex-col justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <h1 className="font-bold text-gray-900 text-2xl md:text-3xl">
               {property.title}
             </h1>
             <div className="flex items-center mt-2">
-              <MapPin className="h-4 w-4 text-gray-500 mr-1" />
+              <MapPin className="mr-1 w-4 h-4 text-gray-500" />
               <span className="text-gray-600">
                 {property.neighborhood}, {property.city}, {property.province}
               </span>
@@ -674,7 +673,7 @@ ${formData.name}
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-1 py-1 "
+              className="flex items-center gap-1 py-1"
               onClick={handlePrintPage}
             >
               <Printer className="size-4" /> Print
@@ -686,15 +685,15 @@ ${formData.name}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="gap-6 lg:gap-8 grid grid-cols-1 lg:grid-cols-3">
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Image Gallery */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div className="bg-white shadow-sm mb-8 rounded-lg overflow-hidden">
               <Carousel className="w-full">
                 <CarouselContent>
                   <CarouselItem key={property.coverPhotoIndex}>
-                    <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
+                    <div className="relative w-full h-[250px] sm:h-[300px] md:h-[400px]">
                       <img
                         src={property.images[property.coverPhotoIndex]}
                         alt={`${property.title} - Image ${property.coverPhotoIndex}`}
@@ -706,7 +705,7 @@ ${formData.name}
                     (image, index) =>
                       property.coverPhotoIndex !== index && (
                         <CarouselItem key={index}>
-                          <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full relative">
+                          <div className="relative w-full h-[250px] sm:h-[300px] md:h-[400px]">
                             <img
                               src={image}
                               alt={`${property.title} - Image ${index + 1}`}
@@ -723,9 +722,9 @@ ${formData.name}
             </div>
 
             {/* Property Details Tabs */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div className="bg-white shadow-sm mb-8 rounded-lg overflow-hidden">
               <Tabs defaultValue="details" onValueChange={setActiveTab}>
-                <TabsList className="w-full grid grid-cols-3 md:grid-cols-5 bg-gray-100 overflow-x-auto">
+                <TabsList className="grid grid-cols-3 md:grid-cols-5 bg-gray-100 w-full overflow-x-auto">
                   <TabsTrigger value="details" className="py-1">
                     Details
                   </TabsTrigger>
@@ -746,38 +745,38 @@ ${formData.name}
                 {/* Details Tab */}
                 <TabsContent value="details" className="p-6">
                   {/* Property Details */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-                    <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-                      <Bed className="h-6 w-6 text-realtyplus mb-1" />
-                      <span className="text-sm text-gray-500">Bedrooms</span>
+                  <div className="gap-3 md:gap-4 grid grid-cols-2 md:grid-cols-4 mb-6">
+                    <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg">
+                      <Bed className="mb-1 w-6 h-6 text-realtyplus" />
+                      <span className="text-gray-500 text-sm">Bedrooms</span>
                       <span className="font-semibold">{property.bedrooms}</span>
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-                      <Bath className="h-6 w-6 text-realtyplus mb-1" />
-                      <span className="text-sm text-gray-500">Bathrooms</span>
+                    <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg">
+                      <Bath className="mb-1 w-6 h-6 text-realtyplus" />
+                      <span className="text-gray-500 text-sm">Bathrooms</span>
                       <span className="font-semibold">
                         {property.bathrooms}
                       </span>
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-                      <Grid className="h-6 w-6 text-realtyplus mb-1" />
-                      <span className="text-sm text-gray-500">Area</span>
+                    <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg">
+                      <Grid className="mb-1 w-6 h-6 text-realtyplus" />
+                      <span className="text-gray-500 text-sm">Area</span>
                       <span className="font-semibold">{property.area} m²</span>
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-                      <Car className="h-6 w-6 text-realtyplus mb-1" />
-                      <span className="text-sm text-gray-500">Garage</span>
+                    <div className="flex flex-col items-center bg-gray-50 p-3 rounded-lg">
+                      <Car className="mb-1 w-6 h-6 text-realtyplus" />
+                      <span className="text-gray-500 text-sm">Garage</span>
                       <span className="font-semibold">
                         {property.garageSpaces} Cars
                       </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-6">
                     <div className="flex items-center">
-                      <Home className="h-5 w-5 text-realtyplus mr-2" />
+                      <Home className="mr-2 w-5 h-5 text-realtyplus" />
                       <div>
-                        <span className="text-sm text-gray-500 block">
+                        <span className="block text-gray-500 text-sm">
                           Type
                         </span>
                         <span className="font-medium">
@@ -787,9 +786,9 @@ ${formData.name}
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <Calendar className="h-5 w-5 text-realtyplus mr-2" />
+                      <Calendar className="mr-2 w-5 h-5 text-realtyplus" />
                       <div>
-                        <span className="text-sm text-gray-500 block">
+                        <span className="block text-gray-500 text-sm">
                           Year Built
                         </span>
                         <span className="font-medium">
@@ -798,9 +797,9 @@ ${formData.name}
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <CheckCircle2 className="h-5 w-5 text-realtyplus mr-2" />
+                      <CheckCircle2 className="mr-2 w-5 h-5 text-realtyplus" />
                       <div>
-                        <span className="text-sm text-gray-500 block">
+                        <span className="block text-gray-500 text-sm">
                           Furnishing
                         </span>
                         <span className="font-medium">
@@ -813,7 +812,7 @@ ${formData.name}
                   <Separator className="my-6" />
 
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Description</h3>
+                    <h3 className="mb-4 font-semibold text-xl">Description</h3>
                     <p className="text-gray-700 whitespace-pre-line">
                       {property.description}
                     </p>
@@ -822,10 +821,10 @@ ${formData.name}
 
                 {/* Features Tab */}
                 <TabsContent value="features" className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">
+                  <h3 className="mb-4 font-semibold text-xl">
                     Property Features
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 border rounded-lg p-4">
+                  <div className="gap-y-4 grid grid-cols-1 md:grid-cols-2 p-4 border rounded-lg">
                     {/* Air Conditioning */}
                     <span className="flex items-center gap-2">
                       {property.features.airConditioning ? (
@@ -917,51 +916,51 @@ ${formData.name}
                     </span>
                   </div>
 
-                  <div className="mt-6 flex flex-col md:flex-row gap-4">
+                  <div className="flex md:flex-row flex-col gap-4 mt-6">
                     <Button
                       variant="outline"
                       className="flex items-center gap-2"
                       onClick={handlePrintPage}
                     >
-                      <Printer className="h-4 w-4" /> Print Features
+                      <Printer className="w-4 h-4" /> Print Features
                     </Button>
                   </div>
                 </TabsContent>
 
                 {/* Location Tab */}
                 <TabsContent value="nearby" className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Nearby Places</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                  <h3 className="mb-4 font-semibold text-xl">Nearby Places</h3>
+                  <div className="gap-3 md:gap-4 grid grid-cols-1 sm:grid-cols-2">
                     {property.nearbyPlaces &&
                       property.nearbyPlaces.map((place, index) => (
                         <div
                           key={index}
-                          className="flex items-center p-3 bg-gray-50 rounded-lg"
+                          className="flex items-center bg-gray-50 p-3 rounded-lg"
                         >
                           {place.type === "school" && (
-                            <FileText className="h-5 w-5 text-blue-500 mr-3" />
+                            <FileText className="mr-3 w-5 h-5 text-blue-500" />
                           )}
                           {place.type === "transport" && (
-                            <MapPin className="h-5 w-5 text-red-500 mr-3" />
+                            <MapPin className="mr-3 w-5 h-5 text-red-500" />
                           )}
                           {place.type === "shopping" && (
-                            <Grid className="h-5 w-5 text-purple-500 mr-3" />
+                            <Grid className="mr-3 w-5 h-5 text-purple-500" />
                           )}
                           {place.type === "church" && (
-                            <Home className="h-5 w-5 text-green-500 mr-3" />
+                            <Home className="mr-3 w-5 h-5 text-green-500" />
                           )}
                           {place.type === "mosque" && (
-                            <Home className="h-5 w-5 text-green-500 mr-3" />
+                            <Home className="mr-3 w-5 h-5 text-green-500" />
                           )}
                           {place.type === "hospital" && (
-                            <CheckCircle2 className="h-5 w-5 text-red-500 mr-3" />
+                            <CheckCircle2 className="mr-3 w-5 h-5 text-red-500" />
                           )}
                           {place.type === "restaurant" && (
-                            <Calendar className="h-5 w-5 text-orange-500 mr-3" />
+                            <Calendar className="mr-3 w-5 h-5 text-orange-500" />
                           )}
                           <div>
                             <span className="font-medium">{place.name}</span>
-                            <span className="text-sm text-gray-500 block">
+                            <span className="block text-gray-500 text-sm">
                               {place.distance}
                             </span>
                           </div>
@@ -971,8 +970,8 @@ ${formData.name}
                 </TabsContent>
 
                 <TabsContent value="location" className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Location</h3>
-                  <div className="aspect-video w-full rounded-lg overflow-hidden">
+                  <h3 className="mb-4 font-semibold text-xl">Location</h3>
+                  <div className="rounded-lg w-full aspect-video overflow-hidden">
                     <iframe
                       src={property.address}
                       width="100%"
@@ -988,8 +987,8 @@ ${formData.name}
 
                 {/* Video Tour Tab */}
                 <TabsContent value="video" className="p-6">
-                  <h3 className="text-xl font-semibold mb-4">Video Tour</h3>
-                  <div className="aspect-video w-full bg-gray-100 rounded-lg flex items-center justify-center">
+                  <h3 className="mb-4 font-semibold text-xl">Video Tour</h3>
+                  <div className="flex justify-center items-center bg-gray-100 rounded-lg w-full aspect-video">
                     <p className="text-gray-500">Video tour coming soon</p>
                   </div>
                 </TabsContent>
@@ -1002,11 +1001,11 @@ ${formData.name}
             {/* Price Card */}
             <Card className="mb-6">
               <CardContent className="p-6">
-                <div className="text-3xl font-bold text-realtyplus mb-2">
+                <div className="mb-2 font-bold text-realtyplus text-3xl">
                   K{property.price.toLocaleString()}
                 </div>
-                <div className="flex items-center text-gray-500 mb-6">
-                  <Grid className="h-4 w-4 mr-1" />
+                <div className="flex items-center mb-6 text-gray-500">
+                  <Grid className="mr-1 w-4 h-4" />
                   <span className="text-sm">
                     {property.area} m² (K
                     {Math.round(
@@ -1015,7 +1014,7 @@ ${formData.name}
                     /m²)
                   </span>
                 </div>
-                <Button className="w-full bg-realtyplus hover:bg-realtyplus-dark mb-3">
+                <Button className="bg-realtyplus hover:bg-realtyplus-dark mb-3 w-full">
                   Request Viewing
                 </Button>
                 <Button
@@ -1032,7 +1031,7 @@ ${formData.name}
             {showContactForm && (
               <Card className="mb-6">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Contact Agent</h3>
+                  <h3 className="mb-4 font-semibold text-lg">Contact Agent</h3>
                   <form
                     className="space-y-4"
                     onSubmit={handleContactFormSubmit}
@@ -1040,7 +1039,7 @@ ${formData.name}
                     <div>
                       <label
                         htmlFor="name"
-                        className="block text-sm font-medium text-gray-700 mb-1"
+                        className="block mb-1 font-medium text-gray-700 text-sm"
                       >
                         Your Name
                       </label>
@@ -1052,14 +1051,14 @@ ${formData.name}
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })
                         }
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
+                        className="p-2 border border-gray-300 focus:border-realtyplus rounded-md focus:ring-realtyplus w-full"
                         placeholder="Enter your name"
                       />
                     </div>
                     <div>
                       <label
                         htmlFor="email"
-                        className="block text-sm font-medium text-gray-700 mb-1"
+                        className="block mb-1 font-medium text-gray-700 text-sm"
                       >
                         Email Address
                       </label>
@@ -1071,14 +1070,14 @@ ${formData.name}
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
+                        className="p-2 border border-gray-300 focus:border-realtyplus rounded-md focus:ring-realtyplus w-full"
                         placeholder="Enter your email"
                       />
                     </div>
                     <div>
                       <label
                         htmlFor="phone"
-                        className="block text-sm font-medium text-gray-700 mb-1"
+                        className="block mb-1 font-medium text-gray-700 text-sm"
                       >
                         Phone Number
                       </label>
@@ -1090,14 +1089,14 @@ ${formData.name}
                         onChange={(e) =>
                           setFormData({ ...formData, phone: e.target.value })
                         }
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
+                        className="p-2 border border-gray-300 focus:border-realtyplus rounded-md focus:ring-realtyplus w-full"
                         placeholder="Enter your phone number"
                       />
                     </div>
                     <div>
                       <label
                         htmlFor="message"
-                        className="block text-sm font-medium text-gray-700 mb-1"
+                        className="block mb-1 font-medium text-gray-700 text-sm"
                       >
                         Message
                       </label>
@@ -1109,14 +1108,15 @@ ${formData.name}
                         onChange={(e) =>
                           setFormData({ ...formData, message: e.target.value })
                         }
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-realtyplus focus:border-realtyplus"
+                        className="p-2 border border-gray-300 focus:border-realtyplus rounded-md focus:ring-realtyplus w-full"
                         placeholder="I'm interested in this property..."
                       ></textarea>
                     </div>
 
                     <Button
                       type="submit"
-                      className="w-full bg-realtyplus hover:bg-realtyplus-dark"
+                      disabled={true}
+                      className="bg-realtyplus hover:bg-realtyplus-dark w-full"
                     >
                       Send Message
                     </Button>
@@ -1128,12 +1128,12 @@ ${formData.name}
             {/* Agent Card */}
             <Card className="mb-6">
               <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Listed By</h3>
+                <h3 className="mb-4 font-semibold text-lg">Listed By</h3>
                 <div className="flex items-center mb-4">
                   <img
                     src={propertyPostedBy?.pfp || ""}
                     alt={`${propertyPostedBy?.firstName} ${propertyPostedBy?.lastName}`}
-                    className="w-16 h-16 rounded-full mr-4"
+                    className="mr-4 rounded-full w-16 h-16"
                   />
                   <div>
                     <h4 className="font-medium">{`${propertyPostedBy?.firstName} ${propertyPostedBy?.lastName}`}</h4>
@@ -1144,22 +1144,22 @@ ${formData.name}
                     href={`tel:${propertyPostedBy.phone}`}
                     className="flex items-center text-gray-700 hover:text-realtyplus"
                   >
-                    <Phone className="h-4 w-4 mr-2" />
+                    <Phone className="mr-2 w-4 h-4" />
                     {propertyPostedBy.phone}
                   </a>
                   <a
                     href={`mailto:${propertyPostedBy.email}`}
                     className="flex items-center text-gray-700 hover:text-realtyplus"
                   >
-                    <Mail className="h-4 w-4 mr-2" />
+                    <Mail className="mr-2 w-4 h-4" />
                     {propertyPostedBy.email}
                   </a>
                   <Button
                     variant="outline"
-                    className="w-full mt-2"
+                    className="mt-2 w-full"
                     onClick={handleContactAgent}
                   >
-                    <MessageSquare className="h-4 w-4 mr-2" /> Message
+                    <MessageSquare className="mr-2 w-4 h-4" /> Message
                   </Button>
                 </div>
               </CardContent>
@@ -1169,8 +1169,8 @@ ${formData.name}
 
         {/* Similar Properties 
         <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <h2 className="mb-6 font-bold text-2xl">Similar Properties</h2>
+          <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {similarProperties.map((property) => (
               <PropertyCard
                 key={property.id}
