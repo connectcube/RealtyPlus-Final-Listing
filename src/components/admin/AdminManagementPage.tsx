@@ -36,17 +36,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  Search,
-  MoreVertical,
-  Filter,
-  UserPlus,
-  Shield,
-  ShieldCheck,
-  Server,
-} from "lucide-react";
+import { Search, MoreVertical, Filter, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -65,7 +56,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  serverTimestamp,
   setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -119,7 +109,7 @@ export const ADMIN_ROLES = {
   },
 };
 
-export default function AdminManagementPage() {
+function AdminManagementPage() {
   const [admin, setAdmin] = useState<ADMIN>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [admins, setAdmins] = useState<ADMIN[]>([]);
@@ -154,65 +144,43 @@ export default function AdminManagementPage() {
   });
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
-      console.log("Starting admin status check...");
       try {
         if (!user) {
-          console.log("No user found, redirecting to home page");
-          //window.location.href = "/";
-          return;
+          await signOut(auth);
+          //  window.location.href = "/";
+          // return;
         }
-        console.log("Checking admin status for user:", user.uid);
-
         const adminRef = doc(fireDataBase, "admins", user.uid);
         const adminSnapshot = await getDoc(adminRef);
 
         if (!adminSnapshot.exists()) {
-          console.log("User is not an admin, signing out");
-          //await signOut(auth);
-          //window.location.href = "/";
-          return;
+          await signOut(auth);
+          //   window.location.href = "/";
+          // return;
         }
-
         const adminData = adminSnapshot.data() as ADMIN;
-        console.log("Admin data retrieved:", {
-          isApproved: adminData.isApproved,
-        });
-
         if (!adminData.isApproved) {
-          console.log("Admin is not approved, signing out");
-          //await signOut(auth);
-          //window.location.href = "/";
-          return;
+          await signOut(auth);
+          // window.location.href = "/";
+          //  return;
         }
-
-        console.log("Setting current admin data");
         setAdmin({
           ...adminData,
           uid: adminSnapshot.id,
         });
-
-        console.log("Fetching all admins list");
         const adminsRef = collection(fireDataBase, "admins");
         const adminsSnapshot = await getDocs(adminsRef);
         const adminsList = adminsSnapshot.docs.map(
           (doc) => ({ uid: doc.id, ...doc.data() } as ADMIN)
         );
-        console.log(`Retrieved ${adminsList.length} admins`);
-        setAdmins(adminsList);
-
-        console.log("Admin authentication completed successfully");
+        setAdmins(adminsList.filter((admin) => admin.uid !== user.uid));
       } catch (error) {
-        console.error("Error checking admin status:", error);
-        console.log("Signing out due to error");
-        // await signOut(auth);
-        //window.location.href = "/";
+        await signOut(auth);
+        // window.location.href = "/";
       }
     };
-
-    console.log("Setting up auth state change listener");
     const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
     return () => {
-      console.log("Cleaning up auth state listener");
       unsubscribe();
     };
   }, []);
@@ -222,8 +190,9 @@ export default function AdminManagementPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleEditPermissions = (admin: ADMIN) => {
-    setSelectedAdmin(admin);
+  const handleEditPermissions = (admin: ADMIN, status: ADMIN["status"]) => {
+    const updatedAdmin = { ...admin, status };
+    setSelectedAdmin(updatedAdmin);
     setIsEditPermissionsDialogOpen(true);
   };
 
@@ -300,6 +269,19 @@ export default function AdminManagementPage() {
     setSelectedAdmin(null);
   };
 
+  const handleUpdateStatus = async (admin: ADMIN, status: ADMIN["status"]) => {
+    const updatedAdmin = { ...admin, status };
+    const adminRef = doc(fireDataBase, "admins", admin.uid);
+    await setDoc(adminRef, updatedAdmin, { merge: true });
+    if (status) {
+      setAdmins((prevAdmins) =>
+        prevAdmins.map((a) => (a.uid === updatedAdmin.uid ? updatedAdmin : a))
+      );
+    } else {
+      console.error("Failed to update status");
+    }
+  };
+
   const filteredAdmins = admins.filter(
     (admin) =>
       admin.firstName ||
@@ -335,6 +317,22 @@ export default function AdminManagementPage() {
         return "bg-blue-100 text-blue-800";
     }
   };
+  const handleAdminPermissionUpdate = (adminType: ADMIN["adminType"]) => {
+    switch (adminType) {
+      case "super admin":
+        console.log("Super Admin selected");
+        break;
+      case "content admin":
+        console.log("Content Admin selected");
+        break;
+      case "user admin":
+        console.log("User Admin selected");
+        break;
+      default:
+        console.log("Other admin type selected");
+    }
+  };
+
   if (!admin) {
     return <LoadingSpinner />;
   }
@@ -397,7 +395,7 @@ export default function AdminManagementPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getAdminTypeColor(adminS.adminType)}
+                            className={`${getAdminTypeColor(adminS.adminType)}`}
                           >
                             {adminS.adminType}
                           </Badge>
@@ -405,9 +403,9 @@ export default function AdminManagementPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getStatusColor(adminS.status)}
+                            className={`${getStatusColor(adminS.status)}`}
                           >
-                            {admin.status}
+                            {adminS.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -425,27 +423,45 @@ export default function AdminManagementPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => handleEditPermissions(admin)}
+                                onClick={() =>
+                                  handleEditPermissions(adminS, null)
+                                }
                               >
                                 Manage Permissions
                               </DropdownMenuItem>
+
                               {adminS.status === "Active" ? (
-                                <DropdownMenuItem className="text-amber-600">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleUpdateStatus(adminS, "Suspended")
+                                  }
+                                  className="text-amber-600"
+                                >
                                   Suspend
                                 </DropdownMenuItem>
                               ) : adminS.status === "Suspended" ? (
-                                <DropdownMenuItem className="text-green-600">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleUpdateStatus(adminS, "Active")
+                                  }
+                                  className="text-green-600"
+                                >
                                   Reactivate
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem className="text-green-600">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleUpdateStatus(adminS, "Active")
+                                  }
+                                  className="text-green-600"
+                                >
                                   Activate
                                 </DropdownMenuItem>
                               )}
                               {adminS.uid !== admin.uid && (
                                 <DropdownMenuItem
                                   className="text-red-600"
-                                  onClick={() => handleDeleteAdmin(admin)}
+                                  onClick={() => handleDeleteAdmin(adminS)}
                                 >
                                   Delete
                                 </DropdownMenuItem>
@@ -769,30 +785,17 @@ export default function AdminManagementPage() {
                 <Select
                   value={selectedAdmin.adminType}
                   onValueChange={(value) => {
-                    if (value !== "Custom") {
-                      setSelectedAdmin({
-                        ...selectedAdmin,
-                        adminType: value as ADMIN["adminType"],
-                        permissions:
-                          ADMIN_ROLES[value.toUpperCase().replace(" ", "_")]
-                            ?.permissions || [],
-                      });
-                    } else {
-                      setSelectedAdmin({
-                        ...selectedAdmin,
-                        adminType: value as ADMIN["adminType"],
-                      });
-                    }
+                    handleAdminPermissionUpdate(value as ADMIN["adminType"]);
                   }}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Super Admin">Super Admin</SelectItem>
-                    <SelectItem value="Content Admin">Content Admin</SelectItem>
-                    <SelectItem value="User Admin">User Admin</SelectItem>
-                    <SelectItem value="Custom">Custom Permissions</SelectItem>
+                    <SelectItem value="super admin">Super Admin</SelectItem>
+                    <SelectItem value="content admin">Content Admin</SelectItem>
+                    <SelectItem value="user admin">User Admin</SelectItem>
+                    <SelectItem value="custom">Custom Permissions</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -993,3 +996,4 @@ export default function AdminManagementPage() {
     </AdminLayout>
   );
 }
+export default AdminManagementPage;
