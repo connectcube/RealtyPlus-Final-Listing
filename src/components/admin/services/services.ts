@@ -1,10 +1,57 @@
 import { fireDataBase } from "@/lib/firebase";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { ADMIN_ROLES } from "../AdminManagementPage";
+
 import { authService } from "./authServices";
 
 const API_URL = "http://localhost:3000/api";
+const ADMIN_ROLES = {
+  SUPER_ADMIN: {
+    name: "super admin",
+    permissions: {
+      userRead: true,
+      userWrite: true,
+      listingRead: true,
+      listingWrite: true,
+      agentRead: true,
+      agentWrite: true,
+      agencyRead: true,
+      agencyWrite: true,
+      adminManagement: true,
+      subscriptionManagement: true,
+    },
+  },
+  CONTENT_ADMIN: {
+    name: "content admin",
+    permissions: {
+      userRead: false,
+      userWrite: false,
+      listingRead: true,
+      listingWrite: true,
+      agentRead: false,
+      agentWrite: false,
+      agencyRead: false,
+      agencyWrite: false,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
+  },
+  USER_ADMIN: {
+    name: "user admin",
+    permissions: {
+      userRead: true,
+      userWrite: true,
+      listingRead: false,
+      listingWrite: false,
+      agentRead: true,
+      agentWrite: true,
+      agencyRead: true,
+      agencyWrite: true,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
+  },
+};
 
 // adminService.ts
 export const adminService = {

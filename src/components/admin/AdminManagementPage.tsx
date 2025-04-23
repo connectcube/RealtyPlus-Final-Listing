@@ -59,9 +59,10 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { Checkbox } from "../ui/checkbox";
 
 // Update the admin roles accordingly
-export const ADMIN_ROLES = {
+const ADMIN_ROLES = {
   SUPER_ADMIN: {
     name: "super admin",
     permissions: {
@@ -80,13 +81,13 @@ export const ADMIN_ROLES = {
   CONTENT_ADMIN: {
     name: "content admin",
     permissions: {
-      userRead: true,
+      userRead: false,
       userWrite: false,
       listingRead: true,
       listingWrite: true,
-      agentRead: true,
+      agentRead: false,
       agentWrite: false,
-      agencyRead: true,
+      agencyRead: false,
       agencyWrite: false,
       adminManagement: false,
       subscriptionManagement: false,
@@ -102,7 +103,7 @@ export const ADMIN_ROLES = {
       agentRead: true,
       agentWrite: true,
       agencyRead: true,
-      agencyWrite: false,
+      agencyWrite: true,
       adminManagement: false,
       subscriptionManagement: false,
     },
@@ -838,7 +839,7 @@ export default function AdminManagementPage() {
                 </Select>
               </div>
 
-              {/*selectedAdmin.adminType === "Custom" && (
+              {selectedAdmin.adminType === "custom" && (
                 <div className="gap-4 grid grid-cols-4">
                   <div className="pt-2 text-right">
                     <Label>Permissions</Label>
@@ -850,108 +851,32 @@ export default function AdminManagementPage() {
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-users-view"
-                            checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.VIEW
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: [
-                                    ...selectedAdmin.permissions,
-                                    PERMISSIONS.USERS.VIEW,
-                                  ],
-                                });
-                              } else {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW
-                                  ),
-                                });
-                              }
-                            }}
+                            checked={false}
+                            onCheckedChange={(checked) => {}}
                           />
                           <Label htmlFor="edit-users-view">View</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-users-edit"
-                            checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.EDIT
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: [
-                                    ...selectedAdmin.permissions,
-                                    PERMISSIONS.USERS.EDIT,
-                                  ],
-                                });
-                              } else {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT
-                                  ),
-                                });
-                              }
-                            }}
+                            checked={false}
+                            onCheckedChange={(checked) => {}}
                           />
                           <Label htmlFor="edit-users-edit">Edit</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-users-delete"
-                            checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.DELETE
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: [
-                                    ...selectedAdmin.permissions,
-                                    PERMISSIONS.USERS.DELETE,
-                                  ],
-                                });
-                              } else {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE
-                                  ),
-                                });
-                              }
-                            }}
+                            checked={false}
+                            onCheckedChange={(checked) => {}}
                           />
                           <Label htmlFor="edit-users-delete">Delete</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-users-manage-admins"
-                            checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.USERS.MANAGE_ADMINS
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: [
-                                    ...selectedAdmin.permissions,
-                                    PERMISSIONS.USERS.MANAGE_ADMINS,
-                                  ],
-                                });
-                              } else {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
-                                  ),
-                                });
-                              }
-                            }}
+                            checked={false}
+                            onCheckedChange={(checked) => {}}
                           />
                           <Label htmlFor="edit-users-manage-admins">
                             Manage Admins
@@ -966,54 +891,16 @@ export default function AdminManagementPage() {
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-properties-view"
-                            checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.PROPERTIES.VIEW
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: [
-                                    ...selectedAdmin.permissions,
-                                    PERMISSIONS.PROPERTIES.VIEW,
-                                  ],
-                                });
-                              } else {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
-                                  ),
-                                });
-                              }
-                            }}
+                            checked={false}
+                            onCheckedChange={(checked) => {}}
                           />
                           <Label htmlFor="edit-properties-view">View</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-properties-edit"
-                            checked={selectedAdmin.permissions.includes(
-                              PERMISSIONS.PROPERTIES.EDIT
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: [
-                                    ...selectedAdmin.permissions,
-                                    PERMISSIONS.PROPERTIES.EDIT,
-                                  ],
-                                });
-                              } else {
-                                setSelectedAdmin({
-                                  ...selectedAdmin,
-                                  permissions: selectedAdmin.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
-                                  ),
-                                });
-                              }
-                            }}
+                            checked={false}
+                            onCheckedChange={(checked) => {}}
                           />
                           <Label htmlFor="edit-properties-edit">Edit</Label>
                         </div>
@@ -1021,7 +908,7 @@ export default function AdminManagementPage() {
                     </div>
                   </div>
                 </div>
-              )*/}
+              )}
             </div>
             <DialogFooter>
               <Button type="submit" onClick={savePermissions}>

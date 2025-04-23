@@ -17,38 +17,6 @@ import { auth, fireDataBase } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-// Define permission types for admin roles
-const PERMISSIONS = {
-  USERS: {
-    VIEW: "users:view",
-    EDIT: "users:edit",
-    DELETE: "users:delete",
-    MANAGE_ADMINS: "users:manage_admins",
-  },
-  PROPERTIES: {
-    VIEW: "properties:view",
-    EDIT: "properties:edit",
-    DELETE: "properties:delete",
-    APPROVE: "properties:approve",
-  },
-  AGENTS: {
-    VIEW: "agents:view",
-    EDIT: "agents:edit",
-    DELETE: "agents:delete",
-    APPROVE: "agents:approve",
-  },
-  AGENCIES: {
-    VIEW: "agencies:view",
-    EDIT: "agencies:edit",
-    DELETE: "agencies:delete",
-    APPROVE: "agencies:approve",
-  },
-  SETTINGS: {
-    VIEW: "settings:view",
-    EDIT: "settings:edit",
-  },
-};
-
 interface AdminLayoutProps {
   children: ReactNode;
 }
