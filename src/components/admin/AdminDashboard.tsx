@@ -29,7 +29,6 @@ export default function AdminDashboard() {
     agents: 0,
     agencies: 0,
   });
-  useEffect(() => {}, []);
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
       try {
