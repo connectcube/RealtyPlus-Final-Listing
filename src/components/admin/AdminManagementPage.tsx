@@ -109,7 +109,7 @@ export const ADMIN_ROLES = {
   },
 };
 
-function AdminManagementPage() {
+export default function AdminManagementPage() {
   const [admin, setAdmin] = useState<ADMIN>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [admins, setAdmins] = useState<ADMIN[]>([]);
@@ -184,7 +184,6 @@ function AdminManagementPage() {
       unsubscribe();
     };
   }, []);
-
   const handleDeleteAdmin = (admin: ADMIN) => {
     setAdminToDelete(admin);
     setIsDeleteDialogOpen(true);
@@ -317,16 +316,45 @@ function AdminManagementPage() {
         return "bg-blue-100 text-blue-800";
     }
   };
-  const handleAdminPermissionUpdate = (adminType: ADMIN["adminType"]) => {
+  const handleAdminPermissionUpdate = async (
+    adminId: string,
+    adminType: ADMIN["adminType"]
+  ) => {
+    const adminRef = doc(fireDataBase, "admins", adminId);
     switch (adminType) {
       case "super admin":
-        console.log("Super Admin selected");
+        const superAdminPermissions = ADMIN_ROLES.SUPER_ADMIN.permissions;
+        await setDoc(
+          adminRef,
+          { permissions: superAdminPermissions, adminType: "super admin" },
+          { merge: true }
+        );
+        console.log(
+          "Super Admin selected with permissions:",
+          superAdminPermissions
+        );
         break;
       case "content admin":
-        console.log("Content Admin selected");
+        const contentAdminPermissions = ADMIN_ROLES.CONTENT_ADMIN.permissions;
+        await setDoc(
+          adminRef,
+          { permissions: contentAdminPermissions, adminType: "content admin" },
+          { merge: true }
+        );
+        console.log("Content Admin selected", contentAdminPermissions);
         break;
       case "user admin":
         console.log("User Admin selected");
+        const userAdminPermissions = ADMIN_ROLES.USER_ADMIN.permissions;
+        await setDoc(
+          adminRef,
+          { permissions: userAdminPermissions, adminType: "user admin" },
+          { merge: true }
+        );
+        console.log(
+          "User Admin selected with permissions:",
+          userAdminPermissions
+        );
         break;
       default:
         console.log("Other admin type selected");
@@ -395,7 +423,9 @@ function AdminManagementPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={`${getAdminTypeColor(adminS.adminType)}`}
+                            className={` ${getAdminTypeColor(
+                              adminS.adminType
+                            )}`}
                           >
                             {adminS.adminType}
                           </Badge>
@@ -403,7 +433,7 @@ function AdminManagementPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={`${getStatusColor(adminS.status)}`}
+                            className={` ${getStatusColor(adminS.status)}`}
                           >
                             {adminS.status}
                           </Badge>
@@ -586,10 +616,10 @@ function AdminManagementPage() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Super Admin">Super Admin</SelectItem>
-                  <SelectItem value="Content Admin">Content Admin</SelectItem>
-                  <SelectItem value="User Admin">User Admin</SelectItem>
-                  <SelectItem value="Custom">Custom Permissions</SelectItem>
+                  <SelectItem value="super admin">Super Admin</SelectItem>
+                  <SelectItem value="content admin">Content Admin</SelectItem>
+                  <SelectItem value="user admin">User Admin</SelectItem>
+                  <SelectItem value="custom">Custom Permissions</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -785,7 +815,15 @@ function AdminManagementPage() {
                 <Select
                   value={selectedAdmin.adminType}
                   onValueChange={(value) => {
-                    handleAdminPermissionUpdate(value as ADMIN["adminType"]);
+                    setSelectedAdmin({
+                      ...selectedAdmin,
+                      adminType: value as ADMIN["adminType"],
+                    });
+                    // Update the admin type in Firestore
+                    handleAdminPermissionUpdate(
+                      selectedAdmin.uid,
+                      value as ADMIN["adminType"]
+                    );
                   }}
                 >
                   <SelectTrigger className="col-span-3">
@@ -996,4 +1034,3 @@ function AdminManagementPage() {
     </AdminLayout>
   );
 }
-export default AdminManagementPage;
