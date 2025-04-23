@@ -11,14 +11,25 @@ import { Link } from "react-router-dom";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { auth, fireDataBase } from "@/lib/firebase";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getCountFromServer,
+  getDoc,
+} from "firebase/firestore";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LoadingSpinner } from "../globalScreens/Loader";
 
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<ADMIN | null>(null);
-
+  const [counts, setCounts] = useState({
+    users: 0,
+    properties: 0,
+    agents: 0,
+    agencies: 0,
+  });
+  useEffect(() => {}, []);
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
       try {
@@ -47,6 +58,38 @@ export default function AdminDashboard() {
           ...adminData,
           uid: adminSnapshot.id,
         });
+        const fetchCollectionCounts = async () => {
+          try {
+            // Create references to your collections
+            const usersCol = collection(fireDataBase, "users");
+            const propertiesCol = collection(fireDataBase, "listings");
+            const agentsCol = collection(fireDataBase, "agents");
+            const agenciesCol = collection(fireDataBase, "agencies");
+
+            // Get the count from each collection
+            const [
+              usersSnapshot,
+              propertiesSnapshot,
+              agentsSnapshot,
+              agenciesSnapshot,
+            ] = await Promise.all([
+              getCountFromServer(usersCol),
+              getCountFromServer(propertiesCol),
+              getCountFromServer(agentsCol),
+              getCountFromServer(agenciesCol),
+            ]);
+
+            setCounts({
+              users: usersSnapshot.data().count,
+              properties: propertiesSnapshot.data().count,
+              agents: agentsSnapshot.data().count,
+              agencies: agenciesSnapshot.data().count,
+            });
+          } catch (error) {
+            console.error("Error fetching collection counts:", error);
+          }
+        };
+        fetchCollectionCounts();
       } catch (error) {
         console.error("Error checking admin status:", error);
         await signOut(auth);
@@ -61,47 +104,46 @@ export default function AdminDashboard() {
   if (!admin) {
     return <LoadingSpinner />;
   }
-  // Mock data for dashboard stats
   const stats = [
     {
       name: "Total Users",
-      value: "2,543",
-      icon: <Users className="h-8 w-8" />,
+      value: counts.users.toLocaleString(),
+      icon: <Users className="w-8 h-8" />,
       color: "bg-blue-500",
       path: "/admin/users",
     },
     {
       name: "Properties Listed",
-      value: "1,259",
-      icon: <Home className="h-8 w-8" />,
+      value: counts.properties.toLocaleString(),
+      icon: <Home className="w-8 h-8" />,
       color: "bg-green-500",
       path: "/admin/properties",
     },
     {
-      name: "Active Agents",
-      value: "156",
-      icon: <UserCog className="h-8 w-8" />,
+      name: "Total Agents",
+      value: counts.agents.toLocaleString(),
+      icon: <UserCog className="w-8 h-8" />,
       color: "bg-purple-500",
       path: "/admin/agents",
     },
     {
       name: "Registered Agencies",
-      value: "42",
-      icon: <Building2 className="h-8 w-8" />,
+      value: counts.agencies.toLocaleString(),
+      icon: <Building2 className="w-8 h-8" />,
       color: "bg-orange-500",
       path: "/admin/agencies",
     },
     {
       name: "Monthly Revenue",
       value: "ZMW 248,900",
-      icon: <DollarSign className="h-8 w-8" />,
+      icon: <DollarSign className="w-8 h-8" />,
       color: "bg-emerald-500",
       path: "/admin/finance",
     },
     {
       name: "Growth Rate",
       value: "+24%",
-      icon: <TrendingUp className="h-8 w-8" />,
+      icon: <TrendingUp className="w-8 h-8" />,
       color: "bg-pink-500",
       path: "/admin/analytics",
     },
@@ -147,7 +189,7 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="font-bold text-2xl tracking-tight">
             Welcome to RealtyPlus Admin
           </h2>
           <p className="text-muted-foreground">
@@ -156,21 +198,21 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="gap-4 grid md:grid-cols-2 lg:grid-cols-3">
           {stats.map((stat) => (
             <Link to={stat.path} key={stat.name}>
               <Card
-                className="p-4 border-l-4 hover:shadow-md transition-shadow cursor-pointer"
+                className="hover:shadow-md p-4 border-l-4 transition-shadow cursor-pointer"
                 style={{
                   borderLeftColor: stat.color.replace("bg-", "rgb(var(--"),
                 }}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <p className="font-medium text-muted-foreground text-sm">
                       {stat.name}
                     </p>
-                    <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+                    <h3 className="mt-1 font-bold text-2xl">{stat.value}</h3>
                   </div>
                   <div className={`${stat.color} text-white p-3 rounded-full`}>
                     {stat.icon}
@@ -182,14 +224,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="gap-4 grid md:grid-cols-2">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+            <h3 className="mb-4 font-semibold text-lg">Recent Activity</h3>
             <div className="space-y-4">
               {recentActivities.map((activity, index) => (
                 <div
                   key={index}
-                  className="flex items-start pb-4 border-b last:border-0 last:pb-0"
+                  className="flex items-start pb-4 last:pb-0 last:border-0 border-b"
                 >
                   <div
                     className={`p-2 rounded-full mr-3 ${
@@ -203,18 +245,18 @@ export default function AdminDashboard() {
                     }`}
                   >
                     {activity.type === "property" ? (
-                      <Home className="h-5 w-5" />
+                      <Home className="w-5 h-5" />
                     ) : activity.type === "agent" ? (
-                      <UserCog className="h-5 w-5" />
+                      <UserCog className="w-5 h-5" />
                     ) : activity.type === "subscription" ? (
-                      <DollarSign className="h-5 w-5" />
+                      <DollarSign className="w-5 h-5" />
                     ) : (
-                      <Users className="h-5 w-5" />
+                      <Users className="w-5 h-5" />
                     )}
                   </div>
                   <div>
                     <p className="font-medium">{activity.action}</p>
-                    <div className="flex text-sm text-muted-foreground">
+                    <div className="flex text-muted-foreground text-sm">
                       <span>{activity.user}</span>
                       <span className="mx-2">•</span>
                       <span>{activity.time}</span>
@@ -226,34 +268,34 @@ export default function AdminDashboard() {
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <h3 className="mb-4 font-semibold text-lg">Quick Actions</h3>
+            <div className="gap-3 grid grid-cols-2">
               <Link
                 to="/admin/properties/add"
-                className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg flex flex-col items-center justify-center text-center transition-colors"
+                className="flex flex-col justify-center items-center bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition-colors"
               >
-                <Home className="h-8 w-8 text-blue-600 mb-2" />
+                <Home className="mb-2 w-8 h-8 text-blue-600" />
                 <span className="font-medium text-blue-700">Add Property</span>
               </Link>
               <Link
                 to="/admin/users/add"
-                className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg flex flex-col items-center justify-center text-center transition-colors"
+                className="flex flex-col justify-center items-center bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition-colors"
               >
-                <Users className="h-8 w-8 text-purple-600 mb-2" />
+                <Users className="mb-2 w-8 h-8 text-purple-600" />
                 <span className="font-medium text-purple-700">Add User</span>
               </Link>
               <Link
                 to="/admin/agents/add"
-                className="p-4 bg-green-50 hover:bg-green-100 rounded-lg flex flex-col items-center justify-center text-center transition-colors"
+                className="flex flex-col justify-center items-center bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition-colors"
               >
-                <UserCog className="h-8 w-8 text-green-600 mb-2" />
+                <UserCog className="mb-2 w-8 h-8 text-green-600" />
                 <span className="font-medium text-green-700">Add Agent</span>
               </Link>
               <Link
                 to="/admin/agencies/add"
-                className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg flex flex-col items-center justify-center text-center transition-colors"
+                className="flex flex-col justify-center items-center bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition-colors"
               >
-                <Building2 className="h-8 w-8 text-orange-600 mb-2" />
+                <Building2 className="mb-2 w-8 h-8 text-orange-600" />
                 <span className="font-medium text-orange-700">Add Agency</span>
               </Link>
             </div>

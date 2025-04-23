@@ -148,22 +148,22 @@ export default function AdminManagementPage() {
       try {
         if (!user) {
           await signOut(auth);
-          //  window.location.href = "/";
-          // return;
+          window.location.href = "/";
+          return;
         }
         const adminRef = doc(fireDataBase, "admins", user.uid);
         const adminSnapshot = await getDoc(adminRef);
 
         if (!adminSnapshot.exists()) {
           await signOut(auth);
-          //   window.location.href = "/";
-          // return;
+          window.location.href = "/";
+          return;
         }
         const adminData = adminSnapshot.data() as ADMIN;
         if (!adminData.isApproved) {
           await signOut(auth);
-          // window.location.href = "/";
-          //  return;
+          window.location.href = "/";
+          return;
         }
         setAdmin({
           ...adminData,
@@ -177,7 +177,7 @@ export default function AdminManagementPage() {
         setAdmins(adminsList.filter((admin) => admin.uid !== user.uid));
       } catch (error) {
         await signOut(auth);
-        // window.location.href = "/";
+        window.location.href = "/";
       }
     };
     const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
