@@ -5,8 +5,7 @@ export interface ZustandStore {
 }
 export type USER = {
   status: "Active" | "Inactive" | "Suspended";
-  permissions: ADMINPERMISSIONS;
-  adminType: "super admin" | "content admin" | "user admin" | "custom";
+
   pfp?: string;
   firstname?: string;
   lastname?: string;
@@ -15,7 +14,7 @@ export type USER = {
   uid?: string;
   isSubscribed?: boolean;
   savedProperties?: string[];
-  userType: string;
+  userType?: "admin" | "agent" | "agency" | "user" | string;
   companyName?: string;
   firstName?: string;
   lastName?: string;

@@ -99,12 +99,25 @@ export default function UsersPage() {
   const [isEditPermissionsDialogOpen, setIsEditPermissionsDialogOpen] =
     useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [newAdminData, setNewAdminData] = useState({
-    name: "",
+  const [newAdminData, setNewAdminData] = useState<Partial<ADMIN>>({
+    firstName: "",
+    lastName: "",
     email: "",
-    adminRole: "User Admin",
-    customPermissions: [],
+    adminType: "user admin",
+    permissions: {
+      userRead: false,
+      userWrite: false,
+      listingRead: false,
+      listingWrite: false,
+      agentRead: false,
+      agentWrite: false,
+      agencyRead: false,
+      agencyWrite: false,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<(USER | ADMIN)[]>([]);
@@ -114,58 +127,85 @@ export default function UsersPage() {
       try {
         setIsLoading(true);
 
-        // Create references to collections
-        const usersRef = collection(fireDataBase, "users");
-        const agentsRef = collection(fireDataBase, "agents");
-        const agenciesRef = collection(fireDataBase, "agencies");
-        const adminsRef = collection(fireDataBase, "admins");
-
-        // Fetch data from all collections
         const [usersSnap, agentsSnap, agenciesSnap, adminsSnap] =
           await Promise.all([
-            getDocs(usersRef),
-            getDocs(agentsRef),
-            getDocs(agenciesRef),
-            getDocs(adminsRef),
+            getDocs(collection(fireDataBase, "users")),
+            getDocs(collection(fireDataBase, "agents")),
+            getDocs(collection(fireDataBase, "agencies")),
+            getDocs(collection(fireDataBase, "admins")),
           ]);
 
         const allUsers: (USER | ADMIN)[] = [];
 
         // Process regular users
         usersSnap.forEach((doc) => {
+          const userData = doc.data();
           allUsers.push({
-            ...(doc.data() as USER),
             uid: doc.id,
-            userType: "User",
-          });
+            firstName: userData.firstName || "",
+            lastName: userData.lastName || "",
+            email: userData.email || "",
+            userType: "user",
+            status: userData.status || "Active",
+            createdAt: userData.createdAt || null,
+          } as USER);
         });
 
         // Process agents
         agentsSnap.forEach((doc) => {
+          const agentData = doc.data();
           allUsers.push({
-            ...(doc.data() as USER),
             uid: doc.id,
-            userType: "Agent",
-          });
+            firstName: agentData.firstName || "",
+            lastName: agentData.lastName || "",
+            email: agentData.email || "",
+            userType: "agent",
+            status: agentData.status || "Active",
+            createdAt: agentData.createdAt || null,
+          } as USER);
         });
 
         // Process agencies
         agenciesSnap.forEach((doc) => {
+          const agencyData = doc.data();
           allUsers.push({
-            ...(doc.data() as USER),
             uid: doc.id,
-            userType: "Agency",
-          });
+            firstName: agencyData.firstName || "",
+            lastName: agencyData.lastName || "",
+            email: agencyData.email || "",
+            userType: "agency",
+            status: agencyData.status || "Active",
+            createdAt: agencyData.createdAt || null,
+          } as USER);
         });
 
         // Process admins
         adminsSnap.forEach((doc) => {
+          const adminData = doc.data();
           allUsers.push({
-            ...(doc.data() as ADMIN),
             uid: doc.id,
-            userType: "Admin",
-            status: doc.data().status || "Active",
-          });
+            firstName: adminData.firstName || "",
+            lastName: adminData.lastName || "",
+            email: adminData.email || "",
+            userType: "admin",
+            adminType: adminData.adminType || "custom",
+            status: adminData.status || "Active",
+            permissions: {
+              userRead: adminData.permissions?.userRead || false,
+              userWrite: adminData.permissions?.userWrite || false,
+              listingRead: adminData.permissions?.listingRead || false,
+              listingWrite: adminData.permissions?.listingWrite || false,
+              agentRead: adminData.permissions?.agentRead || false,
+              agentWrite: adminData.permissions?.agentWrite || false,
+              agencyRead: adminData.permissions?.agencyRead || false,
+              agencyWrite: adminData.permissions?.agencyWrite || false,
+              adminManagement: adminData.permissions?.adminManagement || false,
+              subscriptionManagement:
+                adminData.permissions?.subscriptionManagement || false,
+            },
+            createdAt: adminData.createdAt || null,
+            isApproved: adminData.isApproved || false,
+          } as ADMIN);
         });
 
         setUsers(allUsers);
@@ -198,13 +238,27 @@ export default function UsersPage() {
     );
   });
   // Simulate current user as Super Admin for this demo
-  const currentUser = {
+  const currentUser: ADMIN = {
     uid: "",
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
-    role: "Super Admin",
-    adminRole: "Super Admin",
-    permissions: {},
+    adminType: "super admin",
+    userType: "admin",
+    permissions: {
+      userRead: true,
+      userWrite: true,
+      listingRead: true,
+      listingWrite: true,
+      agentRead: true,
+      agentWrite: true,
+      agencyRead: true,
+      agencyWrite: true,
+      adminManagement: true,
+      subscriptionManagement: true,
+    },
+    createdAt: null,
+    isApproved: true,
     status: "Active",
   };
 
@@ -216,6 +270,9 @@ export default function UsersPage() {
   const handleDeleteUser = (user) => {
     setUserToDelete(user);
     setIsDeleteDialogOpen(true);
+  };
+  const isAdmin = (user: USER | ADMIN): user is ADMIN => {
+    return user.userType === "admin";
   };
 
   const confirmDelete = () => {
@@ -244,17 +301,28 @@ export default function UsersPage() {
   const saveNewAdmin = () => {
     setIsAddAdminDialogOpen(false);
     setNewAdminData({
-      name: "",
+      firstName: "",
       email: "",
-      adminRole: "User Admin",
-      customPermissions: [],
+      adminType: "user admin",
+      permissions: {
+        userRead: true,
+        userWrite: true,
+        listingRead: true,
+        listingWrite: true,
+        agentRead: true,
+        agentWrite: true,
+        agencyRead: true,
+        agencyWrite: true,
+        adminManagement: true,
+        subscriptionManagement: true,
+      },
     });
   };
 
   const savePermissions = () => {
     // In a real application, you would make an API call here
     const updatedUsers = users.map((user) => {
-      if (user.id === selectedUser.id) {
+      if (user.uid === selectedUser.id) {
         return selectedUser;
       }
       return user;
@@ -282,9 +350,10 @@ export default function UsersPage() {
     }
   };
 
-  const getRoleColor = (role: string, adminType?: string) => {
+  const getRoleColor = (role: string, adminType?: ADMIN["adminType"]) => {
     // First check if it's an admin with specific type
-    if (role === "Admin" && adminType) {
+    if (role === "admin" && adminType) {
+      // Changed from "Admin" to "admin"
       switch (adminType.toLowerCase()) {
         case "super admin":
           return "bg-red-100 text-red-800";
@@ -301,13 +370,13 @@ export default function UsersPage() {
 
     // For non-admin roles
     switch (role) {
-      case "Agent":
+      case "agent":
         return "bg-purple-100 text-purple-800";
-      case "Agency":
+      case "agency":
         return "bg-orange-100 text-orange-800";
-      case "Admin":
+      case "admin":
         return "bg-blue-100 text-blue-800";
-      default:
+      default: // user
         return "bg-gray-100 text-gray-800";
     }
   };
@@ -378,7 +447,7 @@ export default function UsersPage() {
                       <TableRow key={user.uid}>
                         <TableCell className="font-medium">
                           {`${user.firstName} ${user.lastName}`}
-                          {user.userType === "Admin" && (
+                          {isAdmin(user) && (
                             <div className="flex items-center mt-1">
                               <Shield className="mr-1 w-3 h-3 text-blue-600" />
                               <span className="text-blue-600 text-xs capitalize">
@@ -393,13 +462,11 @@ export default function UsersPage() {
                             variant="outline"
                             className={getRoleColor(
                               user.userType,
-                              user.userType === "Admin"
-                                ? (user as USER).adminType
-                                : undefined
+                              isAdmin(user) ? user.adminType : undefined
                             )}
                           >
-                            {user.userType === "Admin"
-                              ? `${user.userType} (${(user as USER).adminType})`
+                            {isAdmin(user)
+                              ? `${user.userType} (${user.adminType})`
                               : user.userType}
                           </Badge>
                         </TableCell>
@@ -536,9 +603,12 @@ export default function UsersPage() {
               </Label>
               <Input
                 id="name"
-                value={newAdminData.name}
+                value={newAdminData.firstName}
                 onChange={(e) =>
-                  setNewAdminData({ ...newAdminData, name: e.target.value })
+                  setNewAdminData({
+                    ...newAdminData,
+                    firstName: e.target.value,
+                  })
                 }
                 className="col-span-3"
               />
@@ -562,9 +632,12 @@ export default function UsersPage() {
                 Admin Role
               </Label>
               <Select
-                value={newAdminData.adminRole}
+                value={newAdminData.adminType}
                 onValueChange={(value) =>
-                  setNewAdminData({ ...newAdminData, adminRole: value })
+                  setNewAdminData({
+                    ...newAdminData,
+                    adminType: value as ADMIN["adminType"],
+                  })
                 }
               >
                 <SelectTrigger className="col-span-3">
@@ -579,7 +652,7 @@ export default function UsersPage() {
               </Select>
             </div>
 
-            {newAdminData.adminRole === "Custom" && (
+            {newAdminData.adminType === "custom" && (
               <div className="gap-4 grid grid-cols-4">
                 <div className="pt-2 text-right">
                   <Label>Permissions</Label>
@@ -591,27 +664,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="users-view"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.VIEW
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.VIEW,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="users-view">View</Label>
@@ -619,27 +674,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="users-edit"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.EDIT
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.EDIT,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="users-edit">Edit</Label>
@@ -647,27 +684,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="users-delete"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.DELETE
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.DELETE,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="users-delete">Delete</Label>
@@ -675,27 +694,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="users-manage-admins"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.MANAGE_ADMINS
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.USERS.MANAGE_ADMINS,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="users-manage-admins">
@@ -711,27 +712,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="properties-view"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.VIEW
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.PROPERTIES.VIEW,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="properties-view">View</Label>
@@ -739,27 +722,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="properties-edit"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.EDIT
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.PROPERTIES.EDIT,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="properties-edit">Edit</Label>
@@ -767,27 +732,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="properties-delete"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.DELETE
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.PROPERTIES.DELETE,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.DELETE
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="properties-delete">Delete</Label>
@@ -795,27 +742,9 @@ export default function UsersPage() {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="properties-approve"
-                          checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.APPROVE
-                          )}
+                          checked={false}
                           onCheckedChange={(checked) => {
-                            if (checked) {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions: [
-                                  ...newAdminData.customPermissions,
-                                  PERMISSIONS.PROPERTIES.APPROVE,
-                                ],
-                              });
-                            } else {
-                              setNewAdminData({
-                                ...newAdminData,
-                                customPermissions:
-                                  newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.APPROVE
-                                  ),
-                              });
-                            }
+                            console.log(checked);
                           }}
                         />
                         <Label htmlFor="properties-approve">Approve</Label>
