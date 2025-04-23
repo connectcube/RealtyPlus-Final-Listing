@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ADMIN, USER } from "@/lib/typeDefinitions";
+import { collection, getDocs, serverTimestamp } from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { useZustand } from "@/lib/zustand";
 
 // Define permission types for admin roles
 const PERMISSIONS = {
@@ -87,129 +91,8 @@ const PERMISSIONS = {
   },
 };
 
-// Admin role definitions
-const ADMIN_ROLES = {
-  SUPER_ADMIN: {
-    name: "Super Admin",
-    permissions: [
-      ...Object.values(PERMISSIONS.USERS),
-      ...Object.values(PERMISSIONS.PROPERTIES),
-      ...Object.values(PERMISSIONS.AGENTS),
-      ...Object.values(PERMISSIONS.AGENCIES),
-      ...Object.values(PERMISSIONS.SETTINGS),
-    ],
-  },
-  CONTENT_ADMIN: {
-    name: "Content Admin",
-    permissions: [
-      PERMISSIONS.USERS.VIEW,
-      PERMISSIONS.PROPERTIES.VIEW,
-      PERMISSIONS.PROPERTIES.EDIT,
-      PERMISSIONS.PROPERTIES.APPROVE,
-      PERMISSIONS.AGENTS.VIEW,
-      PERMISSIONS.AGENCIES.VIEW,
-    ],
-  },
-  USER_ADMIN: {
-    name: "User Admin",
-    permissions: [
-      PERMISSIONS.USERS.VIEW,
-      PERMISSIONS.USERS.EDIT,
-      PERMISSIONS.AGENTS.VIEW,
-      PERMISSIONS.AGENTS.EDIT,
-      PERMISSIONS.AGENCIES.VIEW,
-    ],
-  },
-};
-
 export default function UsersPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "Chanda Mutale",
-      email: "chanda@example.com",
-      role: "User",
-      status: "Active",
-      joined: "May 12, 2023",
-    },
-    {
-      id: 2,
-      name: "Mulenga Chipimo",
-      email: "mulenga@example.com",
-      role: "Agent",
-      status: "Active",
-      joined: "Jun 23, 2023",
-    },
-    {
-      id: 3,
-      name: "Bwalya Mwamba",
-      email: "bwalya@example.com",
-      role: "User",
-      status: "Inactive",
-      joined: "Feb 05, 2023",
-    },
-    {
-      id: 4,
-      name: "Natasha Zulu",
-      email: "natasha@example.com",
-      role: "Agency",
-      status: "Active",
-      joined: "Apr 18, 2023",
-    },
-    {
-      id: 5,
-      name: "James Banda",
-      email: "james@example.com",
-      role: "Agent",
-      status: "Suspended",
-      joined: "Jan 30, 2023",
-    },
-    {
-      id: 6,
-      name: "Thandiwe Phiri",
-      email: "thandiwe@example.com",
-      role: "User",
-      status: "Active",
-      joined: "Jul 14, 2023",
-    },
-    {
-      id: 7,
-      name: "Kapambwe Mwila",
-      email: "kapambwe@example.com",
-      role: "User",
-      status: "Active",
-      joined: "Aug 02, 2023",
-    },
-    {
-      id: 8,
-      name: "Chilufya Bowa",
-      email: "chilufya@example.com",
-      role: "Agency",
-      status: "Active",
-      joined: "Mar 11, 2023",
-    },
-    {
-      id: 9,
-      name: "Mwamba Tembo",
-      email: "mwamba@realtyplus.com",
-      role: "Admin",
-      adminRole: "Super Admin",
-      permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
-      status: "Active",
-      joined: "Jan 01, 2023",
-    },
-    {
-      id: 10,
-      name: "Lubinda Habeenzu",
-      email: "lubinda@realtyplus.com",
-      role: "Admin",
-      adminRole: "Content Admin",
-      permissions: ADMIN_ROLES.CONTENT_ADMIN.permissions,
-      status: "Active",
-      joined: "Feb 15, 2023",
-    },
-  ]);
+  const { user } = useZustand();
   const [userToDelete, setUserToDelete] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddAdminDialogOpen, setIsAddAdminDialogOpen] = useState(false);
@@ -222,20 +105,112 @@ export default function UsersPage() {
     adminRole: "User Admin",
     customPermissions: [],
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState<(USER | ADMIN)[]>([]);
 
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        setIsLoading(true);
+
+        // Create references to collections
+        const usersRef = collection(fireDataBase, "users");
+        const agentsRef = collection(fireDataBase, "agents");
+        const agenciesRef = collection(fireDataBase, "agencies");
+        const adminsRef = collection(fireDataBase, "admins");
+
+        // Fetch data from all collections
+        const [usersSnap, agentsSnap, agenciesSnap, adminsSnap] =
+          await Promise.all([
+            getDocs(usersRef),
+            getDocs(agentsRef),
+            getDocs(agenciesRef),
+            getDocs(adminsRef),
+          ]);
+
+        const allUsers: (USER | ADMIN)[] = [];
+
+        // Process regular users
+        usersSnap.forEach((doc) => {
+          allUsers.push({
+            ...(doc.data() as USER),
+            uid: doc.id,
+            userType: "User",
+          });
+        });
+
+        // Process agents
+        agentsSnap.forEach((doc) => {
+          allUsers.push({
+            ...(doc.data() as USER),
+            uid: doc.id,
+            userType: "Agent",
+          });
+        });
+
+        // Process agencies
+        agenciesSnap.forEach((doc) => {
+          allUsers.push({
+            ...(doc.data() as USER),
+            uid: doc.id,
+            userType: "Agency",
+          });
+        });
+
+        // Process admins
+        adminsSnap.forEach((doc) => {
+          allUsers.push({
+            ...(doc.data() as ADMIN),
+            uid: doc.id,
+            userType: "Admin",
+            status: doc.data().status || "Active",
+          });
+        });
+
+        setUsers(allUsers);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllUsers();
+  }, []);
+
+  const filteredUsers = users.filter((user) => {
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${user.firstName || ""} ${
+      user.lastName || ""
+    }`.toLowerCase();
+    const email = (user.email || "").toLowerCase();
+
+    return (
+      fullName.includes(searchLower) ||
+      email.includes(searchLower) ||
+      (user.userType || "").toLowerCase().includes(searchLower)
+    );
+  });
   // Simulate current user as Super Admin for this demo
   const currentUser = {
-    id: 9,
-    name: "Mwamba Tembo",
-    email: "mwamba@realtyplus.com",
-    role: "Admin",
+    uid: "",
+    name: "",
+    email: "",
+    role: "Super Admin",
     adminRole: "Super Admin",
-    permissions: ADMIN_ROLES.SUPER_ADMIN.permissions,
+    permissions: {},
+    status: "Active",
   };
 
   // Check if current user has a specific permission
   const hasPermission = (permission) => {
-    return currentUser.permissions.includes(permission);
+    return true; //currentUser.permissions.includes(permission);
   };
 
   const handleDeleteUser = (user) => {
@@ -247,7 +222,7 @@ export default function UsersPage() {
     if (userToDelete) {
       // In a real application, you would make an API call here
       // For now, we'll just update the local state
-      setUsers(users.filter((user) => user.id !== userToDelete.id));
+      setUsers(users.filter((user) => user.uid !== userToDelete.uid));
       toast({
         title: "User deleted",
         description: `${userToDelete.name} has been permanently removed from the platform.`,
@@ -267,31 +242,6 @@ export default function UsersPage() {
   };
 
   const saveNewAdmin = () => {
-    // In a real application, you would make an API call here
-    const newAdmin = {
-      id: users.length + 1,
-      name: newAdminData.name,
-      email: newAdminData.email,
-      role: "Admin",
-      adminRole: newAdminData.adminRole,
-      permissions:
-        newAdminData.adminRole === "Custom"
-          ? newAdminData.customPermissions
-          : ADMIN_ROLES[newAdminData.adminRole.toUpperCase().replace(" ", "_")]
-              ?.permissions || [],
-      status: "Active",
-      joined: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      }),
-    };
-
-    setUsers([...users, newAdmin]);
-    toast({
-      title: "Admin created",
-      description: `${newAdmin.name} has been added as a ${newAdmin.adminRole}.`,
-    });
     setIsAddAdminDialogOpen(false);
     setNewAdminData({
       name: "",
@@ -319,16 +269,6 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      // Only show admin users if the current user has permission to manage admins
-      (user.role !== "Admin" ||
-        hasPermission(PERMISSIONS.USERS.MANAGE_ADMINS) ||
-        user.id === currentUser.id),
-  );
-
   const getStatusColor = (status) => {
     switch (status) {
       case "Active":
@@ -342,7 +282,24 @@ export default function UsersPage() {
     }
   };
 
-  const getRoleColor = (role) => {
+  const getRoleColor = (role: string, adminType?: string) => {
+    // First check if it's an admin with specific type
+    if (role === "Admin" && adminType) {
+      switch (adminType.toLowerCase()) {
+        case "super admin":
+          return "bg-red-100 text-red-800";
+        case "content admin":
+          return "bg-emerald-100 text-emerald-800";
+        case "user admin":
+          return "bg-indigo-100 text-indigo-800";
+        case "custom":
+          return "bg-cyan-100 text-cyan-800";
+        default:
+          return "bg-blue-100 text-blue-800";
+      }
+    }
+
+    // For non-admin roles
     switch (role) {
       case "Agent":
         return "bg-purple-100 text-purple-800";
@@ -360,7 +317,7 @@ export default function UsersPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="font-bold text-2xl tracking-tight">
               User Management
             </h2>
             <p className="text-muted-foreground">
@@ -374,12 +331,12 @@ export default function UsersPage() {
                 className="flex items-center gap-2"
                 onClick={handleAddAdmin}
               >
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck className="w-4 h-4" />
                 Add Admin
               </Button>
             )}
             <Button className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
+              <UserPlus className="w-4 h-4" />
               Add New User
             </Button>
           </div>
@@ -387,9 +344,9 @@ export default function UsersPage() {
 
         <Card>
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
+            <div className="flex sm:flex-row flex-col justify-between gap-4 mb-6">
               <div className="relative w-full sm:w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 transform" />
                 <Input
                   placeholder="Search users..."
                   value={searchTerm}
@@ -398,12 +355,12 @@ export default function UsersPage() {
                 />
               </div>
               <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
+                <Filter className="w-4 h-4" />
                 Filter
               </Button>
             </div>
 
-            <div className="rounded-md border">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -418,14 +375,14 @@ export default function UsersPage() {
                 <TableBody>
                   {filteredUsers.length > 0 ? (
                     filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.uid}>
                         <TableCell className="font-medium">
-                          {user.name}
-                          {user.role === "Admin" && (
+                          {`${user.firstName} ${user.lastName}`}
+                          {user.userType === "Admin" && (
                             <div className="flex items-center mt-1">
-                              <Shield className="h-3 w-3 mr-1 text-blue-600" />
-                              <span className="text-xs text-blue-600">
-                                {user.adminRole}
+                              <Shield className="mr-1 w-3 h-3 text-blue-600" />
+                              <span className="text-blue-600 text-xs capitalize">
+                                {user.adminType}
                               </span>
                             </div>
                           )}
@@ -434,38 +391,46 @@ export default function UsersPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getRoleColor(user.role)}
+                            className={getRoleColor(
+                              user.userType,
+                              user.userType === "Admin"
+                                ? (user as USER).adminType
+                                : undefined
+                            )}
                           >
-                            {user.role}
+                            {user.userType === "Admin"
+                              ? `${user.userType} (${(user as USER).adminType})`
+                              : user.userType}
                           </Badge>
                         </TableCell>
+
                         <TableCell>
                           <Badge
                             variant="outline"
                             className={getStatusColor(user.status)}
                           >
-                            {user.status}
+                            {user.status || "N/A"}
                           </Badge>
                         </TableCell>
-                        <TableCell>{user.joined}</TableCell>
+                        <TableCell>created at</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
+                              <Button variant="ghost" className="p-0 w-8 h-8">
+                                <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>View Details</DropdownMenuItem>
-                              {(user.role !== "Admin" ||
+                              {(user.userType !== "Admin" ||
                                 hasPermission(
-                                  PERMISSIONS.USERS.MANAGE_ADMINS,
+                                  PERMISSIONS.USERS.MANAGE_ADMINS
                                 )) && (
                                 <DropdownMenuItem>Edit User</DropdownMenuItem>
                               )}
-                              {user.role === "Admin" &&
+                              {user.userType === "Admin" &&
                                 hasPermission(
-                                  PERMISSIONS.USERS.MANAGE_ADMINS,
+                                  PERMISSIONS.USERS.MANAGE_ADMINS
                                 ) && (
                                   <DropdownMenuItem
                                     onClick={() => handleEditPermissions(user)}
@@ -473,9 +438,9 @@ export default function UsersPage() {
                                     Manage Permissions
                                   </DropdownMenuItem>
                                 )}
-                              {(user.role !== "Admin" ||
+                              {(user.userType !== "Admin" ||
                                 hasPermission(
-                                  PERMISSIONS.USERS.MANAGE_ADMINS,
+                                  PERMISSIONS.USERS.MANAGE_ADMINS
                                 )) && (
                                 <>
                                   {user.status === "Active" ? (
@@ -493,11 +458,11 @@ export default function UsersPage() {
                                   )}
                                 </>
                               )}
-                              {(user.role !== "Admin" ||
+                              {(user.userType !== "Admin" ||
                                 (hasPermission(
-                                  PERMISSIONS.USERS.MANAGE_ADMINS,
+                                  PERMISSIONS.USERS.MANAGE_ADMINS
                                 ) &&
-                                  user.id !== currentUser.id)) && (
+                                  user.uid !== currentUser.uid)) && (
                                 <DropdownMenuItem
                                   className="text-red-600"
                                   onClick={() => handleDeleteUser(user)}
@@ -564,8 +529,8 @@ export default function UsersPage() {
               Create a new admin user with specific permissions.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
+          <div className="gap-4 grid py-4">
+            <div className="items-center gap-4 grid grid-cols-4">
               <Label htmlFor="name" className="text-right">
                 Name
               </Label>
@@ -578,7 +543,7 @@ export default function UsersPage() {
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="items-center gap-4 grid grid-cols-4">
               <Label htmlFor="email" className="text-right">
                 Email
               </Label>
@@ -592,7 +557,7 @@ export default function UsersPage() {
                 className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="items-center gap-4 grid grid-cols-4">
               <Label htmlFor="role" className="text-right">
                 Admin Role
               </Label>
@@ -615,19 +580,19 @@ export default function UsersPage() {
             </div>
 
             {newAdminData.adminRole === "Custom" && (
-              <div className="grid grid-cols-4 gap-4">
-                <div className="text-right pt-2">
+              <div className="gap-4 grid grid-cols-4">
+                <div className="pt-2 text-right">
                   <Label>Permissions</Label>
                 </div>
-                <div className="col-span-3 space-y-4">
+                <div className="space-y-4 col-span-3">
                   <div className="space-y-2">
                     <h4 className="font-medium">Users</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="gap-2 grid grid-cols-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="users-view"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.VIEW,
+                            PERMISSIONS.USERS.VIEW
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -643,7 +608,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW,
+                                    (p) => p !== PERMISSIONS.USERS.VIEW
                                   ),
                               });
                             }
@@ -655,7 +620,7 @@ export default function UsersPage() {
                         <Checkbox
                           id="users-edit"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.EDIT,
+                            PERMISSIONS.USERS.EDIT
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -671,7 +636,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT,
+                                    (p) => p !== PERMISSIONS.USERS.EDIT
                                   ),
                               });
                             }
@@ -683,7 +648,7 @@ export default function UsersPage() {
                         <Checkbox
                           id="users-delete"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.DELETE,
+                            PERMISSIONS.USERS.DELETE
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -699,7 +664,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE,
+                                    (p) => p !== PERMISSIONS.USERS.DELETE
                                   ),
                               });
                             }
@@ -711,7 +676,7 @@ export default function UsersPage() {
                         <Checkbox
                           id="users-manage-admins"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.USERS.MANAGE_ADMINS,
+                            PERMISSIONS.USERS.MANAGE_ADMINS
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -727,8 +692,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) =>
-                                      p !== PERMISSIONS.USERS.MANAGE_ADMINS,
+                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
                                   ),
                               });
                             }
@@ -743,12 +707,12 @@ export default function UsersPage() {
 
                   <div className="space-y-2">
                     <h4 className="font-medium">Properties</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="gap-2 grid grid-cols-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="properties-view"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.VIEW,
+                            PERMISSIONS.PROPERTIES.VIEW
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -764,7 +728,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
                                   ),
                               });
                             }
@@ -776,7 +740,7 @@ export default function UsersPage() {
                         <Checkbox
                           id="properties-edit"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.EDIT,
+                            PERMISSIONS.PROPERTIES.EDIT
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -792,7 +756,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
                                   ),
                               });
                             }
@@ -804,7 +768,7 @@ export default function UsersPage() {
                         <Checkbox
                           id="properties-delete"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.DELETE,
+                            PERMISSIONS.PROPERTIES.DELETE
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -820,7 +784,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.DELETE,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.DELETE
                                   ),
                               });
                             }
@@ -832,7 +796,7 @@ export default function UsersPage() {
                         <Checkbox
                           id="properties-approve"
                           checked={newAdminData.customPermissions.includes(
-                            PERMISSIONS.PROPERTIES.APPROVE,
+                            PERMISSIONS.PROPERTIES.APPROVE
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -848,7 +812,7 @@ export default function UsersPage() {
                                 ...newAdminData,
                                 customPermissions:
                                   newAdminData.customPermissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.APPROVE,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.APPROVE
                                   ),
                               });
                             }
@@ -883,12 +847,12 @@ export default function UsersPage() {
                 Modify permissions for {selectedUser.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
+            <div className="gap-4 grid py-4">
+              <div className="items-center gap-4 grid grid-cols-4">
                 <Label htmlFor="edit-role" className="text-right">
                   Admin Role
                 </Label>
-                <Select
+                {/*<Select
                   value={selectedUser.adminRole}
                   onValueChange={(value) => {
                     if (value !== "Custom") {
@@ -916,23 +880,23 @@ export default function UsersPage() {
                     <SelectItem value="User Admin">User Admin</SelectItem>
                     <SelectItem value="Custom">Custom Permissions</SelectItem>
                   </SelectContent>
-                </Select>
+                </Select>*/}
               </div>
 
               {selectedUser.adminRole === "Custom" && (
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-right pt-2">
+                <div className="gap-4 grid grid-cols-4">
+                  <div className="pt-2 text-right">
                     <Label>Permissions</Label>
                   </div>
-                  <div className="col-span-3 space-y-4">
+                  <div className="space-y-4 col-span-3">
                     <div className="space-y-2">
                       <h4 className="font-medium">Users</h4>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="gap-2 grid grid-cols-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-users-view"
                             checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.VIEW,
+                              PERMISSIONS.USERS.VIEW
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -947,7 +911,7 @@ export default function UsersPage() {
                                 setSelectedUser({
                                   ...selectedUser,
                                   permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW,
+                                    (p) => p !== PERMISSIONS.USERS.VIEW
                                   ),
                                 });
                               }
@@ -959,7 +923,7 @@ export default function UsersPage() {
                           <Checkbox
                             id="edit-users-edit"
                             checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.EDIT,
+                              PERMISSIONS.USERS.EDIT
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -974,7 +938,7 @@ export default function UsersPage() {
                                 setSelectedUser({
                                   ...selectedUser,
                                   permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT,
+                                    (p) => p !== PERMISSIONS.USERS.EDIT
                                   ),
                                 });
                               }
@@ -986,7 +950,7 @@ export default function UsersPage() {
                           <Checkbox
                             id="edit-users-delete"
                             checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.DELETE,
+                              PERMISSIONS.USERS.DELETE
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -1001,7 +965,7 @@ export default function UsersPage() {
                                 setSelectedUser({
                                   ...selectedUser,
                                   permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE,
+                                    (p) => p !== PERMISSIONS.USERS.DELETE
                                   ),
                                 });
                               }
@@ -1013,7 +977,7 @@ export default function UsersPage() {
                           <Checkbox
                             id="edit-users-manage-admins"
                             checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.MANAGE_ADMINS,
+                              PERMISSIONS.USERS.MANAGE_ADMINS
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -1028,8 +992,7 @@ export default function UsersPage() {
                                 setSelectedUser({
                                   ...selectedUser,
                                   permissions: selectedUser.permissions.filter(
-                                    (p) =>
-                                      p !== PERMISSIONS.USERS.MANAGE_ADMINS,
+                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
                                   ),
                                 });
                               }
@@ -1044,12 +1007,12 @@ export default function UsersPage() {
 
                     <div className="space-y-2">
                       <h4 className="font-medium">Properties</h4>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="gap-2 grid grid-cols-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="edit-properties-view"
                             checked={selectedUser.permissions.includes(
-                              PERMISSIONS.PROPERTIES.VIEW,
+                              PERMISSIONS.PROPERTIES.VIEW
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -1064,7 +1027,7 @@ export default function UsersPage() {
                                 setSelectedUser({
                                   ...selectedUser,
                                   permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
                                   ),
                                 });
                               }
@@ -1076,7 +1039,7 @@ export default function UsersPage() {
                           <Checkbox
                             id="edit-properties-edit"
                             checked={selectedUser.permissions.includes(
-                              PERMISSIONS.PROPERTIES.EDIT,
+                              PERMISSIONS.PROPERTIES.EDIT
                             )}
                             onCheckedChange={(checked) => {
                               if (checked) {
@@ -1091,7 +1054,7 @@ export default function UsersPage() {
                                 setSelectedUser({
                                   ...selectedUser,
                                   permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT,
+                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
                                   ),
                                 });
                               }

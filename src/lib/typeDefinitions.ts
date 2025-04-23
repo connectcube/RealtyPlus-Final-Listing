@@ -4,7 +4,9 @@ export interface ZustandStore {
   setUser: (user: USER | null) => void;
 }
 export type USER = {
-  // Existing user properties
+  status: "Active" | "Inactive" | "Suspended";
+  permissions: ADMINPERMISSIONS;
+  adminType: "super admin" | "content admin" | "user admin" | "custom";
   pfp?: string;
   firstname?: string;
   lastname?: string;
@@ -54,7 +56,8 @@ export type ADMIN = {
   firstName: string;
   lastName: string;
   email: string;
-  adminType: "super admin" | "content admin" | "user admin" | "custom"; // Updated to match actual roles
+  adminType: "super admin" | "content admin" | "user admin" | "custom";
+  userType?: "admin" | "agent" | "agency" | "user";
   createdAt: Timestamp | FieldValue | null;
   isApproved: boolean;
   permissions: ADMINPERMISSIONS;
