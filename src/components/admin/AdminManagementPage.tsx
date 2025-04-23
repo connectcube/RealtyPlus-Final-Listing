@@ -358,7 +358,27 @@ export default function AdminManagementPage() {
         );
         break;
       default:
-        console.log("Other admin type selected");
+        const userContentAdminPermissions = {
+          userRead: true,
+          userWrite: true,
+          listingRead: true,
+          listingWrite: true,
+          agentRead: true,
+          agentWrite: true,
+          agencyRead: true,
+          agencyWrite: true,
+          adminManagement: false,
+          subscriptionManagement: false,
+        };
+        await setDoc(
+          adminRef,
+          { permissions: userContentAdminPermissions, adminType: "custom" },
+          { merge: true }
+        );
+        console.log(
+          "User Admin selected with permissions:",
+          userContentAdminPermissions
+        );
     }
   };
 
@@ -455,7 +475,7 @@ export default function AdminManagementPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleEditPermissions(adminS, null)
+                                  handleEditPermissions(adminS, adminS.status)
                                 }
                               >
                                 Manage Permissions
@@ -845,64 +865,28 @@ export default function AdminManagementPage() {
                     <Label>Permissions</Label>
                   </div>
                   <div className="space-y-4 col-span-3">
+                    <h4 className="font-medium">Multi select</h4>
                     <div className="space-y-2">
-                      <h4 className="font-medium">Users</h4>
-                      <div className="gap-2 grid grid-cols-2">
+                      <div className="gap-2 grid grid-cols-1">
                         <div className="flex items-center space-x-2">
                           <Checkbox
-                            id="edit-users-view"
-                            checked={false}
-                            onCheckedChange={(checked) => {}}
+                            id="user admin"
+                            checked={selectedAdmin.adminType === "custom"}
+                            onCheckedChange={(checked) => {
+                              setSelectedAdmin({
+                                ...selectedAdmin,
+                                adminType: checked ? "custom" : "content admin",
+                              });
+                              // Update the admin type in Firestore
+                              handleAdminPermissionUpdate(
+                                selectedAdmin.uid,
+                                "custom"
+                              );
+                            }}
                           />
-                          <Label htmlFor="edit-users-view">View</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-edit"
-                            checked={false}
-                            onCheckedChange={(checked) => {}}
-                          />
-                          <Label htmlFor="edit-users-edit">Edit</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-delete"
-                            checked={false}
-                            onCheckedChange={(checked) => {}}
-                          />
-                          <Label htmlFor="edit-users-delete">Delete</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-manage-admins"
-                            checked={false}
-                            onCheckedChange={(checked) => {}}
-                          />
-                          <Label htmlFor="edit-users-manage-admins">
-                            Manage Admins
+                          <Label htmlFor="user admin">
+                            User Admin and Content Admin
                           </Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Properties</h4>
-                      <div className="gap-2 grid grid-cols-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-properties-view"
-                            checked={false}
-                            onCheckedChange={(checked) => {}}
-                          />
-                          <Label htmlFor="edit-properties-view">View</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-properties-edit"
-                            checked={false}
-                            onCheckedChange={(checked) => {}}
-                          />
-                          <Label htmlFor="edit-properties-edit">Edit</Label>
                         </div>
                       </div>
                     </div>
