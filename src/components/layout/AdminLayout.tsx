@@ -88,25 +88,30 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       name: "Users",
       path: "/admin/users",
       icon: <Users className="w-5 h-5" />,
-      toShow: true,
+      toShow:
+        currentUser.permissions.userRead && currentUser.permissions.userWrite,
     },
     {
       name: "Properties",
       path: "/admin/properties",
       icon: <Home className="w-5 h-5" />,
-      toShow: true,
+      toShow:
+        currentUser.permissions.listingRead &&
+        currentUser.permissions.listingWrite,
     },
     {
       name: "Agents",
       path: "/admin/agents",
       icon: <UserCog className="w-5 h-5" />,
-      toShow: true,
+      toShow:
+        currentUser.permissions.userRead && currentUser.permissions.userWrite,
     },
     {
       name: "Agencies",
       path: "/admin/agencies",
       icon: <Building2 className="w-5 h-5" />,
-      toShow: true,
+      toShow:
+        currentUser.permissions.userRead && currentUser.permissions.userWrite,
     },
     {
       name: "Admin Management",

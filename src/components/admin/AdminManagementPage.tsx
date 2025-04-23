@@ -415,10 +415,10 @@ export default function AdminManagementPage() {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" className="flex items-center gap-2">
+              {/*<Button variant="outline" className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
                 Filter
-              </Button>
+              </Button>*/}
             </div>
 
             <div className="border rounded-md">
