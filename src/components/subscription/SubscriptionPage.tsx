@@ -12,6 +12,7 @@ import {
 } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { SubscriptionPackage } from "@/types/Subscription";
+import { useZustand } from "@/lib/zustand";
 
 const subscriptionPackages: SubscriptionPackage[] = [
   {
@@ -71,53 +72,59 @@ const subscriptionPackages: SubscriptionPackage[] = [
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
+  const { user } = useZustand();
 
   const handleSelectPackage = (packageId: string) => {
     // Here you would typically process the subscription
     // For now, we'll just navigate to a success page or dashboard
-    navigate(`/agent/subscription/success?package=${packageId}`);
+    const userType = user.userType === "agent" ? "agent" : "agency";
+    navigate(`/${userType}/subscription/success?package=${packageId}`);
   };
 
   return (
-    <div className="container mx-auto py-10 px-4 md:px-6 bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto text-center mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+    <div className="bg-gray-50 mx-auto px-4 md:px-6 py-10 min-h-screen container">
+      <div className="mx-auto mb-10 max-w-5xl text-center">
+        <h1 className="mb-4 font-bold text-gray-900 text-3xl">
           Choose Your Subscription Plan
         </h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
+        <p className="mx-auto max-w-2xl text-gray-600">
           Select the perfect plan for your real estate business. Upgrade or
           downgrade anytime as your needs change.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      <div className="gap-6 grid grid-cols-1 md:grid-cols-3 mx-auto max-w-5xl">
         {subscriptionPackages.map((pkg) => (
           <Card
             key={pkg.id}
-            className={`flex flex-col h-full ${pkg.isPopular ? "border-realtyplus shadow-lg ring-2 ring-realtyplus" : "border-gray-200"}`}
+            className={`flex flex-col h-full ${
+              pkg.isPopular
+                ? "border-realtyplus shadow-lg ring-2 ring-realtyplus"
+                : "border-gray-200"
+            }`}
           >
             <CardHeader
               className={`pb-4 ${pkg.isPopular ? "bg-realtyplus/5" : ""}`}
             >
               {pkg.isPopular && (
-                <Badge className="w-fit mx-auto mb-2 bg-realtyplus text-white">
+                <Badge className="bg-realtyplus mx-auto mb-2 w-fit text-white">
                   Most Popular
                 </Badge>
               )}
-              <CardTitle className="text-xl font-bold text-center">
+              <CardTitle className="font-bold text-xl text-center">
                 {pkg.name}
               </CardTitle>
               <CardDescription className="text-center">
                 {pkg.description}
               </CardDescription>
               <div className="mt-4 text-center">
-                <span className="text-3xl font-bold">
+                <span className="font-bold text-3xl">
                   {pkg.currency}
                   {pkg.price}
                 </span>
-                <span className="text-gray-500 ml-1">/month per agent</span>
+                <span className="ml-1 text-gray-500">/month per agent</span>
               </div>
-              <p className="text-center font-medium mt-2">
+              <p className="mt-2 font-medium text-center">
                 {pkg.listingsPerMonth} listings per month
               </p>
             </CardHeader>
@@ -125,7 +132,7 @@ const SubscriptionPage = () => {
               <ul className="space-y-3">
                 {pkg.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
+                    <Check className="mt-0.5 mr-2 w-5 h-5 text-green-500 shrink-0" />
                     <span className="text-gray-700">{feature}</span>
                   </li>
                 ))}
@@ -134,7 +141,9 @@ const SubscriptionPage = () => {
             <CardFooter className="pt-4">
               <Button
                 onClick={() => handleSelectPackage(pkg.id)}
-                className={`w-full ${pkg.isPopular ? "bg-realtyplus hover:bg-realtyplus-dark" : ""}`}
+                className={`w-full ${
+                  pkg.isPopular ? "bg-realtyplus hover:bg-realtyplus-dark" : ""
+                }`}
                 variant={pkg.isPopular ? "default" : "outline"}
               >
                 {pkg.tier === "free" ? "Start Free Trial" : "Select Plan"}
@@ -144,7 +153,7 @@ const SubscriptionPage = () => {
         ))}
       </div>
 
-      <div className="mt-12 text-center text-gray-600">
+      <div className="mt-12 text-gray-600 text-center">
         <p>Have questions about our subscription plans?</p>
         <p className="mt-2">
           <a href="/contact" className="text-realtyplus hover:underline">

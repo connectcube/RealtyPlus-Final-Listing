@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { SubscriptionPackage } from "@/types/Subscription";
+import { useZustand } from "@/lib/zustand";
 
 // This would typically come from your API or context
 const subscriptionPackages: Record<string, SubscriptionPackage> = {
@@ -71,6 +72,8 @@ const subscriptionPackages: Record<string, SubscriptionPackage> = {
 
 const SubscriptionSuccess = () => {
   const navigate = useNavigate();
+  const { user } = useZustand();
+  const userType = user.userType === "agent" ? "agent" : "agency";
   const [searchParams] = useSearchParams();
   const [selectedPackage, setSelectedPackage] =
     useState<SubscriptionPackage | null>(null);
@@ -84,13 +87,13 @@ const SubscriptionSuccess = () => {
 
   if (!selectedPackage) {
     return (
-      <div className="container mx-auto py-10 px-4 text-center">
+      <div className="mx-auto px-4 py-10 text-center container">
         <p>
           No subscription package selected. Please go back and select a package.
         </p>
         <Button
           onClick={() => navigate("/agent/subscription")}
-          className="mt-4 bg-realtyplus hover:bg-realtyplus-dark"
+          className="bg-realtyplus hover:bg-realtyplus-dark mt-4"
         >
           Back to Subscription Plans
         </Button>
@@ -99,13 +102,13 @@ const SubscriptionSuccess = () => {
   }
 
   return (
-    <div className="container mx-auto py-10 px-4 md:px-6 bg-gray-50 min-h-screen">
-      <Card className="max-w-2xl mx-auto bg-white shadow-lg">
+    <div className="bg-gray-50 mx-auto px-4 md:px-6 py-10 min-h-screen container">
+      <Card className="bg-white shadow-lg mx-auto max-w-2xl">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-green-100 mb-4">
-            <CheckCircle className="h-10 w-10 text-green-600" />
+          <div className="flex justify-center items-center bg-green-100 mx-auto mb-4 rounded-full w-16 h-16">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <CardTitle className="font-bold text-gray-900 text-2xl">
             Subscription Confirmed!
           </CardTitle>
           <CardDescription>
@@ -115,10 +118,10 @@ const SubscriptionSuccess = () => {
 
         <CardContent className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-2">
+            <h3 className="mb-2 font-medium text-gray-900">
               Subscription Details
             </h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="gap-2 grid grid-cols-2 text-sm">
               <div className="text-gray-500">Plan:</div>
               <div className="font-medium">{selectedPackage.name}</div>
 
@@ -142,13 +145,13 @@ const SubscriptionSuccess = () => {
                 {selectedPackage.tier === "free"
                   ? "N/A (Free Trial)"
                   : new Date(
-                      Date.now() + 30 * 24 * 60 * 60 * 1000,
+                      Date.now() + 30 * 24 * 60 * 60 * 1000
                     ).toLocaleDateString()}
               </div>
             </div>
           </div>
 
-          <div className="text-center text-gray-600">
+          <div className="text-gray-600 text-center">
             <p>You can now start adding property listings to your account.</p>
             <p className="mt-1">
               Your subscription can be managed from your agent dashboard.
@@ -156,9 +159,9 @@ const SubscriptionSuccess = () => {
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col sm:flex-row gap-3 justify-center">
+        <CardFooter className="flex sm:flex-row flex-col justify-center gap-3">
           <Button
-            onClick={() => navigate("/agent/dashboard")}
+            onClick={() => navigate(`/${userType}/dashboard`)}
             className="bg-realtyplus hover:bg-realtyplus-dark"
           >
             Go to Dashboard

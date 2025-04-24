@@ -100,6 +100,10 @@ function App() {
             path="/agent/subscription/success"
             element={<SubscriptionSuccess />}
           />
+          <Route
+            path="/agency/subscription/success"
+            element={<SubscriptionSuccess />}
+          />
           <Route path="/agent/dashboard" element={<AgentDashboard />} />
           <Route path="/agent/profile" element={<AgentProfile />} />
           <Route path="/agent/:id" element={<AgentPublicProfile />} />
