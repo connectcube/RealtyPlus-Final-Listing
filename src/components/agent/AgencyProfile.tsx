@@ -359,6 +359,7 @@ const AgencyLogoUpload = ({
   isEditing: boolean;
   onImageUpload: (url: string) => void;
 }) => {
+  const { user, setUser } = useZustand();
   const [uploading, setUploading] = useState(false);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,19 +381,42 @@ const AgencyLogoUpload = ({
         return;
       }
 
+      // Create a reference to the profile picture with user's ID
       const fileExt = file.name.split(".").pop();
-      const fileName = `agency-logos/${Date.now()}-${file.name}`;
-      const storageRef = ref(fireStorage, fileName);
+      const fileName = `${user?.uid}-${Date.now()}.${fileExt}`;
+      const storageRef = ref(
+        fireStorage,
+        `profile-pictures/${user?.uid}/${fileName}`
+      );
 
       // Upload file
-      await uploadBytes(storageRef, file);
+      const uploadTask = await uploadBytes(storageRef, file, {
+        customMetadata: {
+          uploadedBy: user?.uid, // Add metadata about who uploaded
+          uploadedAt: new Date().toISOString(),
+        },
+      });
 
       // Get download URL
-      const downloadURL = await getDownloadURL(storageRef);
+      const downloadURL = await getDownloadURL(uploadTask.ref);
       onImageUpload(downloadURL);
+      // Update user profile in Firestore
+      const userRef = doc(fireDataBase, "agencies", user.uid);
+
+      await updateDoc(userRef, {
+        pfp: downloadURL,
+      });
+
+      // Update local user state
+      setUser({
+        ...user,
+        pfp: downloadURL,
+      });
+
+      toast.success("Profile picture updated successfully!");
     } catch (error) {
-      console.error("Error uploading logo:", error);
-      toast.error("Failed to upload logo");
+      console.error("Error uploading profile picture:", error);
+      toast.error("Failed to upload profile picture");
     } finally {
       setUploading(false);
     }
