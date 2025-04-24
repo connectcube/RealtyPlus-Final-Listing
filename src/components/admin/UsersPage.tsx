@@ -394,16 +394,6 @@ export default function UsersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {hasPermission(PERMISSIONS.USERS.MANAGE_ADMINS) && (
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={handleAddAdmin}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Add Admin
-              </Button>
-            )}
             <Button className="flex items-center gap-2">
               <UserPlus className="w-4 h-4" />
               Add New User
@@ -479,7 +469,9 @@ export default function UsersPage() {
                             {user.status || "N/A"}
                           </Badge>
                         </TableCell>
-                        <TableCell>created at</TableCell>
+                        <TableCell>
+                          {user.createdAt.toDate().toLocaleDateString()}
+                        </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -584,7 +576,7 @@ export default function UsersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add Admin Dialog */}
+      {/* Add Admin Dialog 
       <Dialog
         open={isAddAdminDialogOpen}
         onOpenChange={setIsAddAdminDialogOpen}
@@ -762,7 +754,7 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+        */}
       {/* Edit Permissions Dialog */}
       {selectedUser && (
         <Dialog

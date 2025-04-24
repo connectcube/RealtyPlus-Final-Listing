@@ -57,7 +57,7 @@ export type ADMIN = {
   email: string;
   adminType: "super admin" | "content admin" | "user admin" | "custom";
   userType?: "admin" | "agent" | "agency" | "user";
-  createdAt: Timestamp | FieldValue | null;
+  createdAt: Timestamp | null;
   isApproved: boolean;
   permissions: ADMINPERMISSIONS;
   status: "Active" | "Inactive" | "Suspended";
