@@ -6,6 +6,7 @@ import {
   Building,
   Edit,
   Globe,
+  Loader2,
   Mail,
   Phone,
   Save,
@@ -22,9 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { fireDataBase } from "@/lib/firebase";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { toast } from "react-toastify";
 import Header from "../layout/Header";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export default function AgencyProfile() {
   const { user, setUser } = useZustand();
@@ -44,6 +46,7 @@ export default function AgencyProfile() {
     address: user?.address || "",
     city: user?.city || "",
     numberOfAgents: user?.numberOfAgents || "",
+    pfp: user?.pfp || "",
   });
 
   const handleInputChange = (
@@ -83,9 +86,9 @@ export default function AgencyProfile() {
   return (
     <div className="w-full h-full">
       <Header />
-      <Card className="w-full max-w-7xl mx-auto shadow-lg rounded-lg overflow-hidden mt-4">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 bg-gray-50">
-          <CardTitle className="text-2xl font-bold text-gray-800">
+      <Card className="shadow-lg mx-auto mt-4 rounded-lg w-full max-w-7xl overflow-hidden">
+        <CardHeader className="flex flex-row justify-between items-center space-y-0 bg-gray-50 p-6">
+          <CardTitle className="font-bold text-gray-800 text-2xl">
             Agency Profile
           </CardTitle>
           <div className="flex gap-2">
@@ -97,7 +100,7 @@ export default function AgencyProfile() {
                   onClick={() => setIsEditing(false)}
                   disabled={loading}
                 >
-                  <X className="h-4 w-4 mr-2" />
+                  <X className="mr-2 w-4 h-4" />
                   Cancel
                 </Button>
                 <Button
@@ -106,7 +109,7 @@ export default function AgencyProfile() {
                   onClick={handleSubmit}
                   disabled={loading}
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="mr-2 w-4 h-4" />
                   Save Changes
                 </Button>
               </>
@@ -116,7 +119,7 @@ export default function AgencyProfile() {
                 size="sm"
                 onClick={() => setIsEditing(true)}
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="mr-2 w-4 h-4" />
                 Edit Profile
               </Button>
             )}
@@ -124,7 +127,7 @@ export default function AgencyProfile() {
         </CardHeader>
 
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="gap-8 grid grid-cols-1 lg:grid-cols-2">
             {/* Company Information */}
             <div className="space-y-6">
               <div className="space-y-4">
@@ -181,7 +184,7 @@ export default function AgencyProfile() {
                   </>
                 ) : (
                   <>
-                    <h3 className="text-2xl font-semibold text-gray-900">
+                    <h3 className="font-semibold text-gray-900 text-2xl">
                       {user?.companyName}
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -190,16 +193,23 @@ export default function AgencyProfile() {
                       <Badge className="text-sm"></Badge>
                       {user?.numberOfAgents} Agents
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-gray-600 text-sm">
                       Reg. No: {user?.businessRegistrationNumber}
                     </p>
                   </>
                 )}
               </div>
-
+              <AgencyLogoUpload
+                pfp={formData.pfp}
+                companyName={formData.companyName}
+                isEditing={isEditing}
+                onImageUpload={(url) =>
+                  setFormData((prev) => ({ ...prev, pfp: url }))
+                }
+              />
               {/* Company Description */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">
+                <label className="font-medium text-gray-600 text-sm">
                   Company Description
                 </label>
                 {isEditing ? (
@@ -211,7 +221,7 @@ export default function AgencyProfile() {
                     placeholder="Enter company description"
                   />
                 ) : (
-                  <p className="text-sm text-gray-700">
+                  <p className="text-gray-700 text-sm">
                     {user?.companyDescription}
                   </p>
                 )}
@@ -220,13 +230,13 @@ export default function AgencyProfile() {
 
             {/* Contact Information */}
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h4 className="font-medium text-lg mb-4">
+              <div className="bg-white shadow-sm p-6 border rounded-lg">
+                <h4 className="mb-4 font-medium text-lg">
                   Contact Information
                 </h4>
                 {isEditing ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="gap-4 grid grid-cols-2">
                       <Input
                         name="firstName"
                         value={formData.firstName}
@@ -269,41 +279,41 @@ export default function AgencyProfile() {
                 ) : (
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
-                      <Mail className="h-5 w-5 text-gray-500" />
-                      <span className="text-sm text-gray-700">
+                      <Mail className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-700 text-sm">
                         {user?.email}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <Phone className="h-5 w-5 text-gray-500" />
-                      <span className="text-sm text-gray-700">
+                      <Phone className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-700 text-sm">
                         {user?.phone}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <Globe className="h-5 w-5 text-gray-500" />
+                      <Globe className="w-5 h-5 text-gray-500" />
                       <a
                         href={user?.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-blue-600 text-sm hover:underline"
                       >
                         {user?.website}
                       </a>
                     </div>
                     <div className="pt-2 border-t">
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="font-medium text-gray-700 text-sm">
                         {user?.firstName} {user?.lastName}
                       </p>
-                      <p className="text-sm text-gray-600">{user?.position}</p>
+                      <p className="text-gray-600 text-sm">{user?.position}</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Location Information */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h4 className="font-medium text-lg mb-4">Location</h4>
+              <div className="bg-white shadow-sm p-6 border rounded-lg">
+                <h4 className="mb-4 font-medium text-lg">Location</h4>
                 {isEditing ? (
                   <div className="space-y-4">
                     <Input
@@ -321,10 +331,10 @@ export default function AgencyProfile() {
                   </div>
                 ) : (
                   <div className="flex items-start">
-                    <Building className="h-5 w-5 text-gray-500 mr-3 mt-1" />
+                    <Building className="mt-1 mr-3 w-5 h-5 text-gray-500" />
                     <div>
-                      <p className="text-sm text-gray-700">{user?.address}</p>
-                      <p className="text-sm text-gray-700 capitalize">
+                      <p className="text-gray-700 text-sm">{user?.address}</p>
+                      <p className="text-gray-700 text-sm capitalize">
                         {user?.city}
                       </p>
                     </div>
@@ -338,3 +348,94 @@ export default function AgencyProfile() {
     </div>
   );
 }
+const AgencyLogoUpload = ({
+  pfp,
+  companyName,
+  isEditing,
+  onImageUpload,
+}: {
+  pfp: string;
+  companyName: string;
+  isEditing: boolean;
+  onImageUpload: (url: string) => void;
+}) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+
+    try {
+      setUploading(true);
+      const file = e.target.files[0];
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be less than 5MB");
+        return;
+      }
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `agency-logos/${Date.now()}-${file.name}`;
+      const storageRef = ref(fireStorage, fileName);
+
+      // Upload file
+      await uploadBytes(storageRef, file);
+
+      // Get download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      onImageUpload(downloadURL);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error("Failed to upload logo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="relative mx-auto mb-4 w-32 h-32">
+      <div className="border-2 border-gray-200 rounded-lg w-full h-full overflow-hidden">
+        {pfp ? (
+          <img
+            src={pfp}
+            alt={`${companyName} logo`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="flex justify-center items-center bg-gray-50 w-full h-full">
+            <Building className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
+      </div>
+
+      {isEditing && (
+        <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
+          <label
+            className="bg-white shadow-lg p-2 rounded-full cursor-pointer"
+            htmlFor="company-logo"
+          >
+            {uploading ? (
+              <Loader2 className="w-5 h-5 text-gray-600 animate-spin" />
+            ) : (
+              <Edit className="w-5 h-5 text-gray-600" />
+            )}
+          </label>
+          <input
+            type="file"
+            id="company-logo"
+            className="hidden"
+            accept="image/*"
+            onChange={handleLogoUpload}
+            disabled={uploading}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
