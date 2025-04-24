@@ -17,9 +17,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Filter, Plus, Link2 } from "lucide-react";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { Link } from "react-router-dom";
 
@@ -27,6 +43,9 @@ export default function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState(null);
+
   useEffect(() => {
     const fetchProperties = async () => {
       try {
@@ -100,6 +119,28 @@ export default function PropertiesPage() {
     publicPath = collectionPath === "agencies" ? "agency" : "agent";
     console.log("Public path", publicPath);
     return `/${publicPath}/${id}`;
+  };
+
+  const handleStatusChange = async (propertyId) => {
+    const propertyRef = doc(fireDataBase, "listings", propertyId);
+    await setDoc(propertyRef, { status: "sold/rented" });
+
+    const updatedProperties = properties.map((property) =>
+      property.id === propertyId
+        ? { ...property, status: "sold/rented" }
+        : property
+    );
+    setProperties(updatedProperties);
+  };
+  const confirmDelete = async (propertyId) => {
+    console.log("Deleting property with ID:", propertyId);
+    // Handle the deletion logic here
+    const propertyRef = doc(fireDataBase, "listings", propertyId);
+    await deleteDoc(propertyRef);
+    const updatedProperties = properties.filter(
+      (property) => property.id !== propertyId
+    );
+    setProperties(updatedProperties);
   };
   if (loading) {
     return (
@@ -206,7 +247,11 @@ export default function PropertiesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Link to={`/property/${property.id}`}>
+                                  View Details
+                                </Link>
+                              </DropdownMenuItem>
                               <DropdownMenuItem>Edit Property</DropdownMenuItem>
                               {property.status === "Active" ? (
                                 <DropdownMenuItem className="text-amber-600">
@@ -218,11 +263,22 @@ export default function PropertiesPage() {
                                 </DropdownMenuItem>
                               ) : null}
                               {property.status !== "Sold/Rented" && (
-                                <DropdownMenuItem className="text-blue-600">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    handleStatusChange(property.id);
+                                  }}
+                                  className="text-blue-600"
+                                >
                                   Mark as Sold/Rented
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setPropertyToDelete(property);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="text-red-600"
+                              >
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -243,6 +299,36 @@ export default function PropertiesPage() {
           </div>
         </Card>
       </div>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              property
+              {propertyToDelete && (
+                <span className="font-semibold">
+                  {" "}
+                  {propertyToDelete.title}{" "}
+                </span>
+              )}
+              and remove their data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmDelete(propertyToDelete.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }
