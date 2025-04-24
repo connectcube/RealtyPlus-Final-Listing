@@ -36,8 +36,10 @@ import {
   getDocs,
   setDoc,
 } from "firebase/firestore";
-import { fireDataBase } from "@/lib/firebase";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import { deleteObject, ref } from "firebase/storage";
 
 export default function PropertiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -132,16 +134,51 @@ export default function PropertiesPage() {
     );
     setProperties(updatedProperties);
   };
-  const confirmDelete = async (propertyId) => {
-    console.log("Deleting property with ID:", propertyId);
-    // Handle the deletion logic here
-    const propertyRef = doc(fireDataBase, "listings", propertyId);
-    await deleteDoc(propertyRef);
-    const updatedProperties = properties.filter(
-      (property) => property.id !== propertyId
-    );
-    setProperties(updatedProperties);
+
+  const confirmDelete = async (property) => {
+    try {
+      console.log("Deleting property with ID:", property.id);
+
+      // 1. Delete all images from Storage
+      if (property.images && property.images.length > 0) {
+        const deleteImagePromises = property.images.map(async (imageUrl) => {
+          try {
+            // Convert full URL to storage reference path
+            // Example: from "https://firebasestorage.googleapis.com/v0/b/your-app.appspot.com/o/properties%2Fimage.jpg"
+            // to "properties/image.jpg"
+            const storageRef = ref(
+              fireStorage,
+              decodeURIComponent(imageUrl.split("/o/")[1].split("?")[0])
+            );
+            await deleteObject(storageRef);
+          } catch (error) {
+            console.error(`Failed to delete image: ${imageUrl}`, error);
+            // Continue with other deletions even if one fails
+          }
+        });
+
+        // Wait for all image deletions to complete
+        await Promise.all(deleteImagePromises);
+      }
+
+      // 2. Delete the property document from Firestore
+      const propertyRef = doc(fireDataBase, "listings", property.id);
+      await deleteDoc(propertyRef);
+
+      // 3. Update local state
+      const updatedProperties = properties.filter((p) => p.id !== property.id);
+      setProperties(updatedProperties);
+
+      // Optional: Show success message
+      toast.success("Property deleted successfully");
+    } catch (error) {
+      console.error("Error deleting property:", error);
+      // Optional: Show error message
+      toast.error("Failed to delete property");
+      throw error;
+    }
   };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -321,7 +358,7 @@ export default function PropertiesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmDelete(propertyToDelete.id)}
+              onClick={() => confirmDelete(propertyToDelete)}
               className="bg-red-600 hover:bg-red-700"
             >
               Delete

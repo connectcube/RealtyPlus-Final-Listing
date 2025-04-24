@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { doc, DocumentReference, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -23,21 +23,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { fireDataBase } from "@/lib/firebase";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { toast } from "react-toastify";
 import Header from "../layout/Header";
 import { USER } from "@/lib/typeDefinitions";
 import { LoadingSpinner } from "../globalScreens/Loader";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export default function AgentProfile() {
   const { user, setUser } = useZustand();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saving, isSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<USER>({
+    status: "Active",
+    uid: user?.uid || "",
     licenseNumber: user?.licenseNumber || "",
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
+    pfp: user?.pfp || "",
     agentType: user?.agentType || "",
     email: user?.email || "",
     phone: user?.phone || "",
@@ -53,6 +56,12 @@ export default function AgentProfile() {
     },
     address: user?.address || "",
     city: user?.city || "",
+    termsAccepted: true,
+    subscription: null,
+    enquiries: null,
+    views: 0,
+    experience: "",
+    authProvider: user?.authProvider || "",
   });
   const specialtyOptions = [
     "Residential",
@@ -139,9 +148,9 @@ export default function AgentProfile() {
   return (
     <div className="w-full h-full">
       <Header />
-      <Card className="w-full max-w-7xl mx-auto shadow-lg rounded-lg overflow-hidden mt-4">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 bg-gray-50">
-          <CardTitle className="text-2xl font-bold text-gray-800">
+      <Card className="shadow-lg mx-auto mt-4 rounded-lg w-full max-w-7xl overflow-hidden">
+        <CardHeader className="flex flex-row justify-between items-center space-y-0 bg-gray-50 p-6">
+          <CardTitle className="font-bold text-gray-800 text-2xl">
             Agent Profile
           </CardTitle>
           <div className="flex gap-2">
@@ -153,7 +162,7 @@ export default function AgentProfile() {
                   onClick={() => setIsEditing(false)}
                   disabled={loading}
                 >
-                  <X className="h-4 w-4 mr-2" />
+                  <X className="mr-2 w-4 h-4" />
                   Cancel
                 </Button>
                 <Button
@@ -162,11 +171,11 @@ export default function AgentProfile() {
                   onClick={handleSubmit}
                   disabled={loading}
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="mr-2 w-4 h-4" />
                   Save Changes{" "}
                   {loading && (
                     <>
-                      <Loader2 className="animate-spin mx-1" />{" "}
+                      <Loader2 className="mx-1 animate-spin" />{" "}
                     </>
                   )}
                 </Button>
@@ -177,7 +186,7 @@ export default function AgentProfile() {
                 size="sm"
                 onClick={() => setIsEditing(true)}
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="mr-2 w-4 h-4" />
                 Edit Profile
               </Button>
             )}
@@ -185,7 +194,7 @@ export default function AgentProfile() {
         </CardHeader>
 
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="gap-8 grid grid-cols-1 lg:grid-cols-2">
             {/* Company Information */}
             <div className="space-y-6">
               <div className="space-y-4">
@@ -214,8 +223,8 @@ export default function AgentProfile() {
                       </SelectContent>
                     </Select>
                     {/* Specialties Section */}
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <h4 className="font-medium text-lg mb-4">Specialties</h4>
+                    <div className="bg-white shadow-sm p-6 border rounded-lg">
+                      <h4 className="mb-4 font-medium text-lg">Specialties</h4>
                       {isEditing ? (
                         <div className="space-y-4">
                           <Select onValueChange={handleAddSpecialty}>
@@ -237,13 +246,13 @@ export default function AgentProfile() {
                             </SelectContent>
                           </Select>
                           <div className="flex flex-wrap gap-2 mt-4">
-                            <h1 className="w-full text-xl font-semibold">
+                            <h1 className="w-full font-semibold text-xl">
                               Specialties
                             </h1>
                             {formData.specialties.map((specialty) => (
                               <span
                                 key={specialty}
-                                className="px-3 py-1 flex items-center gap-2 bg-slate-400/5 rounded"
+                                className="flex items-center gap-2 bg-slate-400/5 px-3 py-1 rounded"
                               >
                                 {specialty}
 
@@ -253,7 +262,7 @@ export default function AgentProfile() {
                                   }
                                   className="text-black hover:text-gray-700"
                                 >
-                                  <X className="h-3 w-3" />
+                                  <X className="w-3 h-3" />
                                 </button>
                               </span>
                             ))}
@@ -266,7 +275,7 @@ export default function AgentProfile() {
                           ))}
                           {(!user?.specialties ||
                             user.specialties.length === 0) && (
-                            <p className="text-sm text-gray-500">
+                            <p className="text-gray-500 text-sm">
                               No specialties added
                             </p>
                           )}
@@ -276,20 +285,22 @@ export default function AgentProfile() {
                   </>
                 ) : (
                   <>
-                    <h3 className="text-2xl font-semibold text-gray-900">
-                      {`${user?.firstName} ${user?.lastName}`}
-                    </h3>
+                    <AgentPfpAndNameCard
+                      isEditing={isEditing}
+                      formData={formData}
+                      setFormData={setFormData}
+                    />
                     <div className="flex flex-wrap gap-2 capitalize">
                       Agent Type: {user?.agentType?.replace(/_/g, " ")}
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4">
-                      <h1 className="w-full text-xl font-semibold">
+                      <h1 className="w-full font-semibold text-xl">
                         Specialties
                       </h1>
                       {formData.specialties.map((specialty) => (
                         <span
                           key={specialty}
-                          className="px-3 py-1 flex items-center gap-2 bg-slate-400/5 rounded"
+                          className="flex items-center gap-2 bg-slate-400/5 px-3 py-1 rounded"
                         >
                           {specialty}
 
@@ -298,13 +309,13 @@ export default function AgentProfile() {
                               onClick={() => handleRemoveSpecialty(specialty)}
                               className="text-black hover:text-gray-700"
                             >
-                              <X className="h-3 w-3" />
+                              <X className="w-3 h-3" />
                             </button>
                           )}
                         </span>
                       ))}
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-gray-600 text-sm">
                       License No: {user?.licenseNumber}
                     </p>
                   </>
@@ -319,23 +330,14 @@ export default function AgentProfile() {
 
             {/* Contact Information */}
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white shadow-sm p-6 border rounded-lg">
                 {isEditing ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        placeholder="First Name"
-                      />
-                      <Input
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        placeholder="Last Name"
-                      />
-                    </div>
+                    <AgentPfpAndNameCard
+                      isEditing={isEditing}
+                      formData={formData}
+                      setFormData={setFormData}
+                    />
                     <Input
                       name="position"
                       value={formData.agentType}
@@ -377,63 +379,63 @@ export default function AgentProfile() {
                 ) : (
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
-                      <Mail className="h-5 w-5 text-gray-500" />
-                      <span className="text-sm text-gray-700">
+                      <Mail className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-700 text-sm">
                         {user?.email}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <Phone className="h-5 w-5 text-gray-500" />
-                      <span className="text-sm text-gray-700">
+                      <Phone className="w-5 h-5 text-gray-500" />
+                      <span className="text-gray-700 text-sm">
                         {user?.phone}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <Globe className="h-5 w-5 text-gray-500" />
+                      <Globe className="w-5 h-5 text-gray-500" />
                       <a
                         href={user?.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-blue-600 text-sm hover:underline"
                       >
                         {user?.website}
                       </a>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <Globe className="h-5 w-5 text-gray-500" />
+                      <Globe className="w-5 h-5 text-gray-500" />
                       <a
                         href={user?.social.linkedin}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-blue-600 text-sm hover:underline"
                       >
                         {user?.social.linkedin}
                       </a>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <Globe className="h-5 w-5 text-gray-500" />
+                      <Globe className="w-5 h-5 text-gray-500" />
                       <a
                         href={user?.social.twitter}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-blue-600 text-sm hover:underline"
                       >
                         {user?.social.twitter}
                       </a>
                     </div>
                     <div className="pt-2 border-t">
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="font-medium text-gray-700 text-sm">
                         {user?.firstName} {user?.lastName}
                       </p>
-                      <p className="text-sm text-gray-600">{user?.agentType}</p>
+                      <p className="text-gray-600 text-sm">{user?.agentType}</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Location Information */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h4 className="font-medium text-lg mb-4">Location</h4>
+              <div className="bg-white shadow-sm p-6 border rounded-lg">
+                <h4 className="mb-4 font-medium text-lg">Location</h4>
                 {isEditing ? (
                   <div className="space-y-4">
                     <Input
@@ -451,10 +453,10 @@ export default function AgentProfile() {
                   </div>
                 ) : (
                   <div className="flex items-start">
-                    <Building className="h-5 w-5 text-gray-500 mr-3 mt-1" />
+                    <Building className="mt-1 mr-3 w-5 h-5 text-gray-500" />
                     <div>
-                      <p className="text-sm text-gray-700">{user?.address}</p>
-                      <p className="text-sm text-gray-700 capitalize">
+                      <p className="text-gray-700 text-sm">{user?.address}</p>
+                      <p className="text-gray-700 text-sm capitalize">
                         {user?.city}
                       </p>
                     </div>
@@ -468,6 +470,184 @@ export default function AgentProfile() {
     </div>
   );
 }
+const AgentPfpAndNameCard = ({
+  isEditing,
+  formData,
+  setFormData,
+}: {
+  isEditing: boolean;
+  formData: USER;
+  setFormData: React.Dispatch<React.SetStateAction<USER>>;
+}) => {
+  const { user, setUser } = useZustand();
+  const [uploading, setUploading] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setUser({
+      ...user,
+      [name]: value,
+    });
+  };
+
+  const handleProfilePicture = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!e.target.files || !e.target.files[0]) return;
+
+    try {
+      setUploading(true);
+      const file = e.target.files[0];
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be less than 5MB");
+        return;
+      }
+
+      // Create a reference to the profile picture with user's ID
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user?.uid}-${Date.now()}.${fileExt}`;
+      const storageRef = ref(
+        fireStorage,
+        `profile-pictures/${user?.uid}/${fileName}`
+      );
+
+      // Upload file
+      const uploadTask = await uploadBytes(storageRef, file, {
+        customMetadata: {
+          uploadedBy: user?.uid, // Add metadata about who uploaded
+          uploadedAt: new Date().toISOString(),
+        },
+      });
+
+      // Get download URL
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+
+      // Update user profile in Firestore
+      const userRef = doc(fireDataBase, "agents", user?.uid);
+
+      await updateDoc(userRef, {
+        pfp: downloadURL,
+      });
+
+      // Update local user state
+      setUser({
+        ...user,
+        pfp: downloadURL,
+      });
+
+      toast.success("Profile picture updated successfully!");
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      toast.error("Failed to upload profile picture");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-4 bg-white p-4 border rounded-lg">
+      {/* Profile Picture */}
+      <div className="relative">
+        <div className="bg-gray-100 rounded-full w-24 h-24 overflow-hidden">
+          {formData.pfp ? (
+            <img
+              src={formData.pfp}
+              alt={`${formData.firstName} ${formData.lastName}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="flex justify-center items-center bg-gray-200 w-full h-full">
+              <span className="font-semibold text-gray-500 text-2xl">
+                {formData.firstName?.[0]}
+                {formData.lastName?.[0]}
+              </span>
+            </div>
+          )}
+
+          {/* Upload overlay when editing */}
+          {isEditing && (
+            <div className="absolute inset-0 flex justify-center items-center">
+              <label
+                className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white transition-all cursor-pointer"
+                htmlFor="profile-picture"
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Edit className="w-5 h-5" />
+                )}
+              </label>
+              <input
+                type="file"
+                id="profile-picture"
+                className="hidden"
+                accept="image/*"
+                onChange={handleProfilePicture}
+                disabled={uploading}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Name and Title */}
+      <div className="flex-1">
+        {isEditing ? (
+          <div className="space-y-2">
+            <Input
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleInputChange}
+              placeholder="First Name"
+              className="w-full"
+            />
+            <Input
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleInputChange}
+              placeholder="Last Name"
+              className="w-full"
+            />
+            <Input
+              name="agentType"
+              value={formData.agentType}
+              onChange={handleInputChange}
+              placeholder="Agent Type"
+              className="w-full"
+            />
+            <Input
+              name="licenseNumber"
+              value={formData.licenseNumber}
+              onChange={handleInputChange}
+              placeholder="License Number"
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <>
+            <h2 className="font-semibold text-gray-900 text-xl">
+              {formData.firstName} {formData.lastName}
+            </h2>
+            <p className="mt-1 text-gray-500 text-sm capitalize">
+              {formData.agentType?.replace(/_/g, " ")}
+            </p>
+            <p className="mt-1 text-gray-500 text-sm">
+              License No: {formData.licenseNumber}
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Add this component within AgentProfile.tsx
 const CompanyCard = ({ agencyId }: { agencyId: string }) => {
@@ -496,11 +676,11 @@ const CompanyCard = ({ agencyId }: { agencyId: string }) => {
 
   if (loading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+      <div className="bg-white shadow-sm p-6 border rounded-lg">
+        <div className="space-y-4 animate-pulse">
+          <div className="bg-gray-200 rounded w-3/4 h-4"></div>
+          <div className="bg-gray-200 rounded w-1/2 h-4"></div>
+          <div className="bg-gray-200 rounded w-2/3 h-4"></div>
         </div>
       </div>
     );
@@ -508,48 +688,48 @@ const CompanyCard = ({ agencyId }: { agencyId: string }) => {
 
   if (!agencyData) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white shadow-sm p-6 border rounded-lg">
         <p className="text-gray-500">No company information available</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-5">Agency</h1>
+    <div className="bg-white shadow-sm p-6 border rounded-lg">
+      <h1 className="mb-5 font-semibold text-gray-900 text-2xl">Agency</h1>
       <div className="space-y-6">
         {/* Company Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="font-semibold text-gray-900 text-xl">
               {agencyData.companyName}
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="mt-1 text-gray-500 text-sm">
               {agencyData.businessType?.replace(/_/g, " ")}
             </p>
           </div>
-          <Building2 className="h-6 w-6 text-gray-400" />
+          <Building2 className="w-6 h-6 text-gray-400" />
         </div>
 
         {/* Company Details */}
         <div className="space-y-4">
           <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600">
+            <span className="text-gray-600 text-sm">
               Reg. No: {agencyData.businessRegistrationNumber}
             </span>
           </div>
           {agencyData.companyDescription && (
-            <div className="border-t pt-4">
-              <p className="text-sm text-gray-600 leading-relaxed">
+            <div className="pt-4 border-t">
+              <p className="text-gray-600 text-sm leading-relaxed">
                 {agencyData.companyDescription}
               </p>
             </div>
           )}
 
           {(agencyData.address || agencyData.city) && (
-            <div className="flex items-start space-x-3 border-t pt-4">
-              <Building className="h-5 w-5 text-gray-500 mt-0.5" />
-              <div className="text-sm text-gray-600">
+            <div className="flex items-start space-x-3 pt-4 border-t">
+              <Building className="mt-0.5 w-5 h-5 text-gray-500" />
+              <div className="text-gray-600 text-sm">
                 {agencyData.address && <p>{agencyData.address}</p>}
                 {agencyData.city && (
                   <p className="capitalize">{agencyData.city}</p>
