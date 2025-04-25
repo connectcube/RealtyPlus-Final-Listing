@@ -148,11 +148,11 @@ const FeaturedProperties = ({
     return user.savedProperties.includes(propertyId);
   };
   return (
-    <section id="featured-properties" className="py-12 bg-gray-50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
+    <section id="featured-properties" className="bg-gray-50 py-12">
+      <div className="mx-auto px-4 container">
+        <div className="mb-10 text-center">
+          <h2 className="mb-3 font-bold text-gray-900 text-3xl">{title}</h2>
+          <p className="mx-auto max-w-2xl text-gray-600">{subtitle}</p>
         </div>
 
         <div className="flex justify-between items-center mb-6">
@@ -176,7 +176,7 @@ const FeaturedProperties = ({
               onClick={() => setViewMode("grid")}
               aria-label="Grid view"
             >
-              <Grid3X3 className="h-4 w-4" />
+              <Grid3X3 className="w-4 h-4" />
             </Button>
             <Button
               variant={viewMode === "list" ? "default" : "outline"}
@@ -184,23 +184,23 @@ const FeaturedProperties = ({
               onClick={() => setViewMode("list")}
               aria-label="List view"
             >
-              <List className="h-4 w-4" />
+              <List className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="gap-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <Card key={index} className="h-[380px] bg-white">
-                <CardContent className="p-0 h-full flex items-center justify-center">
-                  <div className="animate-pulse w-full h-full">
-                    <div className="bg-gray-200 h-48 w-full"></div>
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-full"></div>
-                      <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <Card key={index} className="bg-white h-[380px]">
+                <CardContent className="flex justify-center items-center p-0 h-full">
+                  <div className="w-full h-full animate-pulse">
+                    <div className="bg-gray-200 w-full h-48"></div>
+                    <div className="space-y-3 p-4">
+                      <div className="bg-gray-200 rounded w-3/4 h-4"></div>
+                      <div className="bg-gray-200 rounded w-1/2 h-4"></div>
+                      <div className="bg-gray-200 rounded w-full h-4"></div>
+                      <div className="bg-gray-200 rounded w-full h-4"></div>
                     </div>
                   </div>
                 </CardContent>
@@ -233,13 +233,14 @@ const FeaturedProperties = ({
                 onFavorite={handleFavClick}
                 isFavorite={() => handleCheckFav(property.uid)}
                 onClick={handlePropertyClick}
+                viewCount={property.viewCount}
               />
             ))}
           </div>
         ) : (
-          <Card className="p-8 text-center bg-white">
+          <Card className="bg-white p-8 text-center">
             <CardContent>
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="mb-2 font-semibold text-xl">
                 No properties found
               </h3>
               <p className="text-gray-600">

@@ -5,7 +5,6 @@ export interface ZustandStore {
 }
 export type USER = {
   status: "Active" | "Inactive" | "Suspended";
-
   pfp?: string;
   firstname?: string;
   lastname?: string;
@@ -109,6 +108,7 @@ export type LISTING = {
   area: number;
   garageSpaces: number;
   yearBuilt: number;
+  viewCount: number;
   isFurnished: false;
   province: string;
   city: string;

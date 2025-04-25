@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   FileText,
   XCircle,
+  EyeIcon,
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
@@ -38,6 +39,8 @@ import { LoadingSpinner } from "../globalScreens/Loader";
 import { ErrorMessage } from "../globalScreens/Error";
 import { NotFound } from "../globalScreens/Message";
 import { DownloadPDFButton } from "./PropertPDFDownload";
+import formatViewCount from "@/helpers/formatViewCount";
+import updateViewCount from "@/services/listingViewCountUpdate";
 
 interface FormData {
   name: string;
@@ -117,7 +120,12 @@ ${formData.name}
         if (!isMounted) return;
 
         setProperty(propertyWithId);
-
+        try {
+          await updateViewCount(id);
+        } catch (viewError) {
+          console.error("Failed to update view count:", viewError);
+          // Don't set error state here as it's not critical to the user experience
+        }
         // If we have a postedBy reference, fetch user data immediately
         if (propertyData.postedBy) {
           setLoadingPoster(true);
@@ -651,6 +659,12 @@ ${formData.name}
               <MapPin className="mr-1 w-4 h-4 text-gray-500" />
               <span className="text-gray-600">
                 {property.neighborhood}, {property.city}, {property.province}
+              </span>
+            </div>
+            <div className="flex items-center mt-2">
+              <EyeIcon className="mr-1 w-4 h-4 text-gray-500" />
+              <span className="text-gray-600">
+                {formatViewCount(property.viewCount)} views
               </span>
             </div>
           </div>

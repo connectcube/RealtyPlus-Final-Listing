@@ -2,7 +2,17 @@ import React from "react";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import { cn } from "@/lib/utils";
-import { Heart, MapPin, Bed, Bath, Grid, ArrowUpRight } from "lucide-react";
+import {
+  Heart,
+  MapPin,
+  Bed,
+  Bath,
+  Grid,
+  ArrowUpRight,
+  Eye,
+  EyeIcon,
+  EyeOff,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import {
   Tooltip,
@@ -11,6 +21,8 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { Link } from "react-router-dom";
+import { EyeOpenIcon } from "@radix-ui/react-icons";
+import formatViewCount from "@/helpers/formatViewCount";
 
 interface PropertyCardProps {
   id?: string;
@@ -36,6 +48,7 @@ interface PropertyCardProps {
   yearBuilt?: number | string;
   onFavorite?: (id: string) => void;
   onClick?: (id: string) => void;
+  viewCount?: number;
 }
 
 const PropertyCard = ({
@@ -54,6 +67,7 @@ const PropertyCard = ({
   yearBuilt = 2020,
   onFavorite = () => {},
   onClick = () => {},
+  viewCount = 0,
 }: PropertyCardProps) => {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,23 +80,23 @@ const PropertyCard = ({
   const isFavorited = isFavorite();
   return (
     <Card
-      className="overflow-hidden transition-all duration-300 hover:shadow-lg bg-white cursor-pointer h-full flex flex-col"
+      className="flex flex-col bg-white hover:shadow-lg h-full overflow-hidden transition-all duration-300 cursor-pointer"
       onClick={handleCardClick}
     >
       <div className="relative">
-        <div className="absolute top-2 right-2 z-10">
+        <div className="top-2 right-2 z-10 absolute">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full bg-white/80 hover:bg-white"
+                  className="bg-white/80 hover:bg-white rounded-full"
                   onClick={handleFavoriteClick}
                 >
                   <Heart
                     fill={isFavorited ? "#ef4444" : "#ffffff"}
-                    className="h-5 w-5 text-gray-600 hover:text-red-500"
+                    className="w-5 h-5 text-gray-600 hover:text-red-500"
                   />
                 </Button>
               </TooltipTrigger>
@@ -94,29 +108,34 @@ const PropertyCard = ({
         </div>
 
         {isFeatured && (
-          <div className="absolute top-2 left-2 z-10">
+          <div className="top-2 left-2 z-10 absolute">
             <Badge className="bg-yellow-500 hover:bg-yellow-600">
               Featured
             </Badge>
           </div>
         )}
 
+        <div className="right-2 bottom-2 z-10 absolute flex justify-center items-center gap-3 font-semibold text-xs">
+          <Badge className="flex justify-center items-center gap-2 bg-black/30 backdrop-blur px-2 py-1 rounded-2xl text-white">
+            <EyeOpenIcon /> {formatViewCount(viewCount)} views
+          </Badge>
+        </div>
         <div className="h-40 sm:h-48 overflow-hidden">
           <img
             src={imageUrl}
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
           />
         </div>
       </div>
 
-      <CardContent className="p-4 flex-grow">
+      <CardContent className="flex-grow p-4">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-semibold text-lg line-clamp-1">{title}</h3>
         </div>
 
-        <div className="flex items-center text-gray-500 mb-3">
-          <MapPin className="h-4 w-4 mr-1" />
+        <div className="flex items-center mb-3 text-gray-500">
+          <MapPin className="mr-1 w-4 h-4" />
           <span className="text-sm">{location}</span>
         </div>
 
@@ -152,39 +171,39 @@ const PropertyCard = ({
 
           <Badge
             variant="outline"
-            className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+            className="bg-amber-50 border-amber-200 text-amber-700 text-xs"
           >
             Built {yearBuilt}
           </Badge>
         </div>
 
-        <div className="flex justify-between text-sm text-gray-600">
+        <div className="flex justify-between text-gray-600 text-sm">
           <div className="flex items-center">
-            <Bed className="h-4 w-4 mr-1" />
+            <Bed className="mr-1 w-4 h-4" />
             <span>
               {bedrooms} {bedrooms === 1 ? "Bed" : "Beds"}
             </span>
           </div>
           <div className="flex items-center">
-            <Bath className="h-4 w-4 mr-1" />
+            <Bath className="mr-1 w-4 h-4" />
             <span>
               {bathrooms} {bathrooms === 1 ? "Bath" : "Baths"}
             </span>
           </div>
           <div className="flex items-center">
-            <Grid className="h-4 w-4 mr-1" />
+            <Grid className="mr-1 w-4 h-4" />
             <span>{area} m²</span>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-        <div className="font-bold text-lg text-primary">
+      <CardFooter className="flex justify-between items-center p-4 pt-3 border-gray-100 border-t">
+        <div className="font-bold text-primary text-lg">
           K{price.toLocaleString()}
         </div>
         <Link to={`/property/${id}`}>
           <Button size="sm" className="gap-1">
-            View <ArrowUpRight className="h-4 w-4" />
+            View <ArrowUpRight className="w-4 h-4" />
           </Button>
         </Link>
       </CardFooter>
