@@ -25,6 +25,7 @@ import {
 import { fireDataBase } from "@/lib/firebase";
 import { useZustand } from "@/lib/zustand";
 import { LISTING } from "@/lib/typeDefinitions";
+import { toast } from "react-toastify";
 
 interface FeaturedPropertiesProps {
   properties?: LISTING[];
@@ -108,7 +109,7 @@ const FeaturedProperties = ({
   const handleFavClick = (propertyId: string) => {
     try {
       if (!user) {
-        console.log("User not logged in");
+        toast.error("Please log in to save properties.");
         return;
       }
 

@@ -26,6 +26,8 @@ import { Checkbox } from "../ui/checkbox";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import userSignUp from "./helpers/users/signUp";
+import { useZustand } from "@/lib/zustand";
+import { auth } from "@/lib/firebase";
 
 const formSchema = z
   .object({
@@ -55,6 +57,7 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 const UserSignup = () => {
+  const { setUser } = useZustand();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -103,8 +106,8 @@ const UserSignup = () => {
     }
   };
 
-  const handleGoogleSignup = () => {
-    userSignUp(
+  const handleGoogleSignup = async () => {
+    const user = await userSignUp(
       {
         firstName: "",
         lastName: "",
@@ -115,15 +118,37 @@ const UserSignup = () => {
       },
       "google"
     );
+    if (user) {
+      console.log("Google signup successful:", user);
+      const firstName = user.displayName?.split(" ")[0] || "";
+      const lastName = user.displayName?.split(" ")[1] || "";
+      const loggedinUser = {
+        email: user.email,
+        uid: user.uid,
+        userType: "users",
+        firstName,
+        lastName,
+        status: "Active" as "Active",
+        authProvider: "google",
+        termsAccepted: true,
+        subscription: null,
+        enquiries: undefined,
+      };
+      setUser(loggedinUser);
+      navigate("/");
+    } else {
+      // Handle error case
+      console.error("Google signup failed.");
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto py-10 px-4 md:px-6">
-        <Card className="max-w-2xl mx-auto bg-white shadow-lg">
-          <CardHeader className="space-y-1 text-center bg-realtyplus text-white rounded-t-lg py-6">
-            <CardTitle className="text-2xl font-bold">
+      <main className="flex-grow mx-auto px-4 md:px-6 py-10 container">
+        <Card className="bg-white shadow-lg mx-auto max-w-2xl">
+          <CardHeader className="space-y-1 bg-realtyplus py-6 rounded-t-lg text-white text-center">
+            <CardTitle className="font-bold text-2xl">
               Create Your Account
             </CardTitle>
             <CardDescription className="text-gray-100">
@@ -136,7 +161,7 @@ const UserSignup = () => {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-6"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -166,7 +191,7 @@ const UserSignup = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="email"
@@ -200,7 +225,7 @@ const UserSignup = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="password"
@@ -242,7 +267,7 @@ const UserSignup = () => {
                   control={form.control}
                   name="termsAccepted"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -271,21 +296,21 @@ const UserSignup = () => {
 
                 <Button
                   type="submit"
-                  className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
+                  className="bg-realtyplus hover:bg-realtyplus-dark w-full md:w-auto"
                 >
                   Create Account
                 </Button>
               </form>
             </Form>
-            <div className="w-full grid place-content-center">
+            <div className="place-content-center grid w-full">
               <button
                 type="button"
                 onClick={handleGoogleSignup}
-                className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 transition-colors duration-200 w-64"
+                className="flex justify-center items-center gap-2 bg-white hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-md w-64 text-gray-700 transition-colors duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+                  <div className="border-2 border-gray-300 border-t-blue-600 rounded-full w-5 h-5 animate-spin" />
                 ) : (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -316,31 +341,31 @@ const UserSignup = () => {
             </div>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-gray-600 text-sm">
                 Already have an account?{" "}
                 <Link
                   to="/login"
-                  className="text-realtyplus hover:underline font-medium"
+                  className="font-medium text-realtyplus hover:underline"
                 >
                   Sign in
                 </Link>
               </p>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center border-t px-6 py-4">
-            <div className="text-center text-sm text-gray-500">
+          <CardFooter className="flex justify-center px-6 py-4 border-t">
+            <div className="text-gray-500 text-sm text-center">
               <p>
                 Are you a real estate professional?{" "}
                 <Link
                   to="/agent/signup"
-                  className="text-realtyplus hover:underline font-medium"
+                  className="font-medium text-realtyplus hover:underline"
                 >
                   Register as Agent
                 </Link>
                 {" or "}
                 <Link
                   to="/agency/signup"
-                  className="text-realtyplus hover:underline font-medium"
+                  className="font-medium text-realtyplus hover:underline"
                 >
                   Agency
                 </Link>

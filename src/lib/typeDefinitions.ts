@@ -26,9 +26,9 @@ export type USER = {
   bio?: string;
   termsAccepted: boolean;
   subscription: Subscription;
-  enquiries: number;
-  views: number;
-  experience: string;
+  enquiries?: number;
+  views?: number;
+  experience?: string;
   agency?: string;
   specialties?: string[];
   languages?: string[];

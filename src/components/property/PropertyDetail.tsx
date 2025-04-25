@@ -32,7 +32,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../ui/carousel";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { LISTING, USER } from "@/lib/typeDefinitions";
 import { LoadingSpinner } from "../globalScreens/Loader";
@@ -41,6 +41,8 @@ import { NotFound } from "../globalScreens/Message";
 import { DownloadPDFButton } from "./PropertPDFDownload";
 import formatViewCount from "@/helpers/formatViewCount";
 import updateViewCount from "@/services/listingViewCountUpdate";
+import { useZustand } from "@/lib/zustand";
+import { toast } from "react-toastify";
 
 interface FormData {
   name: string;
@@ -50,6 +52,7 @@ interface FormData {
 }
 const PropertyDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const { user, setUser } = useZustand();
   const [activeTab, setActiveTab] = useState("details");
   const [showContactForm, setShowContactForm] = useState(false);
   const propertyContentRef = useRef<HTMLDivElement>(null);
@@ -244,10 +247,49 @@ ${formData.name}
     setShowContactForm(!showContactForm);
   };
 
-  const handleFavorite = (id: string) => {
-    console.log(`Property ${id} added to favorites`);
+  const handleFavClick = (propertyId: string) => {
+    try {
+      if (!user) {
+        console.log("User not logged in");
+        toast.error("Please log in to save properties.");
+        return;
+      }
+
+      // Check if property is already saved
+      const isAlreadySaved = user.savedProperties?.includes(propertyId);
+
+      let updatedSavedProperties;
+      if (isAlreadySaved) {
+        // Remove from favorites
+        updatedSavedProperties =
+          user.savedProperties?.filter((savedId) => savedId !== propertyId) ||
+          [];
+      } else {
+        // Add to favorites
+        updatedSavedProperties = [...(user.savedProperties || []), propertyId];
+      }
+
+      // Update local state
+      setUser({
+        ...user,
+        savedProperties: updatedSavedProperties,
+      });
+
+      // If you're using Firebase, update the database
+      const userRef = doc(fireDataBase, user.userType, user.uid);
+      updateDoc(userRef, {
+        savedProperties: updatedSavedProperties,
+      });
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
   };
 
+  // And the isFavorite check would be simpler too:
+  const handleCheckFav = (propertyId: string) => {
+    if (!user || !user.savedProperties) return false;
+    return user.savedProperties.includes(propertyId);
+  };
   const handlePropertyClick = (id: string) => {
     console.log(`Navigating to property ${id} details`);
   };
@@ -672,9 +714,16 @@ ${formData.name}
               variant="outline"
               size="sm"
               className="flex items-center gap-1 py-1"
-              onClick={() => handleFavorite(property.uid)}
+              onClick={() => handleFavClick(property.uid)}
             >
-              <Heart className="size-4" /> Save
+              <Heart
+                className={`size-4 ${
+                  handleCheckFav(property.uid)
+                    ? "text-red-600 fill-red-400"
+                    : "text-black"
+                }`}
+              />{" "}
+              Save
             </Button>
             <Button
               variant="outline"

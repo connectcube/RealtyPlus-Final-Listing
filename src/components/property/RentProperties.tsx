@@ -19,100 +19,8 @@ import {
 import { FEATURES, LISTING, SearchFiltersProps } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
 import { LoadingSpinner } from "../globalScreens/Loader";
+import { toast } from "react-toastify";
 
-// Mock properties for sale data
-const mockPropertiesForSale = [
-  {
-    id: "sale-1",
-    title: "Modern 3 Bedroom House in Kabulonga",
-    price: 2500000,
-    location: "Kabulonga, Lusaka",
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 240,
-    imageUrl:
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-    propertyType: "standalone",
-    isFeatured: true,
-    isFurnished: true,
-    yearBuilt: 2020,
-  },
-  {
-    id: "sale-2",
-    title: "Luxury Apartment in Woodlands",
-    price: 1800000,
-    location: "Woodlands, Lusaka",
-    bedrooms: 2,
-    bathrooms: 2,
-    area: 180,
-    imageUrl:
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
-    propertyType: "apartment",
-    isFeatured: false,
-    isFurnished: true,
-    yearBuilt: 2021,
-  },
-  {
-    id: "sale-3",
-    title: "Family Home in Roma",
-    price: 3200000,
-    location: "Roma, Lusaka",
-    bedrooms: 4,
-    bathrooms: 3,
-    area: 320,
-    imageUrl:
-      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
-    propertyType: "standalone",
-    isFeatured: true,
-    isFurnished: false,
-    yearBuilt: 2019,
-  },
-  {
-    id: "sale-4",
-    title: "Semi-Detached House in Olympia",
-    price: 1950000,
-    location: "Olympia, Lusaka",
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 210,
-    imageUrl:
-      "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80",
-    propertyType: "semi-detached",
-    isFeatured: false,
-    isFurnished: true,
-    yearBuilt: 2022,
-  },
-  {
-    id: "sale-5",
-    title: "Executive 5 Bedroom House with Pool",
-    price: 4500000,
-    location: "Ibex Hill, Lusaka",
-    bedrooms: 5,
-    bathrooms: 4,
-    area: 450,
-    imageUrl:
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80",
-    propertyType: "standalone",
-    isFeatured: true,
-    isFurnished: true,
-    yearBuilt: 2021,
-  },
-  {
-    id: "sale-6",
-    title: "Commercial Property in Cairo Road",
-    price: 8500000,
-    location: "Cairo Road, Lusaka",
-    bedrooms: 0,
-    bathrooms: 2,
-    area: 500,
-    imageUrl:
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&q=80",
-    propertyType: "commercial",
-    isFeatured: false,
-    isFurnished: false,
-    yearBuilt: 2018,
-  },
-];
 const RentProperties = () => {
   const { user, setUser } = useZustand();
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -247,7 +155,7 @@ const RentProperties = () => {
   const handleFavClick = (propertyId: string) => {
     try {
       if (!user) {
-        console.log("User not logged in");
+        toast.error("Please log in to save properties.");
         return;
       }
 
@@ -287,9 +195,9 @@ const RentProperties = () => {
     return user.savedProperties.includes(propertyId);
   };
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow mx-auto px-4 py-8 container">
         <SearchFilters
           onSearch={handleSearch}
           setFilters={setFilters}
@@ -300,7 +208,7 @@ const RentProperties = () => {
         />
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
+          <div className="bg-red-50 mb-4 px-4 py-3 border border-red-200 rounded text-red-600">
             {error}
           </div>
         )}
@@ -319,7 +227,7 @@ const RentProperties = () => {
               onClick={() => setView("grid")}
               className={view === "grid" ? "bg-gray-100" : ""}
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="w-4 h-4" />
             </Button>
             <Button
               variant="outline"
@@ -327,7 +235,7 @@ const RentProperties = () => {
               onClick={() => setView("list")}
               className={view === "list" ? "bg-gray-100" : ""}
             >
-              <List className="h-4 w-4" />
+              <List className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -335,7 +243,7 @@ const RentProperties = () => {
         {loading ? (
           <LoadingSpinner />
         ) : view === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="gap-4 md:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {properties.map((property) => (
               <PropertyCard
                 key={property.uid}
@@ -382,7 +290,7 @@ const RentProperties = () => {
         )}
 
         {!loading && properties.length === 0 && (
-          <div className="text-center py-12">
+          <div className="py-12 text-center">
             <p className="text-gray-500 text-lg">
               No properties found matching your criteria.
             </p>
