@@ -136,8 +136,9 @@ const Header = ({ className }: HeaderProps = {}) => {
       {/* Main Header */}
       <header
         className={cn(
-          "w-full bg-white sticky top-0 z-0 transition-all duration-300",
+          "w-full bg-white sticky top-0 transition-all duration-300",
           isScrolled ? "shadow-md py-2" : "shadow-sm py-4",
+          useCurrentPath() === "/" ? "z-[15]" : "z-50",
           className
         )}
       >

@@ -99,7 +99,11 @@ ${formData.name}
 
     const fetchData = async () => {
       if (!id) return;
-
+      try {
+        await updateViewCount(id);
+      } catch (viewError) {
+        console.error("Failed to update view count:", viewError);
+      }
       try {
         setLoading(true);
         const propertyRef = doc(fireDataBase, "listings", id);
@@ -120,12 +124,7 @@ ${formData.name}
         if (!isMounted) return;
 
         setProperty(propertyWithId);
-        try {
-          await updateViewCount(id);
-        } catch (viewError) {
-          console.error("Failed to update view count:", viewError);
-          // Don't set error state here as it's not critical to the user experience
-        }
+
         // If we have a postedBy reference, fetch user data immediately
         if (propertyData.postedBy) {
           setLoadingPoster(true);
