@@ -102,7 +102,7 @@ ${formData.name}
       try {
         await updateViewCount(id);
       } catch (error) {
-        // Do nothing as it is not critical to the app.
+        // Do nothing as it is not critical to the app.l;lvl;lvfpbj
       }
       try {
         setLoading(true);
@@ -1128,7 +1128,7 @@ ${formData.name}
 
                     <Button
                       type="submit"
-                      disabled={true}
+                      disabled={false}
                       className="bg-realtyplus hover:bg-realtyplus-dark w-full"
                     >
                       Send Message
