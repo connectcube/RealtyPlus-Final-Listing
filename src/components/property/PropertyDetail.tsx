@@ -101,8 +101,8 @@ ${formData.name}
       if (!id) return;
       try {
         await updateViewCount(id);
-      } catch (viewError) {
-        console.error("Failed to update view count:", viewError);
+      } catch (error) {
+        // Do nothing as it is not critical to the app.
       }
       try {
         setLoading(true);
