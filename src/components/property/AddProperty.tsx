@@ -149,6 +149,11 @@ const AddProperty = () => {
         return true;
       });
 
+      if (validFiles.length + uploadedImages.length > 10) {
+        toast.error("Maximum 10 images allowed");
+        return;
+      }
+
       setUploadedImages([...uploadedImages, ...validFiles]);
     } catch (error) {
       console.error("Error handling image upload:", error);
@@ -181,47 +186,56 @@ const AddProperty = () => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      console.log(user);
+
+      // User verification
       if (!user || !user.uid) {
         toast.error("You must be logged in to submit a property");
         return;
       }
+
       // Get the poster's document reference
       const posterDocRef = doc(fireDataBase, user.userType, user.uid);
+      const posterDoc = await getDoc(posterDocRef);
 
-      // First, create a new listing document in the "listings" collection
+      if (!posterDoc.exists()) {
+        toast.error(`${user.userType} profile not found`);
+        return;
+      }
+
+      // Create listing document first
       const listingsCollectionRef = collection(fireDataBase, "listings");
       const newListingRef = await addDoc(listingsCollectionRef, {
         ...formData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        postedBy: posterDocRef, // Using the document reference instead of just UID
+        postedBy: posterDocRef, // Using the document reference
         createdBy: user.uid,
         userType: user.userType,
         status: "active",
-        images: [], // This will be updated after uploading images
-        coverPhotoIndex: 0, // This will be updated after uploading images
+        images: [], // Will be updated after upload
+        coverPhotoIndex: coverPhotoIndex,
+        viewCount: 0,
       });
 
-      // Upload images to Firebase Storage and get their URLs
+      // Upload images with better error handling
       const imageUrls = await Promise.all(
-        uploadedImages.map(async (image) => {
+        uploadedImages.map(async (image, index) => {
           const storageRef = ref(
             fireStorage,
             `listings-images/${newListingRef.id}/${image.name}`
           );
 
-          // Add metadata to the upload
-          const metadata = {
-            customMetadata: {
-              uid: user.uid,
-              userType: user.userType,
-              uploadedAt: new Date().toISOString(),
-            },
-          };
-
-          // Add this to your handleSubmit function where the image upload occurs
           try {
+            // Add metadata to help with debugging
+            const metadata = {
+              customMetadata: {
+                uploadedBy: user.uid,
+                userType: user.userType,
+                listingId: newListingRef.id,
+                timestamp: new Date().toISOString(),
+              },
+            };
+
             const uploadResult = await uploadBytes(storageRef, image, metadata);
             return await getDownloadURL(uploadResult.ref);
           } catch (error: any) {
@@ -230,7 +244,15 @@ const AddProperty = () => {
               message: error.message,
               serverResponse: error.serverResponse,
               name: error.name,
+              path: storageRef.fullPath,
+              file: image.name,
+              size: image.size,
+              type: image.type,
             });
+
+            if (error.code === "storage/unauthorized") {
+              throw new Error(`Authentication error: ${error.message}`);
+            }
             throw error;
           }
         })
@@ -242,11 +264,8 @@ const AddProperty = () => {
         coverPhotoIndex: coverPhotoIndex,
       });
 
-      // Update the user's document with the reference to this listing
-      const posterDocSnap = await getDoc(posterDocRef);
-
-      const existingListings = await posterDocSnap.data().myListings;
-
+      // Update user's listings
+      const existingListings = posterDoc.data()?.myListings || [];
       await updateDoc(posterDocRef, {
         myListings: [
           ...existingListings,
@@ -259,7 +278,6 @@ const AddProperty = () => {
       });
 
       toast.success("Property listed successfully!");
-      setIsSubmitting(false);
       navigate(`/property/${newListingRef.id}`);
     } catch (error) {
       console.error("Error submitting property:", error);
@@ -284,18 +302,18 @@ const AddProperty = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+      <main className="flex-grow mx-auto px-4 py-8 container">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="mb-2 font-bold text-gray-900 text-2xl sm:text-3xl">
             List Your Property
           </h1>
-          <p className="text-gray-600 mb-6 sm:mb-8">
+          <p className="mb-6 sm:mb-8 text-gray-600">
             Fill in the details below to list your property on RealtyZambia
           </p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="gap-6 lg:gap-8 grid grid-cols-1 lg:grid-cols-3">
             {/* Main Form */}
             <div className="lg:col-span-2">
               <Card>
@@ -337,7 +355,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="title"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Property Title
                           </Label>
@@ -355,7 +373,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="description"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Description
                           </Label>
@@ -379,21 +397,21 @@ const AddProperty = () => {
                           />
                           <Label
                             htmlFor="isFurnished"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Make this a featured property
                           </Label>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <div className="gap-3 md:gap-4 grid grid-cols-1 md:grid-cols-2">
                           <div>
                             <Label
                               htmlFor="price"
-                              className="text-base font-medium"
+                              className="font-medium text-base"
                             >
                               Price (ZMW)
                             </Label>
                             <div className="relative mt-1">
-                              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                              <DollarSign className="top-3 left-3 absolute w-4 h-4 text-gray-400" />
                               <Input
                                 id="price"
                                 type="number"
@@ -410,7 +428,7 @@ const AddProperty = () => {
                           <div>
                             <Label
                               htmlFor="listingType"
-                              className="text-base font-medium"
+                              className="font-medium text-base"
                             >
                               Listing Type
                             </Label>
@@ -434,7 +452,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="propertyType"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Property Type
                           </Label>
@@ -470,7 +488,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="propertyCategory"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Property Category
                           </Label>
@@ -510,7 +528,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="province"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Province
                           </Label>
@@ -545,7 +563,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="city"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             City/Town
                           </Label>
@@ -563,7 +581,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="neighborhood"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Neighborhood/Area
                           </Label>
@@ -581,7 +599,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="address"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Street Address
                           </Label>
@@ -594,18 +612,18 @@ const AddProperty = () => {
                               handleInputChange("address", e.target.value)
                             }
                           />
-                          <p className="text-sm text-gray-500 mt-1">
-                            <Info className="h-4 w-4 inline mr-1" />
+                          <p className="mt-1 text-gray-500 text-sm">
+                            <Info className="inline mr-1 w-4 h-4" />
                             This address will not be displayed publicly. It will
                             be used for verification purposes only.
                           </p>
                         </div>
                       </div>
                       {/*<div className="mt-6">
-                        <div className="mb-4 flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 mb-4">
                           <Label
                             htmlFor="nearbyPlaces"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Nearby Places
                           </Label>
@@ -624,7 +642,7 @@ const AddProperty = () => {
                                     e.target.value
                                   )
                                 }
-                                className="border rounded px-2 py-1"
+                                className="px-2 py-1 border rounded"
                               />
                               <input
                                 type="text"
@@ -637,7 +655,7 @@ const AddProperty = () => {
                                     e.target.value
                                   )
                                 }
-                                className="border rounded px-2 py-1"
+                                className="px-2 py-1 border rounded"
                               />
                               <select
                                 value={place.type}
@@ -648,7 +666,7 @@ const AddProperty = () => {
                                     e.target.value
                                   )
                                 }
-                                className="border rounded px-2 py-1"
+                                className="px-2 py-1 border rounded"
                               >
                                 <option value="">Select type</option>
                                 <option value="school">School</option>
@@ -664,7 +682,7 @@ const AddProperty = () => {
                           <button
                             type="button"
                             onClick={addNearbyPlace}
-                            className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+                            className="bg-blue-500 mt-2 px-4 py-2 rounded text-white"
                           >
                             Add a place
                           </button>
@@ -675,11 +693,11 @@ const AddProperty = () => {
                     {/* Details Tab */}
                     <TabsContent value="details">
                       <div className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                        <div className="gap-3 md:gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                           <div>
                             <Label
                               htmlFor="bedrooms"
-                              className="text-base font-medium"
+                              className="font-medium text-base"
                             >
                               Bedrooms
                             </Label>
@@ -698,7 +716,7 @@ const AddProperty = () => {
                           <div>
                             <Label
                               htmlFor="bathrooms"
-                              className="text-base font-medium"
+                              className="font-medium text-base"
                             >
                               Bathrooms
                             </Label>
@@ -717,7 +735,7 @@ const AddProperty = () => {
                           <div>
                             <Label
                               htmlFor="garageSpaces"
-                              className="text-base font-medium"
+                              className="font-medium text-base"
                             >
                               Garage Spaces
                             </Label>
@@ -739,7 +757,7 @@ const AddProperty = () => {
                           <div>
                             <Label
                               htmlFor="yearBuilt"
-                              className="text-base font-medium"
+                              className="font-medium text-base"
                             >
                               Year Built
                             </Label>
@@ -759,7 +777,7 @@ const AddProperty = () => {
                         <div>
                           <Label
                             htmlFor="area"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Area (m²)
                           </Label>
@@ -785,7 +803,7 @@ const AddProperty = () => {
                           />
                           <Label
                             htmlFor="isFurnished"
-                            className="text-base font-medium"
+                            className="font-medium text-base"
                           >
                             Property is furnished
                           </Label>
@@ -796,14 +814,14 @@ const AddProperty = () => {
                     {/* Features Tab */}
                     <TabsContent value="features">
                       <div className="space-y-6">
-                        <h3 className="text-lg font-medium">
+                        <h3 className="font-medium text-lg">
                           Property Features & Amenities
                         </h3>
                         <p className="text-gray-500">
                           Select all the features that apply to your property
                         </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                        <div className="gap-3 md:gap-4 grid grid-cols-1 sm:grid-cols-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="swimmingPool"
@@ -945,15 +963,15 @@ const AddProperty = () => {
                     <TabsContent value="images">
                       <div className="space-y-6">
                         <div>
-                          <h3 className="text-lg font-medium mb-2">
+                          <h3 className="mb-2 font-medium text-lg">
                             Property Images
                           </h3>
-                          <p className="text-gray-500 mb-4">
+                          <p className="mb-4 text-gray-500">
                             Upload high-quality images of your property (max 10
                             images)
                           </p>
 
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
+                          <div className="p-4 sm:p-6 border-2 border-gray-300 border-dashed rounded-lg text-center">
                             <input
                               type="file"
                               id="images"
@@ -971,11 +989,11 @@ const AddProperty = () => {
                                   : ""
                               }`}
                             >
-                              <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-2" />
-                              <span className="text-gray-600 font-medium text-sm sm:text-base">
+                              <Upload className="mb-2 w-10 sm:w-12 h-10 sm:h-12 text-gray-400" />
+                              <span className="font-medium text-gray-600 text-sm sm:text-base">
                                 Click to upload images
                               </span>
-                              <span className="text-gray-500 text-xs sm:text-sm mt-1">
+                              <span className="mt-1 text-gray-500 text-xs sm:text-sm">
                                 or drag and drop files here
                               </span>
                             </label>
@@ -983,15 +1001,15 @@ const AddProperty = () => {
 
                           {uploadedImages.length > 0 && (
                             <div className="mt-6">
-                              <h4 className="text-base font-medium mb-3">
+                              <h4 className="mb-3 font-medium text-base">
                                 Uploaded Images
                               </h4>
-                              <p className="text-sm text-gray-500 mb-3">
+                              <p className="mb-3 text-gray-500 text-sm">
                                 Click on the image icon to set it as the cover
                                 photo. The first image will be automatically set
                                 as the cover photo if none is selected.
                               </p>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+                              <div className="gap-3 md:gap-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                                 {uploadedImages.map((image, index) => (
                                   <ImagePreview
                                     key={index}
@@ -1015,20 +1033,20 @@ const AddProperty = () => {
                       variant="outline"
                       onClick={prevTab}
                       disabled={activeTab === "basic"}
-                      className="text-xs sm:text-sm px-2 sm:px-4"
+                      className="px-2 sm:px-4 text-xs sm:text-sm"
                     >
                       Previous
                     </Button>
                     {activeTab === "images" ? (
                       <Button
                         onClick={handleSubmit}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm px-2 sm:px-4"
+                        className="bg-emerald-600 hover:bg-emerald-700 px-2 sm:px-4 text-xs sm:text-sm"
                         disabled={isSubmitting}
                       >
                         {isSubmitting ? (
                           <div className="flex items-center gap-2">
                             <svg
-                              className="animate-spin h-4 w-4"
+                              className="w-4 h-4 animate-spin"
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
                               viewBox="0 0 24 24"
@@ -1056,7 +1074,7 @@ const AddProperty = () => {
                     ) : (
                       <Button
                         onClick={nextTab}
-                        className="text-xs sm:text-sm px-2 sm:px-4"
+                        className="px-2 sm:px-4 text-xs sm:text-sm"
                       >
                         Next
                       </Button>
@@ -1068,15 +1086,15 @@ const AddProperty = () => {
 
             {/* Sidebar */}
             <div className="hidden lg:block">
-              <div className="sticky top-24">
+              <div className="top-24 sticky">
                 <Card>
                   <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">
+                    <h3 className="mb-4 font-semibold text-lg">
                       Listing Summary
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500">
+                        <h4 className="font-medium text-gray-500 text-sm">
                           Property Title
                         </h4>
                         <p className="font-medium">
@@ -1085,7 +1103,7 @@ const AddProperty = () => {
                       </div>
                       <Separator />
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500">
+                        <h4 className="font-medium text-gray-500 text-sm">
                           Price
                         </h4>
                         <p className="font-medium">
@@ -1096,7 +1114,7 @@ const AddProperty = () => {
                       </div>
                       <Separator />
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500">
+                        <h4 className="font-medium text-gray-500 text-sm">
                           Location
                         </h4>
                         <p className="font-medium">
@@ -1107,7 +1125,7 @@ const AddProperty = () => {
                       </div>
                       <Separator />
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500">
+                        <h4 className="font-medium text-gray-500 text-sm">
                           Property Type
                         </h4>
                         <p className="font-medium">
@@ -1119,7 +1137,7 @@ const AddProperty = () => {
                       </div>
                       <Separator />
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500">
+                        <h4 className="font-medium text-gray-500 text-sm">
                           Listing Type
                         </h4>
                         <p className="font-medium">
@@ -1130,7 +1148,7 @@ const AddProperty = () => {
                       </div>
                       <Separator />
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500">
+                        <h4 className="font-medium text-gray-500 text-sm">
                           Images
                         </h4>
                         <p className="font-medium">
@@ -1139,8 +1157,8 @@ const AddProperty = () => {
                       </div>
                     </div>
 
-                    <div className="mt-6 bg-gray-50 p-4 rounded-md">
-                      <h4 className="text-sm font-medium mb-2">
+                    <div className="bg-gray-50 mt-6 p-4 rounded-md">
+                      <h4 className="mb-2 font-medium text-sm">
                         Listing Progress
                       </h4>
                       <div className="space-y-2">
@@ -1148,9 +1166,9 @@ const AddProperty = () => {
                           {formData.title &&
                           formData.price &&
                           formData.propertyType ? (
-                            <Check className="h-4 w-4 text-green-500 mr-2" />
+                            <Check className="mr-2 w-4 h-4 text-green-500" />
                           ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
+                            <div className="mr-2 border border-gray-300 rounded-full w-4 h-4" />
                           )}
                           <span className="text-sm">Basic Information</span>
                         </div>
@@ -1158,9 +1176,9 @@ const AddProperty = () => {
                           {formData.province &&
                           formData.city &&
                           formData.neighborhood ? (
-                            <Check className="h-4 w-4 text-green-500 mr-2" />
+                            <Check className="mr-2 w-4 h-4 text-green-500" />
                           ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
+                            <div className="mr-2 border border-gray-300 rounded-full w-4 h-4" />
                           )}
                           <span className="text-sm">Location Details</span>
                         </div>
@@ -1168,9 +1186,9 @@ const AddProperty = () => {
                           {formData.bedrooms &&
                           formData.bathrooms &&
                           formData.area ? (
-                            <Check className="h-4 w-4 text-green-500 mr-2" />
+                            <Check className="mr-2 w-4 h-4 text-green-500" />
                           ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
+                            <div className="mr-2 border border-gray-300 rounded-full w-4 h-4" />
                           )}
                           <span className="text-sm">Property Details</span>
                         </div>
@@ -1178,17 +1196,17 @@ const AddProperty = () => {
                           {Object.values(formData.features).some(
                             (value) => value
                           ) ? (
-                            <Check className="h-4 w-4 text-green-500 mr-2" />
+                            <Check className="mr-2 w-4 h-4 text-green-500" />
                           ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
+                            <div className="mr-2 border border-gray-300 rounded-full w-4 h-4" />
                           )}
                           <span className="text-sm">Features & Amenities</span>
                         </div>
                         <div className="flex items-center">
                           {uploadedImages.length > 0 ? (
-                            <Check className="h-4 w-4 text-green-500 mr-2" />
+                            <Check className="mr-2 w-4 h-4 text-green-500" />
                           ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-300 mr-2" />
+                            <div className="mr-2 border border-gray-300 rounded-full w-4 h-4" />
                           )}
                           <span className="text-sm">Property Images</span>
                         </div>
@@ -1227,7 +1245,7 @@ const ImagePreview = ({
   }, [file]);
 
   return (
-    <div className="relative group">
+    <div className="group relative">
       <img
         src={preview}
         alt={`Preview ${index + 1}`}
@@ -1235,7 +1253,7 @@ const ImagePreview = ({
           isCover ? "ring-2 ring-realtyplus" : ""
         }`}
       />
-      <div className="absolute top-1 right-0 px-2 py-1 flex gap-1 w-full justify-between">
+      <div className="top-1 right-0 absolute flex justify-between gap-1 px-2 py-1 w-full">
         <button
           onClick={() => onSetCover(index)}
           className={`bg-realtyplus text-white rounded-full p-1 
@@ -1244,16 +1262,16 @@ const ImagePreview = ({
           title={isCover ? "Cover Photo" : "Set as Cover Photo"}
         >
           {isCover ? (
-            <Check className="h-4 w-4" />
+            <Check className="w-4 h-4" />
           ) : (
-            <Image className="h-4 w-4" />
+            <Image className="w-4 h-4" />
           )}
         </button>
         <button
           onClick={() => onRemove(index)}
-          className="bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="bg-red-500 opacity-0 group-hover:opacity-100 p-1 rounded-full text-white transition-opacity"
         >
-          <X className="h-4 w-4" />
+          <X className="w-4 h-4" />
         </button>
       </div>
     </div>

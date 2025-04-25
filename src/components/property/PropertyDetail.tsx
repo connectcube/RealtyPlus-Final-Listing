@@ -147,7 +147,7 @@ ${formData.name}
               setLoadingPoster(false);
               setFormData({
                 ...formData,
-                message: `I'm interested in ${property?.title} (Ref: ${property?.uid}). Please contact me with more information.`,
+                message: `I'm interested in ${property?.title} (Ref: ${id}). Please contact me with more information.`,
               });
             }
           }

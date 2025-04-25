@@ -404,23 +404,23 @@ export default function AgentProfile() {
                     <div className="flex items-center space-x-3">
                       <Globe className="w-5 h-5 text-gray-500" />
                       <a
-                        href={user?.social.linkedin}
+                        href={user?.social?.linkedin}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 text-sm hover:underline"
                       >
-                        {user?.social.linkedin}
+                        {user?.social?.linkedin}
                       </a>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Globe className="w-5 h-5 text-gray-500" />
                       <a
-                        href={user?.social.twitter}
+                        href={user?.social?.twitter}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 text-sm hover:underline"
                       >
-                        {user?.social.twitter}
+                        {user?.social?.twitter}
                       </a>
                     </div>
                     <div className="pt-2 border-t">
@@ -498,7 +498,7 @@ const AgentPfpAndNameCard = ({
     try {
       setUploading(true);
       const file = e.target.files[0];
-
+      console.log(user);
       // Validate file type
       if (!file.type.startsWith("image/")) {
         toast.error("Please upload an image file");
@@ -542,7 +542,7 @@ const AgentPfpAndNameCard = ({
         ...user,
         pfp: downloadURL,
       });
-
+      setFormData({ ...formData, pfp: downloadURL });
       toast.success("Profile picture updated successfully!");
     } catch (error) {
       console.error("Error uploading profile picture:", error);
