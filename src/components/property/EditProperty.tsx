@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,39 +15,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Home,
-  MapPin,
-  DollarSign,
-  Upload,
-  Plus,
-  X,
-  Check,
-  Info,
-  Image,
-} from "lucide-react";
+import { DollarSign, Upload, X, Check, Info, Image } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import { NearbyPlace } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  increment,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { fireDataBase, fireStorage } from "@/lib/firebase";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import { toast } from "react-toastify";
+interface ExistingImage {
+  url: string;
+  path: string; // Storage path
+  isExisting: true;
+}
 
-const AddProperty = () => {
+interface NewImage {
+  file: File;
+  isExisting: false;
+}
+
+type ImageItem = ExistingImage | NewImage;
+const EditProperty = () => {
+  const { id } = useParams<{ id: string }>();
   const { user, setUser } = useZustand();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
-  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<ImageItem[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -81,7 +80,41 @@ const AddProperty = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
+  useEffect(() => {
+    const fetchPropertyData = async () => {
+      try {
+        const propertyDocRef = doc(fireDataBase, "listings", id as string);
+        const propertyDoc = await getDoc(propertyDocRef);
 
+        if (propertyDoc.exists()) {
+          const propertyData = propertyDoc.data();
+          if (propertyData) {
+            setFormData({
+              ...formData,
+              ...propertyData,
+            });
+            // Convert image URLs to ExistingImage objects
+            const existingImages: ExistingImage[] = propertyData.images.map(
+              (url: string, index: number) => ({
+                url,
+                path: `listings-images/${id}/${index}`, // Adjust path pattern to match your storage structure
+                isExisting: true,
+              })
+            );
+            setUploadedImages(existingImages);
+            setCoverPhotoIndex(propertyData.coverPhotoIndex || 0);
+          }
+        } else {
+          toast.error("Property not found");
+        }
+      } catch (error) {
+        console.error("Error fetching property data:", error);
+        toast.error("Failed to fetch property data. Please try again.");
+      }
+    };
+
+    fetchPropertyData();
+  }, [id]);
   const handleInputChange = (field: string, value: any) => {
     // Array of fields that should be converted to numbers
     const numericFields = [
@@ -122,21 +155,71 @@ const AddProperty = () => {
     });
   };
 
+  // Add these new interfaces
+  interface ExistingImage {
+    url: string;
+    path: string; // Storage path
+    isExisting: true;
+  }
+
+  interface NewImage {
+    file: File;
+    isExisting: false;
+  }
+
+  type ImageItem = ExistingImage | NewImage;
+
+  // Modify the useEffect that fetches property data
+  useEffect(() => {
+    const fetchPropertyData = async () => {
+      try {
+        const propertyDocRef = doc(fireDataBase, "listings", id as string);
+        const propertyDoc = await getDoc(propertyDocRef);
+
+        if (propertyDoc.exists()) {
+          const propertyData = propertyDoc.data();
+          if (propertyData) {
+            setFormData({
+              ...formData,
+              ...propertyData,
+            });
+            // Convert image URLs to ExistingImage objects
+            const existingImages: ExistingImage[] = propertyData.images.map(
+              (url: string, index: number) => ({
+                url,
+                path: `listings-images/${id}/${index}`, // Adjust path pattern to match your storage structure
+                isExisting: true,
+              })
+            );
+            setUploadedImages(existingImages);
+            setCoverPhotoIndex(propertyData.coverPhotoIndex || 0);
+          }
+        } else {
+          toast.error("Property not found");
+        }
+      } catch (error) {
+        console.error("Error fetching property data:", error);
+        toast.error("Failed to fetch property data. Please try again.");
+      }
+    };
+
+    fetchPropertyData();
+  }, [id]);
+
+  // Modify handleImageUpload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const files = e.target.files;
       if (!files) return;
 
-      // Check if user is authenticated
       if (!user || !user.uid) {
         toast.error("You must be logged in to upload images");
         return;
       }
 
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
 
-      // Convert FileList to array and validate
       const validFiles = Array.from(files).filter((file) => {
         if (!allowedTypes.includes(file.type)) {
           toast.error(`File ${file.name} is not a supported image type`);
@@ -154,140 +237,93 @@ const AddProperty = () => {
         return;
       }
 
-      setUploadedImages([...uploadedImages, ...validFiles]);
+      const newImages: ImageItem[] = validFiles.map((file) => ({
+        file,
+        isExisting: false,
+      }));
+
+      setUploadedImages([...uploadedImages, ...newImages]);
     } catch (error) {
       console.error("Error handling image upload:", error);
       toast.error("Error handling image upload");
     }
   };
 
-  const removeImage = (index: number) => {
-    const newImages = [...uploadedImages];
+  // Modify removeImage to handle Firebase Storage deletion
+  const removeImage = async (index: number) => {
+    try {
+      const imageToRemove = uploadedImages[index];
 
-    // If removing the cover photo, adjust the cover photo index
-    if (index === coverPhotoIndex) {
-      if (newImages.length > 1) {
-        // Set the next image as cover photo, or the previous one if removing the last image
-        const newCoverIndex = index === newImages.length - 1 ? 0 : index;
-        setCoverPhotoIndex(newCoverIndex);
-      } else {
-        setCoverPhotoIndex(0); // Reset to 0 if no images left
+      // If it's an existing image, delete from Firebase Storage
+      if (imageToRemove.isExisting) {
+        const imageRef = ref(fireStorage, imageToRemove.path);
+        await deleteObject(imageRef);
       }
-    } else if (index < coverPhotoIndex) {
-      // If removing an image before the cover photo, decrement the cover photo index
-      setCoverPhotoIndex(coverPhotoIndex - 1);
-    }
 
-    newImages.splice(index, 1);
-    setUploadedImages(newImages);
+      const newImages = [...uploadedImages];
+      newImages.splice(index, 1);
+
+      // Adjust cover photo index
+      if (index === coverPhotoIndex) {
+        if (newImages.length > 0) {
+          setCoverPhotoIndex(index === newImages.length ? 0 : index);
+        } else {
+          setCoverPhotoIndex(0);
+        }
+      } else if (index < coverPhotoIndex) {
+        setCoverPhotoIndex(coverPhotoIndex - 1);
+      }
+
+      setUploadedImages(newImages);
+    } catch (error) {
+      console.error("Error removing image:", error);
+      toast.error("Failed to remove image");
+    }
   };
 
+  // Modify handleSubmit to handle both new and existing images
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
 
-      // User verification
       if (!user || !user.uid) {
-        toast.error("You must be logged in to submit a property");
+        toast.error("You must be logged in to update a property");
         return;
       }
 
-      // Get the poster's document reference
-      const posterDocRef = doc(fireDataBase, user.userType, user.uid);
-      const posterDoc = await getDoc(posterDocRef);
-
-      if (!posterDoc.exists()) {
-        toast.error(`${user.userType} profile not found`);
-        return;
-      }
-
-      // Create listing document first
-      const listingsCollectionRef = collection(fireDataBase, "listings");
-      const newListingRef = await addDoc(listingsCollectionRef, {
-        ...formData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        postedBy: posterDocRef,
-        postedByDetails: {
-          uid: user.uid,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-        },
-        createdBy: user.uid,
-        userType: user.userType,
-        status: "active",
-        images: [], // Will be updated after upload
-        coverPhotoIndex: coverPhotoIndex,
-        viewCount: 0,
-      });
-
-      // Upload images with better error handling
+      // Upload new images
       const imageUrls = await Promise.all(
-        uploadedImages.map(async (image, index) => {
-          const storageRef = ref(
-            fireStorage,
-            `listings-images/${newListingRef.id}/${image.name}`
-          );
-
-          try {
-            // Add metadata to help with debugging
-            const metadata = {
-              customMetadata: {
-                uploadedBy: user.uid,
-                userType: user.userType,
-                listingId: newListingRef.id,
-                timestamp: new Date().toISOString(),
-              },
-            };
-
-            const uploadResult = await uploadBytes(storageRef, image, metadata);
+        uploadedImages.map(async (image) => {
+          if (image.isExisting) {
+            return image.url; // Keep existing image URL
+          } else {
+            // Type assertion approach
+            const newImage = image as NewImage;
+            const storageRef = ref(
+              fireStorage,
+              `listings-images/${id}/${newImage.file.name}`
+            );
+            const uploadResult = await uploadBytes(storageRef, newImage.file);
             return await getDownloadURL(uploadResult.ref);
-          } catch (error: any) {
-            console.error("Upload error details:", {
-              code: error.code,
-              message: error.message,
-              serverResponse: error.serverResponse,
-              name: error.name,
-              path: storageRef.fullPath,
-              file: image.name,
-              size: image.size,
-              type: image.type,
-            });
-
-            if (error.code === "storage/unauthorized") {
-              throw new Error(`Authentication error: ${error.message}`);
-            }
-            throw error;
           }
         })
       );
 
-      // Update the listing document with image URLs
-      await updateDoc(newListingRef, {
+      // Update the listing document
+      const listingRef = doc(fireDataBase, "listings", id as string);
+      await updateDoc(listingRef, {
+        ...formData,
         images: imageUrls,
-        coverPhotoIndex: coverPhotoIndex,
+        coverPhotoIndex,
+        updatedAt: serverTimestamp(),
       });
 
-      // Update user's listings
-      const existingListings = posterDoc.data()?.myListings || [];
-      await updateDoc(posterDocRef, {
-        myListings: [
-          ...existingListings,
-          {
-            position: user.userType,
-            ref: newListingRef,
-          },
-        ],
-        "subscription.listingsUsed": increment(1),
-      });
-
-      toast.success("Property listed successfully!");
-      navigate(`/property/${newListingRef.id}`);
+      toast.success("Property updated successfully!");
+      navigate(`/property/${id}`);
     } catch (error) {
-      console.error("Error submitting property:", error);
-      toast.error("Failed to list property. Please try again.");
+      console.error("Error updating property:", error);
+      toast.error("Failed to update property. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -1019,7 +1055,7 @@ const AddProperty = () => {
                                 {uploadedImages.map((image, index) => (
                                   <ImagePreview
                                     key={index}
-                                    file={image}
+                                    image={image}
                                     index={index}
                                     onRemove={removeImage}
                                     isCover={index === coverPhotoIndex}
@@ -1230,25 +1266,28 @@ const AddProperty = () => {
   );
 };
 const ImagePreview = ({
-  file,
+  image,
   onRemove,
   index,
   isCover,
   onSetCover,
 }: {
-  file: File;
+  image: ImageItem;
   onRemove: (index: number) => void;
   index: number;
   isCover: boolean;
   onSetCover: (index: number) => void;
 }) => {
   const [preview, setPreview] = useState<string>("");
-
   useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+    if ("file" in image && !image.isExisting) {
+      const objectUrl = URL.createObjectURL(image.file);
+      setPreview(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setPreview((image as ExistingImage).url);
+    }
+  }, [image]);
 
   return (
     <div className="group relative">
@@ -1283,4 +1322,5 @@ const ImagePreview = ({
     </div>
   );
 };
-export default AddProperty;
+
+export default EditProperty;

@@ -120,13 +120,12 @@ const AgencyDashboard = () => {
   // Add this function to fetch property data
   const fetchPropertyData = async (propertyRefs) => {
     try {
-      const propertyPromises = propertyRefs.map(async ({ ref, postedBy }) => {
+      const propertyPromises = propertyRefs.map(async ({ ref }) => {
         const propertyDoc = await getDoc(ref);
         if (propertyDoc.exists()) {
           return {
             uid: propertyDoc.id,
             ...(propertyDoc.data() as LISTING),
-            postedBy,
           } as LISTING;
         }
         return null;
@@ -141,8 +140,14 @@ const AgencyDashboard = () => {
       setFetchError("Failed to load properties");
     }
   };
-
-  // Replace your existing useEffect with this updated version
+  const fetchListingPoster = async (posterRef) => {
+    const docSnap = await getDoc(posterRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as USER;
+    }
+    return null;
+  };
+  // Add logic to fetch listing poster data in the useEffect
   useEffect(() => {
     const isUserValid = checkAuth();
     if (!isUserValid) {
@@ -202,9 +207,9 @@ const AgencyDashboard = () => {
 
   // Add a loading state component
   const LoadingState = () => (
-    <div className="flex items-center justify-center h-64">
+    <div className="flex justify-center items-center h-64">
       <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-realtyplus" />
+        <Loader2 className="w-8 h-8 text-realtyplus animate-spin" />
         <p className="text-gray-500">Loading dashboard data...</p>
       </div>
     </div>
@@ -212,8 +217,8 @@ const AgencyDashboard = () => {
 
   // Add error state component
   const ErrorState = ({ message }) => (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-4">
+    <div className="flex justify-center items-center h-64">
+      <div className="space-y-4 text-center">
         <p className="text-red-500">{message}</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
@@ -244,31 +249,31 @@ const AgencyDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto py-6 px-4 md:px-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+      <main className="flex-grow mx-auto px-4 md:px-6 py-6 container">
+        <div className="flex md:flex-row flex-col md:justify-between md:items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="font-bold text-gray-900 text-2xl">
               Agency Dashboard
             </h1>
             <p className="text-gray-600">
               Manage your agency, agents, and properties
             </p>
           </div>
-          <div className="mt-4 md:mt-0 flex space-x-3">
+          <div className="flex space-x-3 mt-4 md:mt-0">
             <Button className="bg-realtyplus hover:bg-realtyplus-dark">
               <Link
                 to="/list-property"
                 className="flex items-center text-white"
               >
-                <Plus className="mr-2 h-4 w-4" /> Add New Property
+                <Plus className="mr-2 w-4 h-4" /> Add New Property
               </Link>
             </Button>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" className="flex items-center">
-                  <UserPlus className="mr-2 h-4 w-4" /> Add Agent
+                  <UserPlus className="mr-2 w-4 h-4" /> Add Agent
                 </Button>
               </DialogTrigger>
               <AddAgentDialog />
@@ -281,15 +286,15 @@ const AgencyDashboard = () => {
           <ErrorState message={fetchError} />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div className="gap-6 grid grid-cols-1 md:grid-cols-4 mb-6">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardTitle className="font-medium text-gray-500 text-sm">
                     Total Agents
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
+                  <div className="font-bold text-3xl">
                     {user?.myAgents?.length || 0}
                   </div>
                 </CardContent>
@@ -297,15 +302,15 @@ const AgencyDashboard = () => {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardTitle className="font-medium text-gray-500 text-sm">
                     Total Properties
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
+                  <div className="font-bold text-3xl">
                     {user?.myListings?.length || 0}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="mt-1 text-gray-500 text-xs">
                     +1 from last month
                   </p>
                 </CardContent>
@@ -313,13 +318,13 @@ const AgencyDashboard = () => {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardTitle className="font-medium text-gray-500 text-sm">
                     Total Sales
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{user.totalSales}</div>
-                  <p className="text-xs text-green-500 mt-1">
+                  <div className="font-bold text-3xl">{user.totalSales}</div>
+                  <p className="mt-1 text-green-500 text-xs">
                     +15% from last month
                   </p>
                 </CardContent>
@@ -327,25 +332,25 @@ const AgencyDashboard = () => {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
+                  <CardTitle className="font-medium text-gray-500 text-sm">
                     Total Inquiries
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
+                  <div className="font-bold text-3xl">
                     {properties.reduce(
                       (sum, prop) => sum + prop.inquiries,
                       0
                     ) || 0}
                   </div>
-                  <p className="text-xs text-green-500 mt-1">
+                  <p className="mt-1 text-green-500 text-xs">
                     +8% from last month
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+            <div className="gap-6 grid grid-cols-1 lg:grid-cols-4 mb-6">
               <div className="lg:col-span-3">
                 <Tabs defaultValue="agents" className="w-full">
                   <TabsList className="mb-4">
@@ -355,10 +360,10 @@ const AgencyDashboard = () => {
                   </TabsList>
 
                   <TabsContent value="agents" className="space-y-4">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex md:flex-row flex-col justify-between items-start md:items-center gap-4">
                       <div className="flex-1 w-full md:max-w-sm">
                         <div className="relative">
-                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                          <Search className="top-2.5 left-2.5 absolute w-4 h-4 text-gray-500" />
                           <Input
                             type="search"
                             placeholder="Search agents..."
@@ -374,7 +379,7 @@ const AgencyDashboard = () => {
                           onValueChange={setStatusFilter}
                         >
                           <SelectTrigger className="w-[180px]">
-                            <Filter className="mr-2 h-4 w-4" />
+                            <Filter className="mr-2 w-4 h-4" />
                             <SelectValue placeholder="Filter by status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -391,7 +396,7 @@ const AgencyDashboard = () => {
                             size="sm"
                             onClick={() => setAgentView("grid")}
                           >
-                            <Grid className="h-4 w-4" />
+                            <Grid className="w-4 h-4" />
                           </Button>
                           <Button
                             variant={
@@ -400,32 +405,32 @@ const AgencyDashboard = () => {
                             size="sm"
                             onClick={() => setAgentView("list")}
                           >
-                            <List className="h-4 w-4" />
+                            <List className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
                     </div>
 
                     {agentView === "grid" ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {filteredAgents.map((agent) => (
                           <Card
                             key={agent.id}
-                            className="overflow-y-auto flex flex-col justify-between items-stretch group"
+                            className="group flex flex-col justify-between items-stretch overflow-y-auto"
                           >
-                            <CardContent className="p-0 h-full flex flex-col justify-between items-stretch">
-                              <div className="bg-black/10 p-4 flex justify-between items-start">
+                            <CardContent className="flex flex-col justify-between items-stretch p-0 h-full">
+                              <div className="flex justify-between items-start bg-black/10 p-4">
                                 <div className="flex items-center">
                                   <img
                                     src={agent.pfp}
                                     alt={agent.firstName}
-                                    className="w-12 h-12 rounded-full mr-3"
+                                    className="mr-3 rounded-full w-12 h-12"
                                   />
                                   <div>
                                     <h3 className="font-semibold text-gray-900">
                                       {`${agent.firstName} ${agent.lastName}`}
                                     </h3>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-gray-500 text-sm">
                                       {agent.role}
                                     </p>
                                   </div>
@@ -445,27 +450,27 @@ const AgencyDashboard = () => {
                               <div className="p-4">
                                 <div className="space-y-2">
                                   <div className="flex items-center text-sm">
-                                    <Mail className="h-4 w-4 text-gray-500 mr-2" />
+                                    <Mail className="mr-2 w-4 h-4 text-gray-500" />
                                     <span className="text-gray-600">
                                       {agent.email}
                                     </span>
                                   </div>
                                   <div className="flex items-center text-sm">
-                                    <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                                    <Phone className="mr-2 w-4 h-4 text-gray-500" />
                                     <span className="text-gray-600">
                                       {agent.phone}
                                     </span>
                                   </div>
                                   <div className="flex items-center text-sm">
-                                    <Building className="h-4 w-4 text-gray-500 mr-2" />
+                                    <Building className="mr-2 w-4 h-4 text-gray-500" />
                                     <span className="text-gray-600">
                                       {agent.myListings?.length || 0} listings
                                     </span>
                                   </div>
                                 </div>
-                                <div className="mt-4 flex justify-between">
+                                <div className="flex justify-between mt-4">
                                   <div>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-gray-500 text-xs">
                                       Joined
                                     </p>
                                     <p className="text-sm">
@@ -475,23 +480,23 @@ const AgencyDashboard = () => {
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-gray-500 text-xs">
                                       Sales
                                     </p>
-                                    <p className="text-sm font-semibold text-realtyplus">
+                                    <p className="font-semibold text-realtyplus text-sm">
                                       {agent.sales}
                                     </p>
                                   </div>
                                 </div>
                               </div>
-                              <CardFooter className="border-t mt-auto p-4 flex justify-between">
+                              <CardFooter className="flex justify-between mt-auto p-4 border-t">
                                 <Button variant="outline" size="sm">
-                                  <User className="h-4 w-4 mr-1" /> Profile
+                                  <User className="mr-1 w-4 h-4" /> Profile
                                 </Button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm">
-                                      <MoreHorizontal className="h-4 w-4" />
+                                      <MoreHorizontal className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
@@ -499,14 +504,14 @@ const AgencyDashboard = () => {
                                       Actions
                                     </DropdownMenuLabel>
                                     <DropdownMenuItem>
-                                      <Edit className="h-4 w-4 mr-2" /> Edit
+                                      <Edit className="mr-2 w-4 h-4" /> Edit
                                     </DropdownMenuItem>
                                     <DropdownMenuItem>
-                                      <Mail className="h-4 w-4 mr-2" /> Email
+                                      <Mail className="mr-2 w-4 h-4" /> Email
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem className="text-red-600">
-                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                      <Trash2 className="mr-2 w-4 h-4" /> Delete
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -519,41 +524,41 @@ const AgencyDashboard = () => {
                       <div className="space-y-3">
                         {filteredAgents.map((agent) => (
                           <Card key={agent.id} className="overflow-hidden">
-                            <div className="flex flex-col sm:flex-row">
-                              <div className="p-4 flex items-center sm:w-64 bg-gray-50">
+                            <div className="flex sm:flex-row flex-col">
+                              <div className="flex items-center bg-gray-50 p-4 sm:w-64">
                                 <img
                                   src={agent.pfp}
                                   alt={agent.firstName}
-                                  className="w-10 h-10 rounded-full mr-3"
+                                  className="mr-3 rounded-full w-10 h-10"
                                 />
                                 <div>
                                   <h3 className="font-semibold text-gray-900">
                                     {`${agent.firstName} ${agent.lastName}`}
                                   </h3>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-gray-500 text-xs">
                                     {agent.role}
                                   </p>
                                 </div>
                               </div>
                               <CardContent className="flex-1 p-4">
                                 <div className="flex justify-between">
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                                  <div className="flex-1 gap-4 grid grid-cols-2 md:grid-cols-4">
                                     <div>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-gray-500 text-xs">
                                         Email
                                       </p>
-                                      <p className="text-sm truncate max-w-[180px]">
+                                      <p className="max-w-[180px] text-sm truncate">
                                         {agent.email}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-gray-500 text-xs">
                                         Phone
                                       </p>
                                       <p className="text-sm">{agent.phone}</p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-gray-500 text-xs">
                                         Listings
                                       </p>
                                       <p className="text-sm">
@@ -561,10 +566,10 @@ const AgencyDashboard = () => {
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-gray-500 text-xs">
                                         Sales
                                       </p>
-                                      <p className="text-sm font-semibold text-realtyplus">
+                                      <p className="font-semibold text-realtyplus text-sm">
                                         {agent.sales}
                                       </p>
                                     </div>
@@ -583,26 +588,26 @@ const AgencyDashboard = () => {
                                     </Badge>
                                   </div>
                                 </div>
-                                <div className="mt-3 flex justify-end space-x-2">
+                                <div className="flex justify-end space-x-2 mt-3">
                                   <Button variant="outline" size="sm">
-                                    <User className="h-4 w-4 mr-1" /> Profile
+                                    <User className="mr-1 w-4 h-4" /> Profile
                                   </Button>
                                   <Button variant="outline" size="sm">
-                                    <Edit className="h-4 w-4 mr-1" /> Edit
+                                    <Edit className="mr-1 w-4 h-4" /> Edit
                                   </Button>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="sm">
-                                        <MoreHorizontal className="h-4 w-4" />
+                                        <MoreHorizontal className="w-4 h-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuItem>
-                                        <Mail className="h-4 w-4 mr-2" /> Email
+                                        <Mail className="mr-2 w-4 h-4" /> Email
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem className="text-red-600">
-                                        <Trash2 className="h-4 w-4 mr-2" />{" "}
+                                        <Trash2 className="mr-2 w-4 h-4" />{" "}
                                         Delete
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -618,7 +623,7 @@ const AgencyDashboard = () => {
 
                   <TabsContent value="properties" className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h2 className="text-xl font-semibold">
+                      <h2 className="font-semibold text-xl">
                         Agency Properties
                       </h2>
                       <div className="flex space-x-2">
@@ -627,52 +632,54 @@ const AgencyDashboard = () => {
                           size="sm"
                           onClick={() => setView("grid")}
                         >
-                          <Grid className="h-4 w-4" />
+                          <Grid className="w-4 h-4" />
                         </Button>
                         <Button
                           variant={view === "list" ? "default" : "outline"}
                           size="sm"
                           onClick={() => setView("list")}
                         >
-                          <List className="h-4 w-4" />
+                          <List className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
 
                     {view === "grid" ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {properties.map((property) => (
                           <Card key={property.id} className="overflow-hidden">
                             <div className="relative h-48">
                               <img
-                                src={property.image}
+                                src={property.images[property.coverPhotoIndex]}
                                 alt={property.title}
                                 className="w-full h-full object-cover"
                               />
-                              <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs font-medium">
+                              <div className="top-2 right-2 absolute bg-white px-2 py-1 rounded font-medium text-xs capitalize">
                                 {property.status}
                               </div>
-                              <div className="absolute top-2 left-2 bg-realtyplus text-white px-2 py-1 rounded text-xs font-medium">
-                                {property.type}
+                              <div className="top-2 left-2 absolute bg-realtyplus px-2 py-1 rounded font-medium text-white text-xs">
+                                {property.listingType}
                               </div>
                             </div>
                             <CardContent className="p-4">
-                              <h3 className="font-semibold text-gray-900 mb-1 truncate">
+                              <h3 className="mb-1 font-semibold text-gray-900 truncate">
                                 {property.title}
                               </h3>
-                              <p className="text-gray-500 text-sm mb-2">
-                                {property.location}
+                              <p className="mb-2 text-gray-500 text-sm">
+                                {property.address}
                               </p>
-                              <p className="font-bold text-realtyplus mb-3">
+                              <p className="mb-3 font-bold text-realtyplus">
                                 {property.price}
                               </p>
-                              <div className="flex justify-between text-sm text-gray-500">
-                                <span>{property.views} views</span>
+                              <div className="flex justify-between text-gray-500 text-sm">
+                                <span>{property.viewCount} views</span>
                                 <span>{property.inquiries} inquiries</span>
                               </div>
                               <div className="mt-3 pt-3 border-t">
-                                <p className="text-sm text-gray-500">
-                                  Listed by: {property.agent}
+                                <p className="text-gray-500 text-sm">
+                                  Listed by:{" "}
+                                  {property.postedByDetails.firstName}{" "}
+                                  {property.postedByDetails.lastName}
                                 </p>
                               </div>
                             </CardContent>
@@ -683,10 +690,12 @@ const AgencyDashboard = () => {
                       <div className="space-y-3">
                         {properties.map((property) => (
                           <Card key={property.id} className="overflow-hidden">
-                            <div className="flex flex-col sm:flex-row">
+                            <div className="flex sm:flex-row flex-col">
                               <div className="sm:w-48 h-32 sm:h-auto">
                                 <img
-                                  src={property.image}
+                                  src={
+                                    property.images[property.coverPhotoIndex]
+                                  }
                                   alt={property.title}
                                   className="w-full h-full object-cover"
                                 />
@@ -694,16 +703,16 @@ const AgencyDashboard = () => {
                               <CardContent className="flex-1 p-4">
                                 <div className="flex justify-between">
                                   <div>
-                                    <h3 className="font-semibold text-gray-900 mb-1">
+                                    <h3 className="mb-1 font-semibold text-gray-900">
                                       {property.title}
                                     </h3>
-                                    <p className="text-gray-500 text-sm mb-2">
-                                      {property.location}
+                                    <p className="mb-2 text-gray-500 text-sm">
+                                      {property.address}
                                     </p>
                                     <p className="font-bold text-realtyplus">
                                       {property.price}
                                     </p>
-                                    <p className="text-sm text-gray-500 mt-2">
+                                    <p className="mt-2 text-gray-500 text-sm">
                                       Listed by: {property.agent}
                                     </p>
                                   </div>
@@ -717,17 +726,19 @@ const AgencyDashboard = () => {
                                     >
                                       {property.status}
                                     </span>
-                                    <p className="text-gray-500 text-sm mt-2">
-                                      {property.views} views
+                                    <p className="mt-2 text-gray-500 text-sm">
+                                      {property.viewCount} views
                                     </p>
                                     <p className="text-gray-500 text-sm">
                                       {property.inquiries} inquiries
                                     </p>
                                   </div>
                                 </div>
-                                <div className="mt-3 flex space-x-2">
+                                <div className="flex space-x-2 mt-3">
                                   <Button variant="outline" size="sm">
-                                    Edit
+                                    <Link to={`/edit-property/${property.uid}`}>
+                                      Edit
+                                    </Link>
                                   </Button>
                                   <Button variant="outline" size="sm">
                                     Delete
@@ -755,20 +766,20 @@ const AgencyDashboard = () => {
                       <CardContent>
                         <div className="space-y-8">
                           <div>
-                            <h3 className="text-lg font-medium mb-2">
+                            <h3 className="mb-2 font-medium text-lg">
                               Monthly Performance
                             </h3>
-                            <div className="h-[200px] w-full bg-gray-100 flex items-center justify-center">
+                            <div className="flex justify-center items-center bg-gray-100 w-full h-[200px]">
                               <p className="text-gray-500">
                                 Analytics charts coming soon
                               </p>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
                             <Card>
                               <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">
+                                <CardTitle className="font-medium text-sm">
                                   Top Performing Agent
                                 </CardTitle>
                               </CardHeader>
@@ -777,11 +788,11 @@ const AgencyDashboard = () => {
                                   <img
                                     src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah"
                                     alt="Top Agent"
-                                    className="w-10 h-10 rounded-full mr-3"
+                                    className="mr-3 rounded-full w-10 h-10"
                                   />
                                   <div>
                                     <p className="font-medium">Sarah Tembo</p>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-gray-500 text-sm">
                                       12 sales this month
                                     </p>
                                   </div>
@@ -791,7 +802,7 @@ const AgencyDashboard = () => {
 
                             <Card>
                               <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">
+                                <CardTitle className="font-medium text-sm">
                                   Most Viewed Property
                                 </CardTitle>
                               </CardHeader>
@@ -799,7 +810,7 @@ const AgencyDashboard = () => {
                                 <p className="font-medium">
                                   Modern 3 Bedroom House in Kabulonga
                                 </p>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-gray-500 text-sm">
                                   245 views this month
                                 </p>
                               </CardContent>
@@ -807,13 +818,13 @@ const AgencyDashboard = () => {
 
                             <Card>
                               <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">
+                                <CardTitle className="font-medium text-sm">
                                   Conversion Rate
                                 </CardTitle>
                               </CardHeader>
                               <CardContent>
-                                <p className="text-2xl font-bold">8.2%</p>
-                                <p className="text-sm text-green-500">
+                                <p className="font-bold text-2xl">8.2%</p>
+                                <p className="text-green-500 text-sm">
                                   +1.3% from last month
                                 </p>
                               </CardContent>
@@ -839,7 +850,7 @@ const AgencyDashboard = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Status</span>
-                        <span className="text-green-600 font-medium">
+                        <span className="font-medium text-green-600">
                           Active
                         </span>
                       </div>
@@ -865,7 +876,7 @@ const AgencyDashboard = () => {
                         }
                         className="h-2"
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-gray-500 text-xs">
                         {subscription.agentsTotal - subscription.agentsUsed}{" "}
                         agent slots remaining
                       </p>
@@ -887,7 +898,7 @@ const AgencyDashboard = () => {
                         }
                         className="h-2"
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-gray-500 text-xs">
                         {subscription.listingsTotal - subscription.listingsUsed}{" "}
                         listings remaining
                       </p>
@@ -896,9 +907,9 @@ const AgencyDashboard = () => {
                     <Button variant="outline" className="w-full">
                       <Link
                         to="/agent/subscription"
-                        className="flex items-center w-full justify-center"
+                        className="flex justify-center items-center w-full"
                       >
-                        <CreditCard className="mr-2 h-4 w-4" /> Manage
+                        <CreditCard className="mr-2 w-4 h-4" /> Manage
                         Subscription
                       </Link>
                     </Button>
@@ -913,39 +924,39 @@ const AgencyDashboard = () => {
                     <nav className="space-y-2">
                       <Link
                         to="/list-property"
-                        className="flex items-center text-gray-700 hover:text-realtyplus py-2"
+                        className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
-                        <Plus className="mr-2 h-4 w-4" /> Add New Property
+                        <Plus className="mr-2 w-4 h-4" /> Add New Property
                       </Link>
                       <Link
                         to="/agency/profile"
-                        className="flex items-center text-gray-700 hover:text-realtyplus py-2"
+                        className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
-                        <Building className="mr-2 h-4 w-4" /> Agency Profile
+                        <Building className="mr-2 w-4 h-4" /> Agency Profile
                       </Link>
                       <Link
                         to="/agency/settings"
-                        className="flex items-center text-gray-700 hover:text-realtyplus py-2"
+                        className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
-                        <Settings className="mr-2 h-4 w-4" /> Account Settings
+                        <Settings className="mr-2 w-4 h-4" /> Account Settings
                       </Link>
                       <Link
                         to="/agency/reports"
-                        className="flex items-center text-gray-700 hover:text-realtyplus py-2"
+                        className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
-                        <BarChart2 className="mr-2 h-4 w-4" /> Reports
+                        <BarChart2 className="mr-2 w-4 h-4" /> Reports
                       </Link>
                       <Link
                         to="/"
-                        className="flex items-center text-gray-700 hover:text-realtyplus py-2"
+                        className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
-                        <Home className="mr-2 h-4 w-4" /> View Website
+                        <Home className="mr-2 w-4 h-4" /> View Website
                       </Link>
                       <Link
                         to="/logout"
-                        className="flex items-center text-gray-700 hover:text-realtyplus py-2"
+                        className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
-                        <LogOut className="mr-2 h-4 w-4" /> Logout
+                        <LogOut className="mr-2 w-4 h-4" /> Logout
                       </Link>
                     </nav>
                   </CardContent>
@@ -1158,21 +1169,21 @@ const AddAgentDialog = () => {
 
       <div className="space-y-4">
         {/* Added Agents Section */}
-        <div className="border rounded-lg p-4">
-          <h3 className="font-semibold mb-2">Current Agency Agents</h3>
+        <div className="p-4 border rounded-lg">
+          <h3 className="mb-2 font-semibold">Current Agency Agents</h3>
           {isFetching ? (
             <div className="flex justify-center py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           ) : addedAgents.length > 0 ? (
             <div className="space-y-2">
               {addedAgents.map(({ agent, position }) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                  className="flex justify-between items-center bg-gray-50 p-2 rounded"
                 >
                   <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-gray-500" />
+                    <User className="w-4 h-4 text-gray-500" />
                     <span>{`${agent.firstName} ${agent.lastName}`}</span>
                     <span className="text-gray-500 text-sm">{agent.email}</span>
                   </div>
@@ -1181,7 +1192,7 @@ const AddAgentDialog = () => {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No agents added yet</p>
+            <p className="text-gray-500 text-sm">No agents added yet</p>
           )}
         </div>
 
@@ -1197,7 +1208,7 @@ const AddAgentDialog = () => {
             />
           </div>
           {searchTerm.length > 0 && searchTerm.length < 2 && (
-            <p className="text-sm text-gray-500">
+            <p className="text-gray-500 text-sm">
               Please enter at least 2 characters to search
             </p>
           )}
@@ -1206,25 +1217,25 @@ const AddAgentDialog = () => {
         {/* Search Results */}
         {isFetching ? (
           <div className="flex justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           </div>
         ) : searchTerm.length >= 2 && agents.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">No agents found</div>
+          <div className="py-4 text-gray-500 text-center">No agents found</div>
         ) : agents.length > 0 ? (
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-gray-500 text-sm text-left">
                     Select
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-gray-500 text-sm text-left">
                     Name
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-gray-500 text-sm text-left">
                     Email
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-gray-500 text-sm text-left">
                     Phone
                   </th>
                 </tr>
@@ -1277,14 +1288,14 @@ const AddAgentDialog = () => {
 
         {/* Success Message */}
         {success && (
-          <div className="bg-green-50 text-green-600 p-2 rounded text-sm">
+          <div className="bg-green-50 p-2 rounded text-green-600 text-sm">
             {success}
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 text-red-600 p-2 rounded text-sm">
+          <div className="bg-red-50 p-2 rounded text-red-600 text-sm">
             {error}
           </div>
         )}
@@ -1299,7 +1310,7 @@ const AddAgentDialog = () => {
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
               Adding...
             </>
           ) : (
