@@ -64,6 +64,7 @@ import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import { useZustand } from "@/lib/zustand";
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   deleteDoc,
@@ -71,6 +72,7 @@ import {
   DocumentReference,
   getDoc,
   getDocs,
+  increment,
   limit,
   onSnapshot,
   query,
@@ -1426,6 +1428,11 @@ const DeleteListingDialog = ({
 
         // 3. Delete the listing document
         await deleteDoc(listingRef);
+        // 4. Update the user's listings array and subscription count
+        await updateDoc(listingData.postedBy, {
+          myListings: arrayRemove(listingRef),
+          "subscription.listingsUsed": increment(-1),
+        });
 
         toast.success("Listing deleted successfully");
         onClose();
