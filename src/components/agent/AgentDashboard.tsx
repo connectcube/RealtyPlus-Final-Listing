@@ -1,5 +1,5 @@
 import React, { FormEvent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
   Plus,
@@ -24,12 +24,19 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Progress } from "../ui/progress";
 import { useZustand } from "@/lib/zustand";
-import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
-import { fireDataBase } from "@/lib/firebase";
+import {
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  updateDoc,
+} from "firebase/firestore";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { formatFirebaseTimestamp } from "@/helpers/firebaseTimestampConversion";
 import { LISTING, USER } from "@/lib/typeDefinitions";
 import { toast } from "react-toastify";
 import Header from "../layout/Header";
+import { deleteObject, ref } from "firebase/storage";
 
 const AgentDashboard = () => {
   const { user, setUser } = useZustand();
@@ -37,6 +44,7 @@ const AgentDashboard = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [properties, setProperties] = useState([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const LoadingState = ({ message = "Loading dashboard data..." }) => (
     <div className="flex justify-center items-center h-64">
       <div className="flex flex-col items-center space-y-4">
@@ -220,95 +228,148 @@ const AgentDashboard = () => {
                     {view === "grid" ? (
                       <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {properties.map((property) => (
-                          <Card key={property.id} className="overflow-hidden">
-                            <div className="relative h-48">
-                              <img
-                                src={property.images[property.coverPhotoIndex]}
-                                alt={property.title}
-                                className="w-full h-full object-cover"
-                              />
-                              <div className="top-2 right-2 absolute bg-white px-2 py-1 rounded font-medium text-xs">
-                                {property.status}
+                          <>
+                            <Card key={property.id} className="overflow-hidden">
+                              <div className="relative h-48">
+                                <img
+                                  src={
+                                    property.images[property.coverPhotoIndex]
+                                  }
+                                  alt={property.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div
+                                  className={`${
+                                    property.status === "active"
+                                      ? "bg-green-200 text-green-800"
+                                      : "bg-yellow-200 text-yellow-800"
+                                  }  top-2 right-2 absolute bg-white px-2 py-1 rounded font-medium text-xs`}
+                                >
+                                  {property.status}
+                                </div>
+                                <div className="top-2 left-2 absolute bg-realtyplus px-2 py-1 rounded font-medium text-white text-xs capitalize">
+                                  {property.listingType}
+                                </div>
                               </div>
-                              <div className="top-2 left-2 absolute bg-realtyplus px-2 py-1 rounded font-medium text-white text-xs">
-                                {property.type}
-                              </div>
-                            </div>
-                            <CardContent className="p-4">
-                              <h3 className="mb-1 font-semibold text-gray-900 truncate">
-                                {property.title}
-                              </h3>
-                              <p className="mb-2 text-gray-500 text-sm">
-                                {property.location}
-                              </p>
-                              <p className="mb-3 font-bold text-realtyplus">
-                                {property.price}
-                              </p>
-                              <div className="flex justify-between text-gray-500 text-sm">
-                                <span>{property.views} views</span>
-                                <span>{property.inquiries} inquiries</span>
-                              </div>
-                            </CardContent>
-                          </Card>
+                              <CardContent className="p-4">
+                                <h3 className="mb-1 font-semibold text-gray-900 truncate">
+                                  {property.title}
+                                </h3>
+                                <p className="mb-2 text-gray-500 text-sm">
+                                  {property.location}
+                                </p>
+                                <p className="mb-3 font-bold text-realtyplus">
+                                  {property.price}
+                                </p>
+                                <div className="flex justify-between text-gray-500 text-sm">
+                                  <span>{property.viewCount} views</span>
+                                  <span>{property.inquiries} inquiries</span>
+                                </div>
+                                <div className="flex space-x-2 mt-3">
+                                  <Button variant="outline" size="sm">
+                                    <Link to={`/edit-property/${property.uid}`}>
+                                      Edit
+                                    </Link>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsDeleteDialogOpen(true)}
+                                  >
+                                    Delete
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Link to={`/property/${property.uid}`}>
+                                      View
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                            <DeleteListingDialog
+                              isOpen={isDeleteDialogOpen}
+                              onClose={() => setIsDeleteDialogOpen(false)}
+                              listingId={property.uid}
+                            />
+                          </>
                         ))}
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {properties.map((property) => (
-                          <Card key={property.id} className="overflow-hidden">
-                            <div className="flex sm:flex-row flex-col">
-                              <div className="sm:w-48 h-32 sm:h-auto">
-                                <img
-                                  src={property.image}
-                                  alt={property.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <CardContent className="flex-1 p-4">
-                                <div className="flex justify-between">
-                                  <div>
-                                    <h3 className="mb-1 font-semibold text-gray-900">
-                                      {property.title}
-                                    </h3>
-                                    <p className="mb-2 text-gray-500 text-sm">
-                                      {property.location}
-                                    </p>
-                                    <p className="font-bold text-realtyplus">
-                                      {property.price}
-                                    </p>
+                          <>
+                            <Card key={property.id} className="overflow-hidden">
+                              <div className="flex sm:flex-row flex-col">
+                                <div className="sm:w-48 h-32 sm:h-auto">
+                                  <img
+                                    src={property.image}
+                                    alt={property.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <CardContent className="flex-1 p-4">
+                                  <div className="flex justify-between">
+                                    <div>
+                                      <h3 className="mb-1 font-semibold text-gray-900">
+                                        {property.title}
+                                      </h3>
+                                      <p className="mb-2 text-gray-500 text-sm">
+                                        {property.location}
+                                      </p>
+                                      <p className="font-bold text-realtyplus">
+                                        {property.price}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span
+                                        className={`inline-block capitalize px-2 py-1 rounded text-xs font-medium ${
+                                          property.status === "active"
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {property.status}
+                                      </span>
+                                      <p className="mt-2 text-gray-500 text-sm">
+                                        {property.viewCount} views
+                                      </p>
+                                      <p className="text-gray-500 text-sm">
+                                        {property.inquiries} inquiries
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <span
-                                      className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                        property.status === "Active"
-                                          ? "bg-green-100 text-green-800"
-                                          : "bg-yellow-100 text-yellow-800"
-                                      }`}
+                                  <div className="flex space-x-2 mt-3">
+                                    <Button variant="outline" size="sm">
+                                      <Link
+                                        to={`/edit-property/${property.uid}`}
+                                      >
+                                        Edit
+                                      </Link>
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        setIsDeleteDialogOpen(true)
+                                      }
                                     >
-                                      {property.status}
-                                    </span>
-                                    <p className="mt-2 text-gray-500 text-sm">
-                                      {property.views} views
-                                    </p>
-                                    <p className="text-gray-500 text-sm">
-                                      {property.inquiries} inquiries
-                                    </p>
+                                      Delete
+                                    </Button>
+                                    <Button variant="outline" size="sm">
+                                      <Link to={`/property/${property.uid}`}>
+                                        View
+                                      </Link>
+                                    </Button>
                                   </div>
-                                </div>
-                                <div className="flex space-x-2 mt-3">
-                                  <Button variant="outline" size="sm">
-                                    Edit
-                                  </Button>
-                                  <Button variant="outline" size="sm">
-                                    Delete
-                                  </Button>
-                                  <Button variant="outline" size="sm">
-                                    View
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </div>
-                          </Card>
+                                </CardContent>
+                              </div>
+                            </Card>
+                            <DeleteListingDialog
+                              isOpen={isDeleteDialogOpen}
+                              onClose={() => setIsDeleteDialogOpen(false)}
+                              listingId={property.uid}
+                            />
+                          </>
                         ))}
                       </div>
                     )}
@@ -751,5 +812,177 @@ const ProfileForm = ({ user, onUpdateSuccess }) => {
     </form>
   );
 };*/
+interface DeleteListingDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  listingId: string;
+}
 
+const DeleteListingDialog = ({
+  isOpen,
+  onClose,
+  listingId,
+}: DeleteListingDialogProps) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    if (!listingId) return;
+
+    try {
+      setIsDeleting(true);
+
+      // 1. First get the listing data to get image URLs
+      const listingRef = doc(fireDataBase, "listings", listingId);
+      const listingDoc = await getDoc(listingRef);
+
+      if (listingDoc.exists()) {
+        const listingData = listingDoc.data();
+
+        // 2. Delete images one by one if they exist
+        if (listingData.images && Array.isArray(listingData.images)) {
+          await Promise.all(
+            listingData.images.map(async (imageUrl: string) => {
+              try {
+                // Convert URL to storage reference
+                const imageRef = ref(
+                  fireStorage,
+                  getStoragePathFromURL(imageUrl)
+                );
+                await deleteObject(imageRef);
+              } catch (error) {
+                console.warn(`Failed to delete image: ${imageUrl}`, error);
+                // Continue with other deletions even if one fails
+              }
+            })
+          );
+        }
+
+        // 3. Delete the listing document
+        await deleteDoc(listingRef);
+
+        toast.success("Listing deleted successfully");
+        onClose();
+        navigate("/agent/dashboard");
+      } else {
+        throw new Error("Listing not found");
+      }
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+      toast.error("Failed to delete listing");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Helper function to get storage path from URL
+  const getStoragePathFromURL = (url: string) => {
+    try {
+      // Extract the path from the Firebase Storage URL
+      const baseURL =
+        "https://firebasestorage.googleapis.com/v0/b/realtyplus-listings.appspot.com/o/";
+      const storagePath = url.replace(baseURL, "");
+      const pathWithoutQuery = storagePath.split("?")[0];
+      return decodeURIComponent(pathWithoutQuery);
+    } catch (error) {
+      console.error("Error parsing storage URL:", error);
+      return "";
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="z-50 fixed inset-0 overflow-y-auto">
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+
+      {/* Dialog */}
+      <div className="flex justify-center items-end sm:items-center p-4 sm:p-0 min-h-full text-center">
+        <div className="relative bg-white shadow-xl sm:my-8 rounded-lg sm:w-full sm:max-w-lg overflow-hidden text-left transition-all transform">
+          <div className="bg-white sm:p-6 px-4 pt-5 pb-4 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              {/* Warning Icon */}
+              <div className="flex flex-shrink-0 justify-center items-center bg-red-100 mx-auto sm:mx-0 rounded-full w-12 sm:w-10 h-12 sm:h-10">
+                <svg
+                  className="w-6 h-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                  />
+                </svg>
+              </div>
+
+              {/* Content */}
+              <div className="mt-3 sm:mt-0 sm:ml-4 sm:text-left text-center">
+                <h3 className="font-semibold text-gray-900 text-lg leading-6">
+                  Delete Listing
+                </h3>
+                <div className="mt-2">
+                  <p className="text-gray-500 text-sm">
+                    Are you sure you want to delete this listing? This action
+                    cannot be undone and will permanently remove the listing and
+                    all associated images.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="sm:flex sm:flex-row-reverse bg-gray-50 px-4 sm:px-6 py-3">
+            <button
+              type="button"
+              className="inline-flex justify-center bg-red-600 hover:bg-red-500 shadow-sm sm:ml-3 px-3 py-2 rounded-md w-full sm:w-auto font-semibold text-white text-sm"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <span className="flex items-center">
+                  <svg
+                    className="mr-3 -ml-1 w-5 h-5 text-white animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Deleting...
+                </span>
+              ) : (
+                "Delete"
+              )}
+            </button>
+            <button
+              type="button"
+              className="inline-flex justify-center bg-white hover:bg-gray-50 shadow-sm mt-3 sm:mt-0 px-3 py-2 rounded-md ring-1 ring-gray-300 ring-inset w-full sm:w-auto font-semibold text-gray-900 text-sm"
+              onClick={onClose}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 export default AgentDashboard;

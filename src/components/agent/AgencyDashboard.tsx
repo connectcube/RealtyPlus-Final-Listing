@@ -697,14 +697,14 @@ const AgencyDashboard = () => {
                                       Edit
                                     </Link>
                                   </Button>
-                                  <Button variant="outline" size="sm">
-                                    Delete
-                                  </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setIsDeleteDialogOpen(true)}
                                   >
+                                    Delete
+                                  </Button>
+                                  <Button variant="outline" size="sm">
                                     <Link to={`/property/${property.uid}`}>
                                       View
                                     </Link>
