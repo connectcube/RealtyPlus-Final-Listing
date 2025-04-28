@@ -116,8 +116,8 @@ export type LISTING = {
   address: string;
   features: FEATURES;
   nearbyPlaces: NearbyPlace[];
-  company: string;
-  createdAt: Timestamp;
+  company?: string;
+  createdAt: Timestamp | null;
 };
 export type FEATURES = {
   swimmingPool: boolean;
@@ -131,10 +131,14 @@ export type FEATURES = {
   parking: boolean;
 };
 export interface NearbyPlace {
+  id: number;
   name: string;
-  distance: string;
   type: string;
+  lat: number;
+  lon: number;
+  distance?: string; // Optional since it may not always be present
 }
+
 interface myListings {
   position: string;
   ref: DocumentReference;

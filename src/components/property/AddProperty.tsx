@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
-import { NearbyPlace } from "@/lib/typeDefinitions";
+import { LISTING, NearbyPlace } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
 import {
   addDoc,
@@ -48,23 +48,28 @@ const AddProperty = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("basic");
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LISTING>({
+    uid: "",
+    coverPhotoIndex: 0,
+    images: [],
     title: "",
     description: "",
     price: 0,
-    propertyType: "",
+    propertyType: "standalone",
     listingType: "sale",
     bedrooms: 0,
     bathrooms: 0,
-    area: "",
+    area: 0,
     garageSpaces: 0,
-    yearBuilt: "",
+    yearBuilt: 0,
     isFurnished: false,
     isFeatured: false,
     province: "",
     city: "",
     neighborhood: "",
     address: "",
+    createdAt: null,
+    viewCount: 0,
     features: {
       swimmingPool: false,
       garden: false,
@@ -76,8 +81,9 @@ const AddProperty = () => {
       fittedKitchen: false,
       parking: false,
     },
-    nearby_places: [] as NearbyPlace[],
-    propertyCategory: "",
+    postedBy: doc(fireDataBase, "users", user?.uid || ""),
+    nearbyPlaces: [] as NearbyPlace[],
+    propertyCategory: "newDevelopment",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
@@ -625,7 +631,7 @@ const AddProperty = () => {
                           </p>
                         </div>
                       </div>
-                      {/*<div className="mt-6">
+                      <div className="mt-6">
                         <div className="flex flex-col gap-4 mb-4">
                           <Label
                             htmlFor="nearbyPlaces"
@@ -633,67 +639,12 @@ const AddProperty = () => {
                           >
                             Nearby Places
                           </Label>
-
-                          
-                          {formData.nearby_places.map((place, index) => (
-                            <div key={index} className="flex gap-4 mb-2">
-                              <input
-                                type="text"
-                                placeholder="Place name"
-                                value={place.name}
-                                onChange={(e) =>
-                                  updateNearbyPlace(
-                                    index,
-                                    "name",
-                                    e.target.value
-                                  )
-                                }
-                                className="px-2 py-1 border rounded"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Distance (km)"
-                                value={place.distance}
-                                onChange={(e) =>
-                                  updateNearbyPlace(
-                                    index,
-                                    "distance",
-                                    e.target.value
-                                  )
-                                }
-                                className="px-2 py-1 border rounded"
-                              />
-                              <select
-                                value={place.type}
-                                onChange={(e) =>
-                                  updateNearbyPlace(
-                                    index,
-                                    "type",
-                                    e.target.value
-                                  )
-                                }
-                                className="px-2 py-1 border rounded"
-                              >
-                                <option value="">Select type</option>
-                                <option value="school">School</option>
-                                <option value="hospital">Hospital</option>
-                                <option value="shopping">Shopping</option>
-                                <option value="restaurant">Restaurant</option>
-                                <option value="park">Park</option>
-                              </select>
-                            </div>
-                          ))}
-
-                          
-                          <button
-                            type="button"
-                            onClick={addNearbyPlace}
-                            className="bg-blue-500 mt-2 px-4 py-2 rounded text-white"
-                          >
-                            Add a place
-                          </button>
+                          <NearbyPlaces
+                            formData={formData}
+                            setFormData={setFormData}
+                          />
                         </div>
-                      </div>*/}
+                      </div>
                     </TabsContent>
 
                     {/* Details Tab */}
@@ -1283,4 +1234,159 @@ const ImagePreview = ({
     </div>
   );
 };
+const NearbyPlaces = ({
+  setFormData,
+  formData,
+}: {
+  formData: LISTING;
+  setFormData: React.Dispatch<React.SetStateAction<LISTING>>;
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [selectedPlaces, setSelectedPlaces] = useState<Set<number>>(new Set());
+
+  const handleFetchNearby = async () => {
+    if (!formData.city || !formData.province || !formData.address) {
+      alert("Please fill in the address, city, and province first!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `http://localhost:3000/api/listing/getnearbyplaces`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            city: formData.city,
+            province: formData.province,
+            neighborhood: formData.neighborhood,
+            address: formData.address,
+          }),
+        }
+      );
+      const data = await response.json();
+      console.log(data);
+      if (response.ok) {
+        setFormData((prev) => ({ ...prev, nearbyPlaces: data.nearbyPlaces }));
+      } else {
+        console.error("Failed to fetch nearby places:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching nearby places:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlaceSelection = (placeId: number, placeName: string) => {
+    const newSelected = new Set(selectedPlaces);
+    if (newSelected.has(placeId)) {
+      newSelected.delete(placeId);
+    } else {
+      newSelected.add(placeId);
+    }
+    setSelectedPlaces(newSelected);
+
+    // Update formData with selected places
+    setFormData((prev) => ({
+      ...prev,
+      nearbyPlaces: Array.from(newSelected).map((id) => ({
+        id,
+        name:
+          formData.nearbyPlaces?.find((place) => place.id === id)?.name || "",
+        type:
+          formData.nearbyPlaces?.find((place) => place.id === id)?.type || "",
+        lat: formData.nearbyPlaces?.find((place) => place.id === id)?.lat || 0,
+        lon: formData.nearbyPlaces?.find((place) => place.id === id)?.lon || 0,
+      })),
+    }));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <Button
+          onClick={handleFetchNearby}
+          disabled={loading}
+          variant="outline"
+          className="w-full"
+        >
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Fetching Nearby Places...
+            </div>
+          ) : (
+            "Fetch Nearby Places"
+          )}
+        </Button>
+      </div>
+
+      {formData.nearbyPlaces && formData.nearbyPlaces.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-gray-500 text-sm">
+            Select nearby places to include in your listing:
+          </p>
+          <div className="gap-2 grid grid-cols-1 sm:grid-cols-2">
+            {formData.nearbyPlaces.map((place) => (
+              <div
+                key={place.id}
+                className="flex items-center space-x-2 hover:bg-gray-50 p-2 border rounded-md"
+              >
+                <Checkbox
+                  id={`place-${place.id}`}
+                  checked={selectedPlaces.has(place.id)}
+                  onCheckedChange={(checked) =>
+                    handlePlaceSelection(place.id, place.name)
+                  }
+                />
+                <Label
+                  htmlFor={`place-${place.id}`}
+                  className="flex-1 cursor-pointer"
+                >
+                  <div>
+                    <p className="font-medium">{place.name}</p>
+                    {place.distance && (
+                      <p className="text-gray-500 text-sm">{place.type}</p>
+                    )}
+                  </div>
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {formData.nearbyPlaces?.length === 0 && !loading && (
+        <p className="text-gray-500 text-sm text-center">
+          No nearby places found. Try adjusting your location.
+        </p>
+      )}
+    </div>
+  );
+};
+
 export default AddProperty;
