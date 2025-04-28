@@ -974,7 +974,12 @@ const AgencyDashboard = () => {
                   <CardContent>
                     <nav className="space-y-2">
                       <Link
-                        to="/list-property"
+                        to={
+                          user.subscription.listingsUsed <=
+                          user.subscription.listingsTotal
+                            ? "/list-property"
+                            : "/subscription"
+                        }
                         className="flex items-center py-2 text-gray-700 hover:text-realtyplus"
                       >
                         <Plus className="mr-2 w-4 h-4" /> Add New Property

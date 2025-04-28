@@ -37,6 +37,7 @@ import { LISTING, USER } from "@/lib/typeDefinitions";
 import { toast } from "react-toastify";
 import Header from "../layout/Header";
 import { deleteObject, ref } from "firebase/storage";
+import { set } from "lodash";
 
 const AgentDashboard = () => {
   const { user, setUser } = useZustand();
@@ -45,6 +46,7 @@ const AgentDashboard = () => {
   const [fetchError, setFetchError] = useState(null);
   const [properties, setProperties] = useState([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [totalViews, setTotalViews] = useState(0);
   const LoadingState = ({ message = "Loading dashboard data..." }) => (
     <div className="flex justify-center items-center h-64">
       <div className="flex flex-col items-center space-y-4">
@@ -74,6 +76,9 @@ const AgentDashboard = () => {
       const propertyPromises = propertyRefs.map(async ({ ref, postedBy }) => {
         const propertyDoc = await getDoc(ref);
         if (propertyDoc.exists()) {
+          setTotalViews(
+            (prev) => prev + (propertyDoc.data() as LISTING).viewCount || 0
+          );
           return {
             uid: propertyDoc.id,
             ...(propertyDoc.data() as LISTING),
@@ -134,7 +139,12 @@ const AgentDashboard = () => {
           <div className="flex space-x-3 mt-4 md:mt-0">
             <Button className="bg-realtyplus hover:bg-realtyplus-dark">
               <Link
-                to="/list-property"
+                to={
+                  user.subscription.listingsUsed <=
+                  user.subscription.listingsTotal
+                    ? "/list-property"
+                    : "/subscription"
+                }
                 className="flex items-center text-white"
               >
                 <Plus className="mr-2 w-4 h-4" /> Add New Property
@@ -173,7 +183,7 @@ const AgentDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="font-bold text-3xl">{user.views}</div>
+                  <div className="font-bold text-3xl">{totalViews}</div>
                   {/*<p className="mt-1 text-green-500 text-xs">+15% from last month</p>*/}
                 </CardContent>
               </Card>
@@ -186,10 +196,10 @@ const AgentDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="font-bold text-3xl">
-                    {user.enquiries || 5}
+                    {user.enquiries || 0}
                   </div>
                   <p className="mt-1 text-green-500 text-xs">
-                    +8% from last month
+                    ( Analytics coming soon )
                   </p>
                 </CardContent>
               </Card>
