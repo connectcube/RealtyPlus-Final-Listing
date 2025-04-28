@@ -140,7 +140,7 @@ const AgentDashboard = () => {
             <Button className="bg-realtyplus hover:bg-realtyplus-dark">
               <Link
                 to={
-                  user.subscription.listingsUsed <=
+                  user.subscription.listingsUsed <
                   user.subscription.listingsTotal
                     ? "/list-property"
                     : "/subscription"

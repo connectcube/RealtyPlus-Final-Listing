@@ -241,10 +241,10 @@ const AgencyDashboard = () => {
   // Mock subscription data
   const subscription = {
     plan: user?.subscription.plan || "",
-    agentsTotal: 10,
-    agentsUsed: 5,
-    listingsTotal: 100,
-    listingsUsed: 38,
+    agentsTotal: user.subscription.agentsTotal || 0,
+    agentsUsed: user.subscription.agentsUsed || 0,
+    listingsTotal: user.subscription.listingsTotal || 0,
+    listingsUsed: user.subscription.listingsUsed || 0,
     renewalDate: new Date(
       Date.now() + 25 * 24 * 60 * 60 * 1000
     ).toLocaleDateString(),
@@ -975,7 +975,7 @@ const AgencyDashboard = () => {
                     <nav className="space-y-2">
                       <Link
                         to={
-                          user.subscription.listingsUsed <=
+                          user.subscription.listingsUsed <
                           user.subscription.listingsTotal
                             ? "/list-property"
                             : "/subscription"
