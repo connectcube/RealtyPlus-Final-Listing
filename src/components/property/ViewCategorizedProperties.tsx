@@ -36,6 +36,7 @@ const MemoizedPropertyCard = memo(
     onFavorite,
     isFavorite,
     yearBuilt,
+    viewCount,
   }: any) => (
     <PropertyCard
       id={id}
@@ -52,6 +53,7 @@ const MemoizedPropertyCard = memo(
       yearBuilt={yearBuilt}
       onFavorite={onFavorite}
       isFavorite={isFavorite}
+      viewCount={viewCount}
     />
   )
 );
@@ -84,10 +86,10 @@ export default function ViewCategorizedProperties() {
     priceRange: [0, 1000000],
     propertyType: "all",
     isFurnished: null,
-    yearBuilt: 0, // Change from "" to 0
-    bedrooms: 0, // Change from "" to 0
-    bathrooms: 0, // Change from "" to 0
-    garage: 0, // Change from "" to 0
+    yearBuilt: 0,
+    bedrooms: 0,
+    bathrooms: 0,
+    garage: 0,
     amenities: [],
     listingType: "sale",
     propertyCategory: categoryFromUrl || "all",
@@ -312,6 +314,7 @@ export default function ViewCategorizedProperties() {
                       onFavorite={handleFavClick}
                       isFavorite={() => handleCheckFav(property.uid)}
                       onClick={() => console.log(property.uid)}
+                      viewCount={property.viewCount}
                     />
                   ))}
                 </div>

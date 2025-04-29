@@ -39,7 +39,7 @@ const RentProperties = () => {
     bathrooms: 0,
     garage: 0,
     amenities: [],
-    listingType: "sale",
+    listingType: "rent",
     propertyCategory: "all",
   });
 
@@ -262,6 +262,7 @@ const RentProperties = () => {
                 isFavorite={() => handleCheckFav(property.uid)}
                 onFavorite={handleFavClick}
                 onClick={() => console.log(property.uid)}
+                viewCount={property.viewCount}
               />
             ))}
           </div>

@@ -274,6 +274,7 @@ const BuyProperties = () => {
                 onFavorite={handleFavClick}
                 isFavorite={() => handleCheckFav(property.uid)}
                 onClick={() => console.log(property.uid)}
+                viewCount={property.viewCount}
               />
             ))}
           </div>
