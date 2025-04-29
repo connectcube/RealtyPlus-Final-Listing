@@ -1250,6 +1250,7 @@ const NearbyPlaces = ({
       type: string;
       lat: number;
       lon: number;
+      distance?: number;
     }>
   >([]);
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -1428,11 +1429,14 @@ const NearbyPlaces = ({
                       className="flex-1 space-y-1 cursor-pointer"
                     >
                       <div className="flex flex-col">
-                        <p className="font-medium text-sm sm:text-base line-clamp-2">
+                        <p className="font-medium sm:text-md text-base line-clamp-2">
                           {place.name}
                         </p>
                         <p className="text-gray-500 text-xs sm:text-sm capitalize">
                           {place.type}
+                        </p>
+                        <p className="text-gray-400 text-xs sm:text-sm capitalize">
+                          {place.distance} km
                         </p>
                       </div>
                     </Label>
@@ -1452,3 +1456,4 @@ const NearbyPlaces = ({
     </>
   );
 };
+export default AddProperty;

@@ -28,6 +28,7 @@ import {
   arrayRemove,
   deleteDoc,
   doc,
+  DocumentReference,
   getDoc,
   increment,
   onSnapshot,
@@ -73,25 +74,30 @@ const AgentDashboard = () => {
       </div>
     </div>
   );
-  const fetchPropertyData = async (propertyRefs) => {
+
+  interface PropertyRef {
+    ref: DocumentReference;
+    postedBy: DocumentReference;
+  }
+
+  const fetchPropertyData = async (propertyRefs: PropertyRef[]) => {
     try {
-      const propertyPromises = propertyRefs.map(async ({ ref, postedBy }) => {
+      const propertyPromises = propertyRefs.map(async ({ ref }) => {
         const propertyDoc = await getDoc(ref);
         if (propertyDoc.exists()) {
-          setTotalViews(
-            (prev) => prev + (propertyDoc.data() as LISTING).viewCount || 0
-          );
+          const propertyData = propertyDoc.data() as LISTING;
+          setTotalViews((prev) => prev + (propertyData.viewCount || 0));
+
           return {
             uid: propertyDoc.id,
-            ...(propertyDoc.data() as LISTING),
-            postedBy,
+            ...propertyData,
           } as LISTING;
         }
         return null;
       });
 
       const resolvedProperties = (await Promise.all(propertyPromises)).filter(
-        (property) => property !== null
+        (property): property is LISTING => property !== null
       );
       setProperties(resolvedProperties);
     } catch (error) {
@@ -99,23 +105,36 @@ const AgentDashboard = () => {
       setFetchError("Failed to load properties");
     }
   };
+
   useEffect(() => {
     if (!user?.uid) return;
 
-    const agencyRef = doc(fireDataBase, "agents", user.uid);
-    const unsubscribe = onSnapshot(agencyRef, async (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
+    const agentRef = doc(fireDataBase, "agents", user.uid);
+    const unsubscribe = onSnapshot(agentRef, async (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
 
         // Update user data
         setUser({
-          uid: doc.id,
+          uid: docSnapshot.id,
           ...data,
+          authProvider: data.authProvider || "", // Ensure required fields are present
+          termsAccepted: data.termsAccepted || false,
+          subscription: data.subscription || {
+            listingsUsed: 0,
+            plan: "",
+            isActive: false,
+            listingsTotal: 0,
+            agentsUsed: 0,
+            agentsTotal: 0,
+            renewalDate: null,
+          },
+          status: data.status || "Active",
         } as USER);
-        if (data.myListings) {
+
+        if (data.myListings && Array.isArray(data.myListings)) {
           await fetchPropertyData(data.myListings);
         }
-
         setIsLoadingData(false);
       }
     });
@@ -124,7 +143,7 @@ const AgentDashboard = () => {
       unsubscribe();
     };
   }, [user?.uid]);
-
+  console.log(user, properties);
   return (
     <>
       <Header />
@@ -241,7 +260,10 @@ const AgentDashboard = () => {
                       <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {properties.map((property) => (
                           <>
-                            <Card key={property.id} className="overflow-hidden">
+                            <Card
+                              key={property.uid}
+                              className="overflow-hidden"
+                            >
                               <div className="relative h-48">
                                 <img
                                   src={

@@ -136,7 +136,7 @@ export interface NearbyPlace {
   type: string;
   lat: number;
   lon: number;
-  distance?: string; // Optional since it may not always be present
+  distance?: number; // Optional since it may not always be present
 }
 
 interface myListings {
