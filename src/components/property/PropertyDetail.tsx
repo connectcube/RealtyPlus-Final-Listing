@@ -22,6 +22,16 @@ import {
   FileText,
   XCircle,
   EyeIcon,
+  School,
+  Building2,
+  Hospital,
+  Pill,
+  ShoppingBag,
+  Coffee,
+  Trees,
+  Dumbbell,
+  Train,
+  Bus,
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
@@ -190,7 +200,7 @@ ${formData.name}
   if (!property) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <NotFound message="Property doe not exist" />
+        <NotFound message="Property does not exist" />
       </div>
     );
   }
@@ -999,31 +1009,11 @@ ${formData.name}
                           key={index}
                           className="flex items-center bg-gray-50 p-3 rounded-lg"
                         >
-                          {place.type === "school" && (
-                            <FileText className="mr-3 w-5 h-5 text-blue-500" />
-                          )}
-                          {place.type === "transport" && (
-                            <MapPin className="mr-3 w-5 h-5 text-red-500" />
-                          )}
-                          {place.type === "shopping" && (
-                            <Grid className="mr-3 w-5 h-5 text-purple-500" />
-                          )}
-                          {place.type === "church" && (
-                            <Home className="mr-3 w-5 h-5 text-green-500" />
-                          )}
-                          {place.type === "mosque" && (
-                            <Home className="mr-3 w-5 h-5 text-green-500" />
-                          )}
-                          {place.type === "hospital" && (
-                            <CheckCircle2 className="mr-3 w-5 h-5 text-red-500" />
-                          )}
-                          {place.type === "restaurant" && (
-                            <Calendar className="mr-3 w-5 h-5 text-orange-500" />
-                          )}
+                          <AmenityIcon type={place.type} />
                           <div>
                             <span className="font-medium">{place.name}</span>
                             <span className="block text-gray-500 text-sm">
-                              {place.distance}
+                              {place.distance} km (Approx. )
                             </span>
                           </div>
                         </div>
@@ -1265,5 +1255,53 @@ ${formData.name}
     </div>
   );
 };
+const AmenityIcon = ({ type }: { type: string }) => {
+  const AMENITY_ICONS: Record<
+    string,
+    {
+      icon: React.ComponentType<any>;
+      color: string;
+    }
+  > = {
+    // Education
+    school: { icon: School, color: "text-blue-500" },
+    college: { icon: Building2, color: "text-blue-500" },
+    kindergarten: { icon: School, color: "text-blue-500" },
 
+    // Healthcare
+    hospital: { icon: Hospital, color: "text-red-500" },
+    clinic: { icon: CheckCircle2, color: "text-red-500" },
+    pharmacy: { icon: Pill, color: "text-red-500" },
+
+    // Shopping
+    supermarket: { icon: ShoppingBag, color: "text-purple-500" },
+    convenience: { icon: ShoppingBag, color: "text-purple-500" },
+    mall: { icon: Grid, color: "text-purple-500" },
+
+    // Food
+    restaurant: { icon: Calendar, color: "text-orange-500" },
+    cafe: { icon: Coffee, color: "text-orange-500" },
+    fast_food: { icon: Calendar, color: "text-orange-500" },
+
+    // Recreation
+    park: { icon: Trees, color: "text-green-500" },
+    fitness_centre: { icon: Dumbbell, color: "text-green-500" },
+    gym: { icon: Dumbbell, color: "text-green-500" },
+
+    // Transport
+    station: { icon: Train, color: "text-indigo-500" },
+    railway: { icon: Train, color: "text-indigo-500" },
+    bus_station: { icon: Bus, color: "text-indigo-500" },
+  };
+  const IconComponent = AMENITY_ICONS[type]?.icon;
+  const iconColor = AMENITY_ICONS[type]?.color;
+  return (
+    IconComponent && (
+      <IconComponent
+        className={`mr-3 w-5 h-5 ${iconColor}`}
+        aria-label={`${type} icon`}
+      />
+    )
+  );
+};
 export default PropertyDetail;
