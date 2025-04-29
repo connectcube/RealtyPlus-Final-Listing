@@ -204,54 +204,6 @@ ${formData.name}
       </div>
     );
   }
-  // Mock similar properties
-  const similarProperties = [
-    {
-      id: "prop-2",
-      title: "Luxury Apartment in Woodlands",
-      price: 320000,
-      location: "Woodlands, Lusaka",
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 180,
-      imageUrl:
-        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
-      propertyType: "apartment",
-      isFeatured: false,
-      isFurnished: true,
-      yearBuilt: 2021,
-    },
-    {
-      id: "prop-3",
-      title: "Family Home in Roma",
-      price: 550000,
-      location: "Roma, Lusaka",
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 320,
-      imageUrl:
-        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
-      propertyType: "standalone",
-      isFeatured: false,
-      isFurnished: false,
-      yearBuilt: 2019,
-    },
-    {
-      id: "prop-4",
-      title: "Semi-Detached House in Olympia",
-      price: 380000,
-      location: "Olympia, Lusaka",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 210,
-      imageUrl:
-        "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80",
-      propertyType: "semi-detached",
-      isFeatured: false,
-      isFurnished: true,
-      yearBuilt: 2022,
-    },
-  ];
 
   const handleContactAgent = () => {
     setShowContactForm(!showContactForm);
@@ -294,14 +246,9 @@ ${formData.name}
       console.error("Error handling favorite:", error);
     }
   };
-
-  // And the isFavorite check would be simpler too:
   const handleCheckFav = (propertyId: string) => {
     if (!user || !user.savedProperties) return false;
     return user.savedProperties.includes(propertyId);
-  };
-  const handlePropertyClick = (id: string) => {
-    console.log(`Navigating to property ${id} details`);
   };
   const generatePropertyPDF = (property: any, propertyPostedBy: any) => {
     const printWindow = window.open("", "_blank");
@@ -667,19 +614,6 @@ ${formData.name}
   const handlePrintPage = () => {
     generatePropertyPDF(property, propertyPostedBy);
   };
-
-  const handleDownloadPDF = () => {
-    // In a real app, this would generate a PDF using a library like jsPDF
-    // For now, we'll simulate it with an alert
-    console.log("Downloading property details as PDF");
-    alert(
-      "PDF download functionality would be implemented here with a PDF generation library. The PDF would contain all property listing details including all images and nearby places information."
-    );
-
-    // Note: In a production app, we would use a library like jsPDF to create a PDF with
-    // the same content structure as in the print function above, including all images and nearby places
-  };
-
   return (
     <div
       className="flex flex-col bg-gray-50 min-h-screen"
@@ -1013,7 +947,7 @@ ${formData.name}
                           <div>
                             <span className="font-medium">{place.name}</span>
                             <span className="block text-gray-500 text-sm">
-                              {place.distance} km (Approx. )
+                              {place.distance} km ( Approx. )
                             </span>
                           </div>
                         </div>
