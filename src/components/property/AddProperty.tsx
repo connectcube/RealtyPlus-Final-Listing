@@ -1243,6 +1243,26 @@ const NearbyPlaces = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedPlaces, setSelectedPlaces] = useState<Set<number>>(new Set());
+  const [fetchedPlaces, setFetchedPlaces] = useState<
+    Array<{
+      id: number;
+      name: string;
+      type: string;
+      lat: number;
+      lon: number;
+    }>
+  >([]);
+  const [selectedType, setSelectedType] = useState<string>("all");
+
+  // Define place types based on your data
+  const placeTypes = [
+    { label: "All Places", value: "all" },
+    { label: "Supermarkets", value: "supermarket" },
+    { label: "Schools", value: "school" },
+    { label: "Hospitals", value: "hospital" },
+    { label: "Restaurants", value: "restaurant" },
+    // Add more types as needed
+  ];
 
   const handleFetchNearby = async () => {
     if (!formData.city || !formData.province || !formData.address) {
@@ -1252,7 +1272,6 @@ const NearbyPlaces = ({
 
     try {
       setLoading(true);
-
       const response = await fetch(
         `http://localhost:3000/api/listing/getnearbyplaces`,
         {
@@ -1269,9 +1288,9 @@ const NearbyPlaces = ({
         }
       );
       const data = await response.json();
-      console.log(data);
       if (response.ok) {
-        setFormData((prev) => ({ ...prev, nearbyPlaces: data.nearbyPlaces }));
+        setFetchedPlaces(data.nearbyPlaces);
+        setFormData((prev) => ({ ...prev, nearbyPlaces: [] }));
       } else {
         console.error("Failed to fetch nearby places:", data.message);
       }
@@ -1282,7 +1301,7 @@ const NearbyPlaces = ({
     }
   };
 
-  const handlePlaceSelection = (placeId: number, placeName: string) => {
+  const handlePlaceSelection = (placeId: number) => {
     const newSelected = new Set(selectedPlaces);
     if (newSelected.has(placeId)) {
       newSelected.delete(placeId);
@@ -1292,101 +1311,144 @@ const NearbyPlaces = ({
     setSelectedPlaces(newSelected);
 
     // Update formData with selected places
+    const selectedPlacesArray = Array.from(newSelected).map((id) => {
+      const place = fetchedPlaces.find((p) => p.id === id);
+      return {
+        id,
+        name: place?.name || "",
+        type: place?.type || "",
+        lat: place?.lat || 0,
+        lon: place?.lon || 0,
+      };
+    });
+
     setFormData((prev) => ({
       ...prev,
-      nearbyPlaces: Array.from(newSelected).map((id) => ({
-        id,
-        name:
-          formData.nearbyPlaces?.find((place) => place.id === id)?.name || "",
-        type:
-          formData.nearbyPlaces?.find((place) => place.id === id)?.type || "",
-        lat: formData.nearbyPlaces?.find((place) => place.id === id)?.lat || 0,
-        lon: formData.nearbyPlaces?.find((place) => place.id === id)?.lon || 0,
-      })),
+      nearbyPlaces: selectedPlacesArray,
     }));
   };
 
+  const filteredPlaces = fetchedPlaces.filter((place) =>
+    selectedType === "all" ? true : place.type === selectedType
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <Button
-          onClick={handleFetchNearby}
-          disabled={loading}
-          variant="outline"
-          className="w-full"
-        >
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <svg
-                className="w-4 h-4 animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              Fetching Nearby Places...
-            </div>
-          ) : (
-            "Fetch Nearby Places"
-          )}
-        </Button>
-      </div>
-
-      {formData.nearbyPlaces && formData.nearbyPlaces.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-gray-500 text-sm">
-            Select nearby places to include in your listing:
-          </p>
-          <div className="gap-2 grid grid-cols-1 sm:grid-cols-2">
-            {formData.nearbyPlaces.map((place) => (
-              <div
-                key={place.id}
-                className="flex items-center space-x-2 hover:bg-gray-50 p-2 border rounded-md"
-              >
-                <Checkbox
-                  id={`place-${place.id}`}
-                  checked={selectedPlaces.has(place.id)}
-                  onCheckedChange={(checked) =>
-                    handlePlaceSelection(place.id, place.name)
-                  }
-                />
-                <Label
-                  htmlFor={`place-${place.id}`}
-                  className="flex-1 cursor-pointer"
+    <>
+      <div className="space-y-6">
+        {/* Responsive controls section */}
+        <div className="flex sm:flex-row flex-col items-stretch sm:items-center gap-4">
+          <Button
+            onClick={handleFetchNearby}
+            disabled={loading}
+            variant="outline"
+            className="flex-1 min-h-[40px]"
+          >
+            {loading ? (
+              <div className="flex justify-center items-center gap-2">
+                <svg
+                  className="w-4 h-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
                 >
-                  <div>
-                    <p className="font-medium">{place.name}</p>
-                    {place.distance && (
-                      <p className="text-gray-500 text-sm">{place.type}</p>
-                    )}
-                  </div>
-                </Label>
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <span className="text-sm sm:text-base">
+                  Fetching Nearby Places...
+                </span>
               </div>
-            ))}
-          </div>
+            ) : (
+              <span className="text-sm sm:text-base">Fetch Nearby Places</span>
+            )}
+          </Button>
         </div>
-      )}
 
-      {formData.nearbyPlaces?.length === 0 && !loading && (
-        <p className="text-gray-500 text-sm text-center">
-          No nearby places found. Try adjusting your location.
-        </p>
-      )}
-    </div>
+        {fetchedPlaces.length > 0 && (
+          <div className="space-y-4">
+            {/* Responsive filter section */}
+            <div className="flex sm:flex-row flex-col sm:items-center gap-2">
+              <Label
+                htmlFor="placeType"
+                className="text-sm sm:text-base whitespace-nowrap"
+              >
+                Filter by type:
+              </Label>
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger
+                  id="placeType"
+                  className="w-full sm:w-[180px] h-10"
+                >
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {placeTypes.map((type) => (
+                    <SelectItem
+                      key={type.value}
+                      value={type.value}
+                      className="text-sm sm:text-base"
+                    >
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Places grid section */}
+            <div className="space-y-3">
+              <p className="text-gray-500 text-sm sm:text-base">
+                Select nearby places to include in your listing:
+              </p>
+              <div className="gap-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredPlaces.map((place) => (
+                  <div
+                    key={place.id}
+                    className="flex items-start space-x-3 hover:bg-gray-50 p-3 border rounded-lg transition-colors"
+                  >
+                    <Checkbox
+                      id={`place-${place.id}`}
+                      checked={selectedPlaces.has(place.id)}
+                      onCheckedChange={() => handlePlaceSelection(place.id)}
+                      className="my-auto"
+                    />
+                    <Label
+                      htmlFor={`place-${place.id}`}
+                      className="flex-1 space-y-1 cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <p className="font-medium text-sm sm:text-base line-clamp-2">
+                          {place.name}
+                        </p>
+                        <p className="text-gray-500 text-xs sm:text-sm capitalize">
+                          {place.type}
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {fetchedPlaces.length === 0 && !loading && (
+          <p className="p-4 text-gray-500 text-sm sm:text-base text-center">
+            No nearby places found. Try adjusting your location.
+          </p>
+        )}
+      </div>
+    </>
   );
 };
-
-export default AddProperty;
