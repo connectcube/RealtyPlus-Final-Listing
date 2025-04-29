@@ -16,6 +16,7 @@ import { LoadingSpinner } from "../globalScreens/Loader";
 import { auth, fireDataBase } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { Button } from "../ui/button";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -130,6 +131,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   if (!admin) {
     return <LoadingSpinner />;
   }
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
   return (
     <div className="flex bg-gray-100 h-screen">
       {/* Sidebar */}
@@ -167,13 +176,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 )
             )}
             <li className="mt-4 pt-4 border-gray-200 border-t">
-              <Link
-                to="/"
-                className="flex items-center hover:bg-red-50 p-3 rounded-lg text-gray-700 hover:text-red-700 transition-colors"
+              <Button
+                onClick={handleLogout}
+                className="flex items-center bg-slate-50 hover:bg-red-50 p-3 rounded-lg w-full h-12 text-gray-700 hover:text-red-700 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
                 <span className="ml-3">Exit Admin</span>
-              </Link>
+              </Button>
             </li>
           </ul>
         </nav>

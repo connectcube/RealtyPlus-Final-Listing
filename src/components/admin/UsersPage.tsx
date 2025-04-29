@@ -394,7 +394,7 @@ export default function UsersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" disabled={true}>
               <UserPlus className="w-4 h-4" />
               Add New User
             </Button>
