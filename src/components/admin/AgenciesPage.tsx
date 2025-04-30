@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,87 +29,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Filter, Building, Users } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { USER } from "@/lib/typeDefinitions";
+import { collection, getDocs } from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { toast } from "react-toastify";
 
 export default function AgenciesPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [agencies, setAgencies] = useState([
-    {
-      id: 1,
-      name: "Lusaka Realty Ltd",
-      email: "info@lusakarealty.com",
-      phone: "+260 211 123456",
-      location: "Kabulonga, Lusaka",
-      agents: 8,
-      properties: 45,
-      subscription: "Enterprise",
-      status: "Active",
-      joined: "Jan 15, 2023",
-    },
-    {
-      id: 2,
-      name: "Zambia Homes Agency",
-      email: "contact@zambiahomes.com",
-      phone: "+260 211 654321",
-      location: "Woodlands, Lusaka",
-      agents: 12,
-      properties: 78,
-      subscription: "Enterprise",
-      status: "Active",
-      joined: "Mar 22, 2023",
-    },
-    {
-      id: 3,
-      name: "Copperbelt Properties",
-      email: "info@copperbeltproperties.com",
-      phone: "+260 212 987654",
-      location: "Riverside, Kitwe",
-      agents: 6,
-      properties: 32,
-      subscription: "Premium",
-      status: "Active",
-      joined: "Feb 10, 2023",
-    },
-    {
-      id: 4,
-      name: "Ndola Real Estate",
-      email: "contact@ndolarealestate.com",
-      phone: "+260 212 456789",
-      location: "Itawa, Ndola",
-      agents: 4,
-      properties: 28,
-      subscription: "Premium",
-      status: "Inactive",
-      joined: "Apr 05, 2023",
-    },
-    {
-      id: 5,
-      name: "Livingstone Homes",
-      email: "info@livingstonehomes.com",
-      phone: "+260 213 789456",
-      location: "Maramba, Livingstone",
-      agents: 3,
-      properties: 15,
-      subscription: "Basic",
-      status: "Active",
-      joined: "May 18, 2023",
-    },
-    {
-      id: 6,
-      name: "Kabwe Property Experts",
-      email: "info@kabweproperties.com",
-      phone: "+260 215 321654",
-      location: "Town Center, Kabwe",
-      agents: 2,
-      properties: 12,
-      subscription: "Basic",
-      status: "Suspended",
-      joined: "Jun 30, 2023",
-    },
-  ]);
-  const [agencyToDelete, setAgencyToDelete] = useState(null);
+  const [agencies, setAgencies] = useState<USER[]>([]);
+  const [agencyToDelete, setAgencyToDelete] = useState<USER | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
+  const [loading, setLoading] = useState(true);
   const handleDeleteAgency = (agency) => {
     setAgencyToDelete(agency);
     setIsDeleteDialogOpen(true);
@@ -119,44 +49,62 @@ export default function AgenciesPage() {
     if (agencyToDelete) {
       // In a real application, you would make an API call here
       // For now, we'll just update the local state
-      setAgencies(agencies.filter((agency) => agency.id !== agencyToDelete.id));
-      toast({
-        title: "Agency deleted",
-        description: `${agencyToDelete.name} has been permanently removed from the platform.`,
-      });
+      setAgencies(
+        agencies.filter((agency) => agency.uid !== agencyToDelete.uid)
+      );
+      toast(
+        `${agencyToDelete.firstName} has been permanently removed from the platform.`
+      );
       setIsDeleteDialogOpen(false);
       setAgencyToDelete(null);
     }
   };
 
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        const agenciesCollection = collection(fireDataBase, "agencies");
+        const querySnapshot = await getDocs(agenciesCollection);
+        const agencyList = querySnapshot.docs.map((doc) => ({
+          uid: doc.id,
+          ...doc.data(),
+        })) as USER[];
+        setAgencies(agencyList);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching agencies:", error);
+        toast.error("Failed to fetch agencies");
+        setLoading(false);
+      }
+    };
+
+    fetchAgencies();
+  }, []);
   const filteredAgencies = agencies.filter(
     (agency) =>
-      agency.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agency.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agency.location.toLowerCase().includes(searchTerm.toLowerCase()),
+      agency.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agency.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agency.address?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "Active":
+      case "active":
         return "bg-green-100 text-green-800";
-      case "Inactive":
+      case "inactive":
         return "bg-gray-100 text-gray-800";
-      case "Suspended":
+      case "suspended":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getSubscriptionColor = (subscription) => {
-    switch (subscription) {
-      case "Enterprise":
+  const getSubscriptionColor = (subscription: string) => {
+    switch (subscription.toUpperCase()) {
+      case "PREMIUM":
         return "bg-purple-100 text-purple-800";
-      case "Premium":
+      case "BASIC":
         return "bg-blue-100 text-blue-800";
-      case "Basic":
-        return "bg-green-100 text-green-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -167,7 +115,7 @@ export default function AgenciesPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="font-bold text-2xl tracking-tight">
               Agency Management
             </h2>
             <p className="text-muted-foreground">
@@ -175,16 +123,16 @@ export default function AgenciesPage() {
             </p>
           </div>
           <Button className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
+            <Building className="w-4 h-4" />
             Add New Agency
           </Button>
         </div>
 
         <Card>
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
+            <div className="flex sm:flex-row flex-col justify-between gap-4 mb-6">
               <div className="relative w-full sm:w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 transform" />
                 <Input
                   placeholder="Search agencies..."
                   value={searchTerm}
@@ -193,12 +141,12 @@ export default function AgenciesPage() {
                 />
               </div>
               <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
+                <Filter className="w-4 h-4" />
                 Filter
               </Button>
             </div>
 
-            <div className="rounded-md border">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -215,32 +163,32 @@ export default function AgenciesPage() {
                 <TableBody>
                   {filteredAgencies.length > 0 ? (
                     filteredAgencies.map((agency) => (
-                      <TableRow key={agency.id}>
+                      <TableRow key={agency.uid}>
                         <TableCell className="font-medium">
-                          {agency.name}
+                          {agency.firstName}
                         </TableCell>
                         <TableCell>
                           <div>{agency.email}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-muted-foreground text-sm">
                             {agency.phone}
                           </div>
                         </TableCell>
-                        <TableCell>{agency.location}</TableCell>
+                        <TableCell>{agency.address}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{agency.agents}</span>
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span>{agency.myAgents.length}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{agency.properties}</TableCell>
+                        <TableCell>{agency.myListings.length}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
                             className={getSubscriptionColor(
-                              agency.subscription,
+                              agency.subscription.plan
                             )}
                           >
-                            {agency.subscription}
+                            {agency.subscription.plan}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -254,8 +202,8 @@ export default function AgenciesPage() {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
+                              <Button variant="ghost" className="p-0 w-8 h-8">
+                                <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -314,7 +262,10 @@ export default function AgenciesPage() {
               This action cannot be undone. This will permanently delete the
               agency
               {agencyToDelete && (
-                <span className="font-semibold"> {agencyToDelete.name} </span>
+                <span className="font-semibold">
+                  {" "}
+                  {agencyToDelete.firstName}{" "}
+                </span>
               )}
               and remove all associated data from our servers. All agents and
               property listings associated with this agency will also be

@@ -29,12 +29,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Filter, UserPlus, Link2 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
 import { collection, getDocs } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { USER } from "@/lib/typeDefinitions";
 import { Link } from "react-router-dom";
 import AgentEditModal from "./components/editUserModal";
+import { toast } from "react-toastify";
 
 export default function AgentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -72,11 +72,10 @@ export default function AgentsPage() {
     if (agentToDelete) {
       // In a real application, you would make an API call here
       // For now, we'll just update the local state
-      setAgents(agents.filter((agent) => agent.id !== agentToDelete.id));
-      toast({
-        title: "Agent deleted",
-        description: `${agentToDelete.name} has been permanently removed from the platform.`,
-      });
+      setAgents(agents.filter((agent) => agent.uid !== agentToDelete.uid));
+      toast.success(
+        `${agentToDelete.firstName} ${agentToDelete.lastName} has been permanently removed from the platform.`
+      );
       setIsDeleteDialogOpen(false);
       setAgentToDelete(null);
     }
@@ -91,11 +90,11 @@ export default function AgentsPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "active":
+      case "Active":
         return "bg-green-100 text-green-800 capitalize";
-      case "inactive":
+      case "Inactive":
         return "bg-gray-100 text-gray-800";
-      case "suspended":
+      case "Suspended":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800 capitalize";
@@ -104,9 +103,9 @@ export default function AgentsPage() {
 
   const getSubscriptionColor = (subscription) => {
     switch (subscription) {
-      case "Premium":
+      case "PREMIUM":
         return "bg-purple-100 text-purple-800";
-      case "Basic":
+      case "BASIC":
         return "bg-blue-100 text-blue-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -193,7 +192,7 @@ export default function AgentsPage() {
                           <Badge
                             variant="outline"
                             className={`capitalize ${getSubscriptionColor(
-                              agent.subscription.isActive
+                              agent.subscription.plan
                             )}`}
                           >
                             {agent.subscription.plan}
@@ -231,11 +230,11 @@ export default function AgentsPage() {
                                   Edit Agent
                                 </button>
                               </DropdownMenuItem>
-                              {agent.status === "active" ? (
+                              {agent.status === "Active" ? (
                                 <DropdownMenuItem className="text-amber-600">
                                   Suspend
                                 </DropdownMenuItem>
-                              ) : agent.status === "suspended" ? (
+                              ) : agent.status === "Suspended" ? (
                                 <DropdownMenuItem className="text-green-600">
                                   Reactivate
                                 </DropdownMenuItem>
