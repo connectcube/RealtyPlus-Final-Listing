@@ -66,7 +66,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, []);
 
   if (!admin) {
-    return <LoadingSpinner />;
+    return (
+      <div className="place-content-center grid w-full h-[100svh]">
+        <LoadingSpinner />
+      </div>
+    );
   }
   // Simulate current user as Super Admin for this demo
   const currentUser = {
@@ -128,9 +132,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       requiredPermission: true,
     },
   ];
-  if (!admin) {
-    return <LoadingSpinner />;
-  }
   const handleLogout = async () => {
     try {
       await signOut(auth);
