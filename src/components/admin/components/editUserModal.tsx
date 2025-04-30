@@ -32,12 +32,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-export default function AgentEditModal({
+export default function UserEditModal({
   user,
-  setAgentToEdit,
+  setUserToEdit,
 }: {
   user: USER;
-  setAgentToEdit: (user: USER | null) => void;
+  setUserToEdit: (user: USER | null) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,21 +71,6 @@ export default function AgentEditModal({
     experience: "",
     authProvider: user?.authProvider || "",
   });
-  const specialtyOptions = [
-    "Residential",
-    "Family Homes",
-    "Suburbs",
-    "Tourism Properties",
-    "Vacation Homes",
-    "Land",
-    "Luxury Homes",
-    "International Clients",
-    "Investment Properties",
-    "Affordable Housing",
-    "Rentals",
-    "First-time Buyers",
-    "Commercial",
-  ].sort(); // Sort alphabetically and remove duplicates
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -121,7 +106,7 @@ export default function AgentEditModal({
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const agencyRef = doc(fireDataBase, "agents", user?.uid);
+      const agencyRef = doc(fireDataBase, "agencies", user?.uid);
       await updateDoc(agencyRef, {
         ...formData,
         specialties: formData.specialties, // Make sure specialties are included
@@ -129,7 +114,7 @@ export default function AgentEditModal({
 
       setIsEditing(false);
       toast.success("Profile updated successfully!");
-      setAgentToEdit(null);
+      setUserToEdit(null);
     } catch (error) {
       toast.error("Failed to update profile");
       console.error("Error updating profile:", error);
@@ -137,32 +122,10 @@ export default function AgentEditModal({
       setLoading(false);
     }
   };
-  const handleAddSpecialty = (value: string) => {
-    if (!formData.specialties.includes(value)) {
-      setFormData((prev) => ({
-        ...prev,
-        specialties: [...prev.specialties, value],
-      }));
-    }
-  };
-
-  const handleRemoveSpecialty = (specialty: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      specialties: prev.specialties.filter((item) => item !== specialty),
-    }));
-  };
   const handleClose = () => {
     if (!loading) {
-      setAgentToEdit(null);
+      setUserToEdit(null);
     }
-  };
-  // Add these types to your type definitions
-  type SubscriptionPlan = {
-    plan: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
-    isActive: boolean;
-    listingUsed: number;
-    listingTotal: number;
   };
 
   const subscriptionPlans: Subscription[] = [
@@ -170,9 +133,9 @@ export default function AgentEditModal({
       plan: "FREE",
       isActive: true,
       listingsUsed: formData.subscription.listingsUsed || 0,
-      listingsTotal: 3,
+      listingsTotal: 5,
       agentsUsed: 0,
-      agentsTotal: 0,
+      agentsTotal: 5,
       renewalDate: Timestamp.fromDate(
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       ),
@@ -183,7 +146,7 @@ export default function AgentEditModal({
       listingsUsed: formData.subscription.listingsUsed || 0,
       listingsTotal: 10,
       agentsUsed: formData.subscription.agentsUsed || 0,
-      agentsTotal: 0,
+      agentsTotal: 10,
       renewalDate: Timestamp.fromDate(
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       ),
@@ -194,7 +157,7 @@ export default function AgentEditModal({
       listingsUsed: formData.subscription.listingsUsed || 0,
       listingsTotal: 25,
       agentsUsed: formData.subscription.agentsUsed || 0,
-      agentsTotal: 0,
+      agentsTotal: 20,
       renewalDate: Timestamp.fromDate(
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       ),
@@ -205,7 +168,7 @@ export default function AgentEditModal({
       listingsUsed: formData.subscription.listingsUsed || 0,
       listingsTotal: 100,
       agentsUsed: formData.subscription.agentsUsed || 0,
-      agentsTotal: 0,
+      agentsTotal: 50,
       renewalDate: Timestamp.fromDate(
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       ),
@@ -411,8 +374,8 @@ export default function AgentEditModal({
                                     className="bg-blue-600 rounded-full h-2.5"
                                     style={{
                                       width: `${
-                                        (formData.subscription.listingsUsed /
-                                          formData.subscription.listingsTotal) *
+                                        (formData.subscription.agentsUsed /
+                                          formData.subscription.agentsTotal) *
                                         100
                                       }%`,
                                     }}
@@ -442,11 +405,6 @@ export default function AgentEditModal({
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Company Description */}
-                  <div className="space-y-2">
-                    <CompanyCard agencyId={user.agency} />
                   </div>
                 </div>
 
@@ -823,100 +781,6 @@ const AgentPfpAndNameCard = ({
             </p>
           </>
         )}
-      </div>
-    </div>
-  );
-};
-
-// Add this component within AgentProfile.tsx
-const CompanyCard = ({ agencyId }: { agencyId: string }) => {
-  const [agencyData, setAgencyData] = useState<USER | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAgencyData = async () => {
-      try {
-        const agencyRef = await doc(fireDataBase, "agencies", agencyId);
-        const agencySnap = await getDoc(agencyRef);
-        if (agencySnap.exists()) {
-          setAgencyData(agencySnap.data() as USER);
-        }
-      } catch (error) {
-        console.error("Error fetching agency data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (agencyId) {
-      fetchAgencyData();
-    }
-  }, [agencyId]);
-
-  if (loading) {
-    return (
-      <div className="bg-white shadow-sm p-6 border rounded-lg">
-        <div className="space-y-4 animate-pulse">
-          <div className="bg-gray-200 rounded w-3/4 h-4"></div>
-          <div className="bg-gray-200 rounded w-1/2 h-4"></div>
-          <div className="bg-gray-200 rounded w-2/3 h-4"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!agencyData) {
-    return (
-      <div className="bg-white shadow-sm p-6 border rounded-lg">
-        <p className="text-gray-500">No company information available</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white shadow-sm p-6 border rounded-lg">
-      <h1 className="mb-5 font-semibold text-gray-900 text-2xl">Agency</h1>
-      <div className="space-y-6">
-        {/* Company Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-semibold text-gray-900 text-xl">
-              {agencyData.companyName}
-            </h3>
-            <p className="mt-1 text-gray-500 text-sm">
-              {agencyData.businessType?.replace(/_/g, " ")}
-            </p>
-          </div>
-          <Building2 className="w-6 h-6 text-gray-400" />
-        </div>
-
-        {/* Company Details */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <span className="text-gray-600 text-sm">
-              Reg. No: {agencyData.businessRegistrationNumber}
-            </span>
-          </div>
-          {agencyData.companyDescription && (
-            <div className="pt-4 border-t">
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {agencyData.companyDescription}
-              </p>
-            </div>
-          )}
-
-          {(agencyData.address || agencyData.city) && (
-            <div className="flex items-start space-x-3 pt-4 border-t">
-              <Building className="mt-0.5 w-5 h-5 text-gray-500" />
-              <div className="text-gray-600 text-sm">
-                {agencyData.address && <p>{agencyData.address}</p>}
-                {agencyData.city && (
-                  <p className="capitalize">{agencyData.city}</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

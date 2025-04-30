@@ -33,10 +33,13 @@ import { USER } from "@/lib/typeDefinitions";
 import { collection, getDocs } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { toast } from "react-toastify";
+import UserEditModal from "./components/editUserModal";
+import { Link } from "react-router-dom";
 
 export default function AgenciesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [agencies, setAgencies] = useState<USER[]>([]);
+  const [agencyToEdit, setAgencyToEdit] = useState<USER | null>(null);
   const [agencyToDelete, setAgencyToDelete] = useState<USER | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -207,12 +210,19 @@ export default function AgenciesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Profile</DropdownMenuItem>
-                              <DropdownMenuItem>View Agents</DropdownMenuItem>
                               <DropdownMenuItem>
-                                View Properties
+                                <Link to={`/agency/${agency.uid}`}>
+                                  View Profile
+                                </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>Edit Agency</DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <button
+                                  onClick={() => setAgencyToEdit(agency)}
+                                  className="w-full font-normal text-black text-start sparent"
+                                >
+                                  Edit Agency
+                                </button>
+                              </DropdownMenuItem>
                               {agency.status === "Active" ? (
                                 <DropdownMenuItem className="text-amber-600">
                                   Suspend
@@ -283,6 +293,9 @@ export default function AgenciesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {agencyToEdit && (
+        <UserEditModal setUserToEdit={setAgencyToEdit} user={agencyToEdit} />
+      )}
     </AdminLayout>
   );
 }

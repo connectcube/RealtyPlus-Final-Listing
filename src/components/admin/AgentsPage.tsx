@@ -35,6 +35,7 @@ import { USER } from "@/lib/typeDefinitions";
 import { Link } from "react-router-dom";
 import AgentEditModal from "./components/editUserModal";
 import { toast } from "react-toastify";
+import UserEditModal from "./components/editUserModal";
 
 export default function AgentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -297,7 +298,7 @@ export default function AgentsPage() {
         </AlertDialogContent>
       </AlertDialog>
       {agentToEdit && (
-        <AgentEditModal setAgentToEdit={setAgentToEdit} user={agentToEdit} />
+        <UserEditModal setUserToEdit={setAgentToEdit} user={agentToEdit} />
       )}
     </AdminLayout>
   );
