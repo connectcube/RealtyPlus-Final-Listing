@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,82 +28,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Filter, UserPlus } from "lucide-react";
+import { Search, MoreVertical, Filter, UserPlus, Link2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { collection, getDocs } from "firebase/firestore";
+import { fireDataBase } from "@/lib/firebase";
+import { USER } from "@/lib/typeDefinitions";
+import { Link } from "react-router-dom";
 
 export default function AgentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [agents, setAgents] = useState([
-    {
-      id: 1,
-      name: "Mulenga Chipimo",
-      email: "mulenga@example.com",
-      phone: "+260 97 1234567",
-      agency: "Lusaka Realty Ltd",
-      listings: 12,
-      subscription: "Premium",
-      status: "Active",
-      joined: "May 12, 2023",
-    },
-    {
-      id: 2,
-      name: "James Banda",
-      email: "james@example.com",
-      phone: "+260 96 7654321",
-      agency: "Independent",
-      listings: 8,
-      subscription: "Basic",
-      status: "Active",
-      joined: "Jun 23, 2023",
-    },
-    {
-      id: 3,
-      name: "Natasha Zulu",
-      email: "natasha@example.com",
-      phone: "+260 95 9876543",
-      agency: "Zambia Homes Agency",
-      listings: 15,
-      subscription: "Premium",
-      status: "Inactive",
-      joined: "Feb 05, 2023",
-    },
-    {
-      id: 4,
-      name: "Bwalya Mwamba",
-      email: "bwalya@example.com",
-      phone: "+260 97 8765432",
-      agency: "Independent",
-      listings: 5,
-      subscription: "Basic",
-      status: "Active",
-      joined: "Apr 18, 2023",
-    },
-    {
-      id: 5,
-      name: "Thandiwe Phiri",
-      email: "thandiwe@example.com",
-      phone: "+260 96 5432109",
-      agency: "Lusaka Realty Ltd",
-      listings: 10,
-      subscription: "Premium",
-      status: "Suspended",
-      joined: "Jan 30, 2023",
-    },
-    {
-      id: 6,
-      name: "Kapambwe Mwila",
-      email: "kapambwe@example.com",
-      phone: "+260 95 3456789",
-      agency: "Zambia Homes Agency",
-      listings: 7,
-      subscription: "Basic",
-      status: "Active",
-      joined: "Jul 14, 2023",
-    },
-  ]);
+  const [agents, setAgents] = useState([]);
   const [agentToDelete, setAgentToDelete] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const agentsCollection = collection(fireDataBase, "agents");
+        const querySnapshot = await getDocs(agentsCollection);
+        const AgentList = querySnapshot.docs.map((doc) => ({
+          uid: doc.id,
+          ...doc.data(),
+        }));
+        setAgents(AgentList);
+        console.log(AgentList);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching properties:", error);
+        setLoading(false);
+      }
+    };
 
+    fetchAgents();
+  }, []);
   const handleDeleteAgent = (agent) => {
     setAgentToDelete(agent);
     setIsDeleteDialogOpen(true);
@@ -125,21 +82,21 @@ export default function AgentsPage() {
 
   const filteredAgents = agents.filter(
     (agent) =>
-      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.agency.toLowerCase().includes(searchTerm.toLowerCase()),
+      agent.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agent.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agent.owner?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-800";
-      case "Inactive":
+      case "active":
+        return "bg-green-100 text-green-800 capitalize";
+      case "inactive":
         return "bg-gray-100 text-gray-800";
-      case "Suspended":
+      case "suspended":
         return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 capitalize";
     }
   };
 
@@ -159,7 +116,7 @@ export default function AgentsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="font-bold text-2xl tracking-tight">
               Agent Management
             </h2>
             <p className="text-muted-foreground">
@@ -167,16 +124,16 @@ export default function AgentsPage() {
             </p>
           </div>
           <Button className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="w-4 h-4" />
             Add New Agent
           </Button>
         </div>
 
         <Card>
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
+            <div className="flex sm:flex-row flex-col justify-between gap-4 mb-6">
               <div className="relative w-full sm:w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 transform" />
                 <Input
                   placeholder="Search agents..."
                   value={searchTerm}
@@ -185,12 +142,12 @@ export default function AgentsPage() {
                 />
               </div>
               <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
+                <Filter className="w-4 h-4" />
                 Filter
               </Button>
             </div>
 
-            <div className="rounded-md border">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -207,24 +164,37 @@ export default function AgentsPage() {
                 <TableBody>
                   {filteredAgents.length > 0 ? (
                     filteredAgents.map((agent) => (
-                      <TableRow key={agent.id}>
+                      <TableRow key={agent.uid}>
                         <TableCell className="font-medium">
-                          {agent.name}
+                          {`${agent.firstName} ${agent.lastName}`}
                         </TableCell>
                         <TableCell>
                           <div>{agent.email}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-muted-foreground text-sm">
                             {agent.phone}
                           </div>
                         </TableCell>
-                        <TableCell>{agent.agency}</TableCell>
-                        <TableCell>{agent.listings}</TableCell>
+                        <TableCell>
+                          {agent.agency ? (
+                            <Link
+                              to={`/agency/${agent.agency}`}
+                              className="flex gap-1 hover:text-blue-600"
+                            >
+                              View <Link2 />
+                            </Link>
+                          ) : (
+                            "Individual"
+                          )}
+                        </TableCell>
+                        <TableCell>{agent.myListings.length || 0}</TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getSubscriptionColor(agent.subscription)}
+                            className={`capitalize ${getSubscriptionColor(
+                              agent.subscription.isActive
+                            )}`}
                           >
-                            {agent.subscription}
+                            {agent.subscription.plan}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -235,12 +205,14 @@ export default function AgentsPage() {
                             {agent.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{agent.joined}</TableCell>
+                        <TableCell>
+                          {agent.createdAt.toDate().toLocaleDateString()}
+                        </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
+                              <Button variant="ghost" className="p-0 w-8 h-8">
+                                <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">

@@ -39,7 +39,7 @@ const RentProperties = () => {
     bathrooms: 0,
     garage: 0,
     amenities: [],
-    listingType: "rent",
+    listingType: "rent ",
     propertyCategory: "all",
   });
 

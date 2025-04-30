@@ -143,7 +143,7 @@ const AgentDashboard = () => {
       unsubscribe();
     };
   }, [user?.uid]);
-  console.log(user, properties);
+
   return (
     <>
       <Header />
