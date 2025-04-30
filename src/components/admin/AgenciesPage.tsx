@@ -30,11 +30,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Filter, Building, Users } from "lucide-react";
 import { USER } from "@/lib/typeDefinitions";
-import { collection, getDocs } from "firebase/firestore";
-import { fireDataBase } from "@/lib/firebase";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+} from "firebase/firestore";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { toast } from "react-toastify";
 import UserEditModal from "./components/editUserModal";
 import { Link } from "react-router-dom";
+import { deleteObject, ref } from "firebase/storage";
 
 export default function AgenciesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,18 +55,68 @@ export default function AgenciesPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (agencyToDelete) {
-      // In a real application, you would make an API call here
-      // For now, we'll just update the local state
-      setAgencies(
-        agencies.filter((agency) => agency.uid !== agencyToDelete.uid)
-      );
-      toast(
-        `${agencyToDelete.firstName} has been permanently removed from the platform.`
-      );
-      setIsDeleteDialogOpen(false);
-      setAgencyToDelete(null);
+      try {
+        // 1. Delete all listings associated with the agency
+        const postedListings = agencyToDelete.myListings;
+        for (const listingId of postedListings) {
+          // Get the listing document to extract image URLs
+          const listingDoc = await getDoc(listingId.ref);
+          if (listingDoc.exists()) {
+            const listingData = listingDoc.data();
+
+            // Delete all images from Firebase Storage
+            for (const imageUrl of listingData.images) {
+              const imageRef = ref(fireStorage, imageUrl);
+              await deleteObject(imageRef);
+            }
+
+            // Delete the listing document from Firestore
+            await deleteDoc(listingId.ref);
+          }
+        }
+
+        // 2. Delete agency's profile picture from Storage if it exists
+        if (agencyToDelete.pfp) {
+          const pfpRef = ref(fireStorage, agencyToDelete.pfp);
+          await deleteObject(pfpRef);
+        }
+
+        // 3. Remove all agents associated with this agency
+        for (const agentId of agencyToDelete.myAgents) {
+          const agentDoc = await getDoc(agentId.ref);
+          if (agentDoc.exists()) {
+            const agentData = agentDoc.data() as USER;
+            if (agentData.pfp) {
+              const agentPfpRef = ref(fireStorage, agentData.pfp);
+              await deleteObject(agentPfpRef);
+            }
+          }
+          // Delete agent document
+          await deleteDoc(agentId.ref);
+        }
+
+        // 4. Delete the agency document from Firestore
+        await deleteDoc(doc(fireDataBase, "agencies", agencyToDelete.uid));
+
+        // 5. Update local state
+        setAgencies(
+          agencies.filter((agency) => agency.uid !== agencyToDelete.uid)
+        );
+
+        // 6. Show success message
+        toast.success(
+          `${agencyToDelete.companyName} has been permanently removed from the platform.`
+        );
+
+        // 7. Reset state and close dialog
+        setIsDeleteDialogOpen(false);
+        setAgencyToDelete(null);
+      } catch (error) {
+        console.error("Error deleting agency:", error);
+        toast.error("Failed to delete agency. Please try again.");
+      }
     }
   };
 
@@ -168,7 +225,7 @@ export default function AgenciesPage() {
                     filteredAgencies.map((agency) => (
                       <TableRow key={agency.uid}>
                         <TableCell className="font-medium">
-                          {agency.firstName}
+                          {agency.companyName}
                         </TableCell>
                         <TableCell>
                           <div>{agency.email}</div>
@@ -274,7 +331,7 @@ export default function AgenciesPage() {
               {agencyToDelete && (
                 <span className="font-semibold">
                   {" "}
-                  {agencyToDelete.firstName}{" "}
+                  {agencyToDelete.companyName}{" "}
                 </span>
               )}
               and remove all associated data from our servers. All agents and

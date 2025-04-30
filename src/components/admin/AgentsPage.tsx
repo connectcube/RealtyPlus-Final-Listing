@@ -29,18 +29,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Search, MoreVertical, Filter, UserPlus, Link2 } from "lucide-react";
-import { collection, getDocs } from "firebase/firestore";
-import { fireDataBase } from "@/lib/firebase";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+} from "firebase/firestore";
+import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { USER } from "@/lib/typeDefinitions";
 import { Link } from "react-router-dom";
 import AgentEditModal from "./components/editUserModal";
 import { toast } from "react-toastify";
 import UserEditModal from "./components/editUserModal";
+import { deleteObject, ref } from "firebase/storage";
 
 export default function AgentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [agents, setAgents] = useState([]);
-  const [agentToDelete, setAgentToDelete] = useState(null);
+  const [agentToDelete, setAgentToDelete] = useState<USER | null>(null);
   const [agentToEdit, setAgentToEdit] = useState<USER | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -69,16 +76,52 @@ export default function AgentsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (agentToDelete) {
-      // In a real application, you would make an API call here
-      // For now, we'll just update the local state
-      setAgents(agents.filter((agent) => agent.uid !== agentToDelete.uid));
-      toast.success(
-        `${agentToDelete.firstName} ${agentToDelete.lastName} has been permanently removed from the platform.`
-      );
-      setIsDeleteDialogOpen(false);
-      setAgentToDelete(null);
+      try {
+        // 1. Delete all listings associated with the agent
+        const postedListings = agentToDelete.myListings;
+        for (const listingId of postedListings) {
+          // Get the listing document to extract image URLs
+          const listingDoc = await getDoc(listingId.ref);
+          if (listingDoc.exists()) {
+            const listingData = listingDoc.data();
+
+            // Delete all images from Firebase Storage
+            for (const imageUrl of listingData.images) {
+              const imageRef = ref(fireStorage, imageUrl);
+              await deleteObject(imageRef);
+            }
+
+            // Delete the listing document from Firestore
+            await deleteDoc(listingId.ref);
+          }
+        }
+
+        // 2. Delete agent's profile picture from Storage if it exists
+        if (agentToDelete.pfp) {
+          const pfpRef = ref(fireStorage, agentToDelete.pfp);
+          await deleteObject(pfpRef);
+        }
+
+        // 3. Delete the agent document from Firestore
+        await deleteDoc(doc(fireDataBase, "agents", agentToDelete.uid));
+
+        // 4. Update local state
+        setAgents(agents.filter((agent) => agent.uid !== agentToDelete.uid));
+
+        // 5. Show success message
+        toast.success(
+          `${agentToDelete.firstName} ${agentToDelete.lastName} has been permanently removed from the platform.`
+        );
+
+        // 6. Reset state and close dialog
+        setIsDeleteDialogOpen(false);
+        setAgentToDelete(null);
+      } catch (error) {
+        console.error("Error deleting agent:", error);
+        toast.error("Failed to delete agent. Please try again.");
+      }
     }
   };
 
@@ -280,7 +323,10 @@ export default function AgentsPage() {
               This action cannot be undone. This will permanently delete the
               agent account
               {agentToDelete && (
-                <span className="font-semibold"> {agentToDelete.name} </span>
+                <span className="font-semibold">
+                  {" "}
+                  {agentToDelete.firstName}{" "}
+                </span>
               )}
               and remove their data from our servers. All property listings
               associated with this agent will also be removed.
