@@ -58,6 +58,7 @@ import { ADMIN, USER } from "@/lib/typeDefinitions";
 import { collection, getDocs, serverTimestamp } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { useZustand } from "@/lib/zustand";
+import { Link } from "react-router-dom";
 
 // Define permission types for admin roles
 const PERMISSIONS = {
@@ -99,24 +100,6 @@ export default function UsersPage() {
   const [isEditPermissionsDialogOpen, setIsEditPermissionsDialogOpen] =
     useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [newAdminData, setNewAdminData] = useState<Partial<ADMIN>>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    adminType: "user admin",
-    permissions: {
-      userRead: false,
-      userWrite: false,
-      listingRead: false,
-      listingWrite: false,
-      agentRead: false,
-      agentWrite: false,
-      agencyRead: false,
-      agencyWrite: false,
-      adminManagement: false,
-      subscriptionManagement: false,
-    },
-  });
 
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -289,54 +272,6 @@ export default function UsersPage() {
     }
   };
 
-  const handleAddAdmin = () => {
-    setIsAddAdminDialogOpen(true);
-  };
-
-  const handleEditPermissions = (user) => {
-    setSelectedUser(user);
-    setIsEditPermissionsDialogOpen(true);
-  };
-
-  const saveNewAdmin = () => {
-    setIsAddAdminDialogOpen(false);
-    setNewAdminData({
-      firstName: "",
-      email: "",
-      adminType: "user admin",
-      permissions: {
-        userRead: true,
-        userWrite: true,
-        listingRead: true,
-        listingWrite: true,
-        agentRead: true,
-        agentWrite: true,
-        agencyRead: true,
-        agencyWrite: true,
-        adminManagement: true,
-        subscriptionManagement: true,
-      },
-    });
-  };
-
-  const savePermissions = () => {
-    // In a real application, you would make an API call here
-    const updatedUsers = users.map((user) => {
-      if (user.uid === selectedUser.id) {
-        return selectedUser;
-      }
-      return user;
-    });
-
-    setUsers(updatedUsers);
-    toast({
-      title: "Permissions updated",
-      description: `${selectedUser.name}'s permissions have been updated.`,
-    });
-    setIsEditPermissionsDialogOpen(false);
-    setSelectedUser(null);
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case "Active":
@@ -450,10 +385,10 @@ export default function UsersPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={getRoleColor(
+                            className={`${getRoleColor(
                               user.userType,
                               isAdmin(user) ? user.adminType : undefined
-                            )}
+                            )} capitalize`}
                           >
                             {isAdmin(user)
                               ? `${user.userType} (${user.adminType})`
@@ -480,23 +415,22 @@ export default function UsersPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              {user.userType !== "user" && (
+                                <DropdownMenuItem>
+                                  <Link to={`/agent/${user.uid}`}>
+                                    View Details
+                                  </Link>
+                                </DropdownMenuItem>
+                              )}
+
                               {(user.userType !== "Admin" ||
                                 hasPermission(
                                   PERMISSIONS.USERS.MANAGE_ADMINS
-                                )) && (
-                                <DropdownMenuItem>Edit User</DropdownMenuItem>
-                              )}
-                              {user.userType === "Admin" &&
-                                hasPermission(
-                                  PERMISSIONS.USERS.MANAGE_ADMINS
-                                ) && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleEditPermissions(user)}
-                                  >
-                                    Manage Permissions
-                                  </DropdownMenuItem>
+                                )) &&
+                                user.userType === "user" && (
+                                  <DropdownMenuItem>Edit User</DropdownMenuItem>
                                 )}
+
                               {(user.userType !== "Admin" ||
                                 hasPermission(
                                   PERMISSIONS.USERS.MANAGE_ADMINS
@@ -521,14 +455,15 @@ export default function UsersPage() {
                                 (hasPermission(
                                   PERMISSIONS.USERS.MANAGE_ADMINS
                                 ) &&
-                                  user.uid !== currentUser.uid)) && (
-                                <DropdownMenuItem
-                                  className="text-red-600"
-                                  onClick={() => handleDeleteUser(user)}
-                                >
-                                  Delete
-                                </DropdownMenuItem>
-                              )}
+                                  user.uid !== currentUser.uid)) &&
+                                user.userType === "user" && (
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => handleDeleteUser(user)}
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -575,428 +510,6 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Add Admin Dialog 
-      <Dialog
-        open={isAddAdminDialogOpen}
-        onOpenChange={setIsAddAdminDialogOpen}
-      >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Admin</DialogTitle>
-            <DialogDescription>
-              Create a new admin user with specific permissions.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="gap-4 grid py-4">
-            <div className="items-center gap-4 grid grid-cols-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={newAdminData.firstName}
-                onChange={(e) =>
-                  setNewAdminData({
-                    ...newAdminData,
-                    firstName: e.target.value,
-                  })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="items-center gap-4 grid grid-cols-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={newAdminData.email}
-                onChange={(e) =>
-                  setNewAdminData({ ...newAdminData, email: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="items-center gap-4 grid grid-cols-4">
-              <Label htmlFor="role" className="text-right">
-                Admin Role
-              </Label>
-              <Select
-                value={newAdminData.adminType}
-                onValueChange={(value) =>
-                  setNewAdminData({
-                    ...newAdminData,
-                    adminType: value as ADMIN["adminType"],
-                  })
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Super Admin">Super Admin</SelectItem>
-                  <SelectItem value="Content Admin">Content Admin</SelectItem>
-                  <SelectItem value="User Admin">User Admin</SelectItem>
-                  <SelectItem value="Custom">Custom Permissions</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {newAdminData.adminType === "custom" && (
-              <div className="gap-4 grid grid-cols-4">
-                <div className="pt-2 text-right">
-                  <Label>Permissions</Label>
-                </div>
-                <div className="space-y-4 col-span-3">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Users</h4>
-                    <div className="gap-2 grid grid-cols-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="users-view"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="users-view">View</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="users-edit"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="users-edit">Edit</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="users-delete"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="users-delete">Delete</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="users-manage-admins"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="users-manage-admins">
-                          Manage Admins
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Properties</h4>
-                    <div className="gap-2 grid grid-cols-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="properties-view"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="properties-view">View</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="properties-edit"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="properties-edit">Edit</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="properties-delete"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="properties-delete">Delete</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="properties-approve"
-                          checked={false}
-                          onCheckedChange={(checked) => {
-                            console.log(checked);
-                          }}
-                        />
-                        <Label htmlFor="properties-approve">Approve</Label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={saveNewAdmin}>
-              Create Admin
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-        */}
-      {/* Edit Permissions Dialog */}
-      {selectedUser && (
-        <Dialog
-          open={isEditPermissionsDialogOpen}
-          onOpenChange={setIsEditPermissionsDialogOpen}
-        >
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Edit Admin Permissions</DialogTitle>
-              <DialogDescription>
-                Modify permissions for {selectedUser.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="gap-4 grid py-4">
-              <div className="items-center gap-4 grid grid-cols-4">
-                <Label htmlFor="edit-role" className="text-right">
-                  Admin Role
-                </Label>
-                {/*<Select
-                  value={selectedUser.adminRole}
-                  onValueChange={(value) => {
-                    if (value !== "Custom") {
-                      setSelectedUser({
-                        ...selectedUser,
-                        adminRole: value,
-                        permissions:
-                          ADMIN_ROLES[value.toUpperCase().replace(" ", "_")]
-                            ?.permissions || [],
-                      });
-                    } else {
-                      setSelectedUser({
-                        ...selectedUser,
-                        adminRole: value,
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Super Admin">Super Admin</SelectItem>
-                    <SelectItem value="Content Admin">Content Admin</SelectItem>
-                    <SelectItem value="User Admin">User Admin</SelectItem>
-                    <SelectItem value="Custom">Custom Permissions</SelectItem>
-                  </SelectContent>
-                </Select>*/}
-              </div>
-
-              {selectedUser.adminRole === "Custom" && (
-                <div className="gap-4 grid grid-cols-4">
-                  <div className="pt-2 text-right">
-                    <Label>Permissions</Label>
-                  </div>
-                  <div className="space-y-4 col-span-3">
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Users</h4>
-                      <div className="gap-2 grid grid-cols-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-view"
-                            checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.VIEW
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: [
-                                    ...selectedUser.permissions,
-                                    PERMISSIONS.USERS.VIEW,
-                                  ],
-                                });
-                              } else {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.VIEW
-                                  ),
-                                });
-                              }
-                            }}
-                          />
-                          <Label htmlFor="edit-users-view">View</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-edit"
-                            checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.EDIT
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: [
-                                    ...selectedUser.permissions,
-                                    PERMISSIONS.USERS.EDIT,
-                                  ],
-                                });
-                              } else {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.EDIT
-                                  ),
-                                });
-                              }
-                            }}
-                          />
-                          <Label htmlFor="edit-users-edit">Edit</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-delete"
-                            checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.DELETE
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: [
-                                    ...selectedUser.permissions,
-                                    PERMISSIONS.USERS.DELETE,
-                                  ],
-                                });
-                              } else {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.DELETE
-                                  ),
-                                });
-                              }
-                            }}
-                          />
-                          <Label htmlFor="edit-users-delete">Delete</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-users-manage-admins"
-                            checked={selectedUser.permissions.includes(
-                              PERMISSIONS.USERS.MANAGE_ADMINS
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: [
-                                    ...selectedUser.permissions,
-                                    PERMISSIONS.USERS.MANAGE_ADMINS,
-                                  ],
-                                });
-                              } else {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.USERS.MANAGE_ADMINS
-                                  ),
-                                });
-                              }
-                            }}
-                          />
-                          <Label htmlFor="edit-users-manage-admins">
-                            Manage Admins
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Properties</h4>
-                      <div className="gap-2 grid grid-cols-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-properties-view"
-                            checked={selectedUser.permissions.includes(
-                              PERMISSIONS.PROPERTIES.VIEW
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: [
-                                    ...selectedUser.permissions,
-                                    PERMISSIONS.PROPERTIES.VIEW,
-                                  ],
-                                });
-                              } else {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.VIEW
-                                  ),
-                                });
-                              }
-                            }}
-                          />
-                          <Label htmlFor="edit-properties-view">View</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="edit-properties-edit"
-                            checked={selectedUser.permissions.includes(
-                              PERMISSIONS.PROPERTIES.EDIT
-                            )}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: [
-                                    ...selectedUser.permissions,
-                                    PERMISSIONS.PROPERTIES.EDIT,
-                                  ],
-                                });
-                              } else {
-                                setSelectedUser({
-                                  ...selectedUser,
-                                  permissions: selectedUser.permissions.filter(
-                                    (p) => p !== PERMISSIONS.PROPERTIES.EDIT
-                                  ),
-                                });
-                              }
-                            }}
-                          />
-                          <Label htmlFor="edit-properties-edit">Edit</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="submit" onClick={savePermissions}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </AdminLayout>
   );
 }
