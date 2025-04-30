@@ -34,11 +34,13 @@ import { collection, getDocs } from "firebase/firestore";
 import { fireDataBase } from "@/lib/firebase";
 import { USER } from "@/lib/typeDefinitions";
 import { Link } from "react-router-dom";
+import AgentEditModal from "./components/editUserModal";
 
 export default function AgentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [agents, setAgents] = useState([]);
   const [agentToDelete, setAgentToDelete] = useState(null);
+  const [agentToEdit, setAgentToEdit] = useState<USER | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -216,14 +218,24 @@ export default function AgentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Profile</DropdownMenuItem>
-                              <DropdownMenuItem>View Listings</DropdownMenuItem>
-                              <DropdownMenuItem>Edit Agent</DropdownMenuItem>
-                              {agent.status === "Active" ? (
+                              <DropdownMenuItem>
+                                <Link to={`/agent/${agent.uid}`}>
+                                  View Profile
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <button
+                                  onClick={() => setAgentToEdit(agent)}
+                                  className="w-full font-normal text-black text-start sparent"
+                                >
+                                  Edit Agent
+                                </button>
+                              </DropdownMenuItem>
+                              {agent.status === "active" ? (
                                 <DropdownMenuItem className="text-amber-600">
                                   Suspend
                                 </DropdownMenuItem>
-                              ) : agent.status === "Suspended" ? (
+                              ) : agent.status === "suspended" ? (
                                 <DropdownMenuItem className="text-green-600">
                                   Reactivate
                                 </DropdownMenuItem>
@@ -285,6 +297,9 @@ export default function AgentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {agentToEdit && (
+        <AgentEditModal setAgentToEdit={setAgentToEdit} user={agentToEdit} />
+      )}
     </AdminLayout>
   );
 }
