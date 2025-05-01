@@ -295,7 +295,7 @@ const AddProperty = () => {
       );
       await addDoc(activityCollectionRef, {
         activity: {
-          action: "New Property Createds",
+          action: "New property created",
           doer: `${user.firstName} ${user.lastName}`,
           doerRef: posterDocRef,
         },

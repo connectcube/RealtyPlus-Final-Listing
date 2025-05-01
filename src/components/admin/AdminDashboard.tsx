@@ -18,8 +18,10 @@ import {
   getDoc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
+  startAfter,
 } from "firebase/firestore";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -33,23 +35,6 @@ export default function AdminDashboard() {
     agents: 0,
     agencies: 0,
   });
-  const [recentActivities, setRecentActivities] = useState([]);
-  const formatTimestamp = (timestamp: any) => {
-    if (!timestamp) return "";
-
-    const date = timestamp.toDate();
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return "Just now";
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 172800) return "Yesterday";
-
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  };
 
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
@@ -122,36 +107,7 @@ export default function AdminDashboard() {
     const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
     return () => unsubscribe();
   }, []);
-  useEffect(() => {
-    const fetchRecentActivities = async () => {
-      try {
-        const recentActivitiesRef = collection(
-          fireDataBase,
-          "recentActivities"
-        );
-        const q = query(
-          recentActivitiesRef,
-          orderBy("doneAt", "desc"),
-          limit(10) // Get last 10 activities
-        );
-        const recentActivitiesSnapshot = await getDocs(q);
 
-        const activities = recentActivitiesSnapshot.docs.map((doc) => ({
-          uid: doc.id,
-          action: doc.data().activity.action,
-          user: doc.data().activity.doer,
-          time: formatTimestamp(doc.data().doneAt),
-          type: doc.data().type,
-        }));
-
-        setRecentActivities(activities);
-        console.log(activities);
-      } catch (error) {
-        console.error("Error fetching recent activities:", error);
-      }
-    };
-    fetchRecentActivities();
-  }, []);
   const stats = [
     {
       name: "Total Users",
@@ -239,47 +195,7 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <div className="gap-4 grid md:grid-cols-2">
-          <Card className="p-6">
-            <h3 className="mb-4 font-semibold text-lg">Recent Activity</h3>
-            <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-start pb-4 last:pb-0 last:border-0 border-b"
-                >
-                  <div
-                    className={`p-2 rounded-full mr-3 ${
-                      activity.type === "property"
-                        ? "bg-blue-100 text-blue-600"
-                        : activity.type === "agent"
-                        ? "bg-purple-100 text-purple-600"
-                        : activity.type === "subscription"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {activity.type === "property" ? (
-                      <Home className="w-5 h-5" />
-                    ) : activity.type === "agent" ? (
-                      <UserCog className="w-5 h-5" />
-                    ) : activity.type === "subscription" ? (
-                      <DollarSign className="w-5 h-5" />
-                    ) : (
-                      <Users className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium">{activity.action}</p>
-                    <div className="flex text-muted-foreground text-sm">
-                      <span>{activity.user}</span>
-                      <span className="mx-2">•</span>
-                      <span>{activity.time}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <RecentActivities />
 
           <Card className="p-6">
             <h3 className="mb-4 font-semibold text-lg">Quick Actions</h3>
@@ -291,27 +207,27 @@ export default function AdminDashboard() {
                 <Home className="mb-2 w-8 h-8 text-blue-600" />
                 <span className="font-medium text-blue-700">Add Property</span>
               </Link>
-              <Link
-                to="/admin/users/add"
+              <button
+                disabled
                 className="flex flex-col justify-center items-center bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center transition-colors"
               >
                 <Users className="mb-2 w-8 h-8 text-purple-600" />
                 <span className="font-medium text-purple-700">Add User</span>
-              </Link>
-              <Link
-                to="/admin/agents/add"
+              </button>
+              <button
+                disabled
                 className="flex flex-col justify-center items-center bg-green-50 hover:bg-green-100 p-4 rounded-lg text-center transition-colors"
               >
                 <UserCog className="mb-2 w-8 h-8 text-green-600" />
                 <span className="font-medium text-green-700">Add Agent</span>
-              </Link>
-              <Link
-                to="/admin/agencies/add"
+              </button>
+              <button
+                disabled
                 className="flex flex-col justify-center items-center bg-orange-50 hover:bg-orange-100 p-4 rounded-lg text-center transition-colors"
               >
                 <Building2 className="mb-2 w-8 h-8 text-orange-600" />
                 <span className="font-medium text-orange-700">Add Agency</span>
-              </Link>
+              </button>
             </div>
           </Card>
         </div>
@@ -319,3 +235,231 @@ export default function AdminDashboard() {
     </AdminLayout>
   );
 }
+const RecentActivities = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const ITEMS_PER_PAGE = 5;
+
+  const [recentActivities, setRecentActivities] = useState([]);
+  const formatTimestamp = (timestamp: any) => {
+    if (!timestamp) return "";
+
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return "Just now";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 172800) return "Yesterday";
+
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+  useEffect(() => {
+    let unsubscribe: () => void;
+
+    const fetchRecentActivities = async () => {
+      try {
+        setIsLoading(true);
+        const recentActivitiesRef = collection(
+          fireDataBase,
+          "recentActivities"
+        );
+
+        // First get total count for pagination
+        const totalSnapshot = await getCountFromServer(recentActivitiesRef);
+        const totalItems = totalSnapshot.data().count;
+        setTotalPages(Math.ceil(totalItems / ITEMS_PER_PAGE));
+
+        // Set up real-time listener
+        const q = query(
+          recentActivitiesRef,
+          orderBy("doneAt", "desc"),
+          limit(ITEMS_PER_PAGE)
+        );
+
+        // Replace getDocs with onSnapshot for real-time updates
+        unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            if (snapshot.empty) {
+              setRecentActivities([]);
+              return;
+            }
+
+            const activities = snapshot.docs.map((doc) => ({
+              uid: doc.id,
+              action: doc.data().activity.action,
+              user: doc.data().activity.doer,
+              time: formatTimestamp(doc.data().doneAt),
+              type: doc.data().type,
+            }));
+
+            setRecentActivities(activities);
+            setIsLoading(false);
+          },
+          (error) => {
+            console.error("Error fetching recent activities:", error);
+            setIsLoading(false);
+          }
+        );
+      } catch (error) {
+        console.error("Error fetching recent activities:", error);
+        setRecentActivities([]);
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecentActivities();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [currentPage]);
+
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center bg-white mt-4 px-4 sm:px-6 py-3 border-gray-200 border-t">
+      <div className="sm:hidden flex flex-1 justify-between">
+        <button
+          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+          disabled={currentPage === 1}
+          className="inline-flex relative items-center bg-white hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 text-sm disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <button
+          onClick={() =>
+            setCurrentPage((page) => Math.min(totalPages, page + 1))
+          }
+          disabled={currentPage === totalPages}
+          className="inline-flex relative items-center bg-white hover:bg-gray-50 disabled:opacity-50 ml-3 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 text-sm disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-1 sm:justify-between sm:items-center">
+        <div>
+          <p className="text-gray-700 text-sm">
+            Showing page <span className="font-medium">{currentPage}</span> of{" "}
+            <span className="font-medium">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav
+            className="inline-flex isolate -space-x-px shadow-sm rounded-md"
+            aria-label="Pagination"
+          >
+            <button
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex focus:z-20 relative items-center hover:bg-gray-50 disabled:opacity-50 px-2 py-2 rounded-l-md focus:outline-offset-0 ring-1 ring-gray-300 ring-inset text-gray-400 disabled:cursor-not-allowed"
+            >
+              <span className="sr-only">Previous</span>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            {/* Current page number */}
+            <span className="inline-flex relative items-center px-4 py-2 focus:outline-offset-0 ring-1 ring-gray-300 ring-inset font-semibold text-gray-900 text-sm">
+              {currentPage}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="inline-flex focus:z-20 relative items-center hover:bg-gray-50 disabled:opacity-50 px-2 py-2 rounded-r-md focus:outline-offset-0 ring-1 ring-gray-300 ring-inset text-gray-400 disabled:cursor-not-allowed"
+            >
+              <span className="sr-only">Next</span>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <Card className="p-6">
+      <h3 className="mb-4 font-semibold text-lg">Recent Activity</h3>
+      <div className="space-y-4">
+        {isLoading ? (
+          // Add loading state UI
+          <div className="flex justify-center items-center h-40">
+            <LoadingSpinner />
+          </div>
+        ) : recentActivities.length === 0 ? (
+          <div className="py-8 text-muted-foreground text-center">
+            No recent activities found
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {recentActivities.map((activity, index) => (
+              <div
+                key={index}
+                className="flex items-start pb-4 last:pb-0 last:border-0 border-b"
+              >
+                <div
+                  className={`p-2 rounded-full mr-3 ${
+                    activity.type === "property"
+                      ? "bg-blue-100 text-blue-600"
+                      : activity.type === "agent"
+                      ? "bg-purple-100 text-purple-600"
+                      : activity.type === "subscription"
+                      ? "bg-green-100 text-green-600"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {activity.type === "property" ? (
+                    <Home className="w-5 h-5" />
+                  ) : activity.type === "agent" ? (
+                    <UserCog className="w-5 h-5" />
+                  ) : activity.type === "subscription" ? (
+                    <DollarSign className="w-5 h-5" />
+                  ) : (
+                    <Users className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium">{activity.action}</p>
+                  <div className="flex text-muted-foreground text-sm">
+                    <span>{activity.user}</span>
+                    <span className="mx-2">•</span>
+                    <span>{activity.time}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {!isLoading && recentActivities.length > 0 && <PaginationControls />}
+    </Card>
+  );
+};

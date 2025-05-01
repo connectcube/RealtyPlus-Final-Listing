@@ -339,7 +339,7 @@ const EditProperty = () => {
       );
       await addDoc(activityCollectionRef, {
         activity: {
-          action: "Property Details Updated",
+          action: "Property details updated",
           doer: `${user.firstName} ${user.lastName}`,
           doerRef: doc(fireDataBase, user.userType, user.uid),
         },
