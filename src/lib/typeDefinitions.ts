@@ -60,6 +60,7 @@ export type ADMIN = {
   isApproved: boolean;
   permissions: ADMINPERMISSIONS;
   status: "Active" | "Inactive" | "Suspended";
+  myListings: myListings[];
 };
 
 interface ADMINPERMISSIONS {

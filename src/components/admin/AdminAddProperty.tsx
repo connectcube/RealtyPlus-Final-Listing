@@ -89,14 +89,31 @@ const AdminAddProperty = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
   useEffect(() => {
-    const fetchUser = async () => {
-      const userDoc = await getDoc(doc(fireDataBase, "admins", id));
-      if (userDoc.exists()) {
-        setUser(userDoc.data() as ADMIN);
+    const fetchAdmin = async () => {
+      if (!id) return;
+
+      try {
+        const adminDoc = await getDoc(doc(fireDataBase, "admins", id));
+        if (adminDoc.exists()) {
+          setUser({ uid: id, ...(adminDoc.data() as ADMIN) });
+        } else {
+          toast.error("Admin profile not found");
+          navigate("/admin/login"); // or appropriate fallback route
+        }
+      } catch (error) {
+        console.error("Error fetching admin:", error);
+        toast.error("Failed to load admin profile");
       }
     };
-    fetchUser();
-  }, []);
+
+    fetchAdmin();
+  }, [id, navigate]);
+  useEffect(() => {
+    if (user && !user.permissions.listingWrite) {
+      toast.error("You don't have permission to create listings");
+      navigate("/admin/dashboard");
+    }
+  }, [user, navigate]);
   const handleInputChange = (field: string, value: any) => {
     // Array of fields that should be converted to numbers
     const numericFields = [
@@ -208,37 +225,38 @@ const AdminAddProperty = () => {
         return;
       }
 
-      // Get the poster's document reference
-      const posterDocRef = doc(fireDataBase, "admins", user.uid);
-      const posterDoc = await getDoc(posterDocRef);
+      // Get the admin's document reference
+      const adminDocRef = doc(fireDataBase, "admins", user.uid);
+      const adminDoc = await getDoc(adminDocRef);
 
-      if (!posterDoc.exists()) {
-        toast.error(`${user.userType} profile not found`);
+      if (!adminDoc.exists()) {
+        toast.error("Admin profile not found");
         return;
       }
 
-      // Create listing document first
+      // Create listing document
       const listingsCollectionRef = collection(fireDataBase, "listings");
       const newListingRef = await addDoc(listingsCollectionRef, {
         ...formData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        postedBy: posterDocRef,
+        postedBy: adminDocRef, // Reference to admin document
         postedByDetails: {
           uid: user.uid,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          adminType: user.adminType, // Include admin type
         },
         createdBy: user.uid,
-        userType: user.userType,
+        userType: "admin", // Explicitly set as admin
         status: "active",
         images: [], // Will be updated after upload
         coverPhotoIndex: coverPhotoIndex,
         viewCount: 0,
       });
 
-      // Upload images with better error handling
+      // Upload images
       const imageUrls = await Promise.all(
         uploadedImages.map(async (image, index) => {
           const storageRef = ref(
@@ -247,11 +265,11 @@ const AdminAddProperty = () => {
           );
 
           try {
-            // Add metadata to help with debugging
             const metadata = {
               customMetadata: {
                 uploadedBy: user.uid,
-                userType: user.userType,
+                userType: "admin",
+                adminType: user.adminType,
                 listingId: newListingRef.id,
                 timestamp: new Date().toISOString(),
               },
@@ -260,20 +278,7 @@ const AdminAddProperty = () => {
             const uploadResult = await uploadBytes(storageRef, image, metadata);
             return await getDownloadURL(uploadResult.ref);
           } catch (error: any) {
-            console.error("Upload error details:", {
-              code: error.code,
-              message: error.message,
-              serverResponse: error.serverResponse,
-              name: error.name,
-              path: storageRef.fullPath,
-              file: image.name,
-              size: image.size,
-              type: image.type,
-            });
-
-            if (error.code === "storage/unauthorized") {
-              throw new Error(`Authentication error: ${error.message}`);
-            }
+            // Error handling...
             throw error;
           }
         })
@@ -285,17 +290,16 @@ const AdminAddProperty = () => {
         coverPhotoIndex: coverPhotoIndex,
       });
 
-      // Update user's listings
-      const existingListings = posterDoc.data()?.myListings || [];
-      await updateDoc(posterDocRef, {
+      // Update admin's listings
+      const existingListings = adminDoc.data()?.myListings || [];
+      await updateDoc(adminDocRef, {
         myListings: [
           ...existingListings,
           {
-            position: user.userType,
+            position: "admin",
             ref: newListingRef,
           },
         ],
-        "subscription.listingsUsed": increment(1),
       });
 
       toast.success("Property listed successfully!");
