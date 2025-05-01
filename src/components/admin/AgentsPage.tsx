@@ -168,7 +168,7 @@ export default function AgentsPage() {
               Manage all real estate agents on the platform
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button disabled className="flex items-center gap-2">
             <UserPlus className="w-4 h-4" />
             Add New Agent
           </Button>

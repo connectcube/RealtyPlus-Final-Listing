@@ -195,7 +195,7 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <div className="gap-4 grid md:grid-cols-2">
-          <RecentActivities />
+          <RecentActivities admin={admin} />
 
           <Card className="p-6">
             <h3 className="mb-4 font-semibold text-lg">Quick Actions</h3>
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
     </AdminLayout>
   );
 }
-const RecentActivities = () => {
+const RecentActivities = ({ admin }: { admin: ADMIN }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true); // Add loading state
@@ -404,7 +404,43 @@ const RecentActivities = () => {
       </div>
     </div>
   );
-
+  const filterResults = () => {
+    switch (admin.adminType) {
+      case "super admin": {
+        return recentActivities.filter(
+          (activity) =>
+            activity.type === "property" ||
+            activity.type === "agent" ||
+            activity.type === "subscription"
+        );
+      }
+      case "content admin": {
+        return recentActivities.filter(
+          (activity) => activity.type === "property"
+        );
+      }
+      case "user admin": {
+        return recentActivities.filter(
+          (activity) =>
+            activity.type === "agent" || activity.type === "subscription"
+        );
+      }
+      case "custom": {
+        return recentActivities.filter(
+          (activity) =>
+            activity.type === "property" || activity.type === "agent"
+        );
+      }
+      default: {
+        return recentActivities.filter(
+          (activity) =>
+            activity.type === "property" ||
+            activity.type === "agent" ||
+            activity.type === "subscription"
+        );
+      }
+    }
+  };
   return (
     <Card className="p-6">
       <h3 className="mb-4 font-semibold text-lg">Recent Activity</h3>
