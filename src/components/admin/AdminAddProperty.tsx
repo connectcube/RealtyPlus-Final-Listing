@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import Header from "../layout/Header";
 import Footer from "../layout/Footer";
-import { LISTING, NearbyPlace } from "@/lib/typeDefinitions";
+import { ADMIN, LISTING, NearbyPlace } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
 import {
   addDoc,
@@ -43,9 +43,10 @@ import { fireDataBase, fireStorage } from "@/lib/firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "react-toastify";
 
-const AddProperty = () => {
-  const { user, setUser } = useZustand();
+const AdminAddProperty = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [user, setUser] = useState<ADMIN | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [formData, setFormData] = useState<LISTING>({
@@ -87,7 +88,15 @@ const AddProperty = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
-
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userDoc = await getDoc(doc(fireDataBase, "admins", id));
+      if (userDoc.exists()) {
+        setUser(userDoc.data() as ADMIN);
+      }
+    };
+    fetchUser();
+  }, []);
   const handleInputChange = (field: string, value: any) => {
     // Array of fields that should be converted to numbers
     const numericFields = [
@@ -132,7 +141,7 @@ const AddProperty = () => {
     try {
       const files = e.target.files;
       if (!files) return;
-
+      console.log(user);
       // Check if user is authenticated
       if (!user || !user.uid) {
         toast.error("You must be logged in to upload images");
@@ -200,7 +209,7 @@ const AddProperty = () => {
       }
 
       // Get the poster's document reference
-      const posterDocRef = doc(fireDataBase, user.userType, user.uid);
+      const posterDocRef = doc(fireDataBase, "admins", user.uid);
       const posterDoc = await getDoc(posterDocRef);
 
       if (!posterDoc.exists()) {
@@ -1456,4 +1465,4 @@ const NearbyPlaces = ({
     </>
   );
 };
-export default AddProperty;
+export default AdminAddProperty;

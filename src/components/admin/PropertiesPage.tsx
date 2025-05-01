@@ -36,12 +36,13 @@ import {
   getDocs,
   setDoc,
 } from "firebase/firestore";
-import { fireDataBase, fireStorage } from "@/lib/firebase";
+import { auth, fireDataBase, fireStorage } from "@/lib/firebase";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { deleteObject, ref } from "firebase/storage";
 
 export default function PropertiesPage() {
+  const uid = auth.currentUser.uid;
   const [searchTerm, setSearchTerm] = useState("");
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -201,8 +202,13 @@ export default function PropertiesPage() {
             </p>
           </div>
           <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add New Property
+            <Link
+              to={`/admin/list-property/${uid}`}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Property
+            </Link>
           </Button>
         </div>
 

@@ -6,6 +6,7 @@ import { ToastContainer } from "react-toastify";
 import AdminLogin from "./components/admin/auth/AdminLogin";
 import EditProperty from "./components/property/EditProperty";
 import AdminProfile from "./components/admin/AdminProfile.";
+import AdminAddProperty from "./components/admin/AdminAddProperty";
 // Lazy load agent and subscription components
 const PropertyDetail = lazy(
   () => import("./components/property/PropertyDetail")
@@ -122,6 +123,10 @@ function App() {
           <Route path="/admin/agents" element={<AdminAgentsPage />} />
           <Route path="/admin/agencies" element={<AgenciesPage />} />
           <Route path="/admin/:id" element={<AdminProfile />} />
+          <Route
+            path="/admin/list-property/:id"
+            element={<AdminAddProperty />}
+          />
           <Route
             path="/admin/admin-management"
             element={<AdminManagementPage />}

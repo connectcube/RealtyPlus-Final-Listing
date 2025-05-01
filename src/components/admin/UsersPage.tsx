@@ -305,11 +305,11 @@ export default function UsersPage() {
 
     // For non-admin roles
     switch (role) {
-      case "agent":
+      case "agents":
         return "bg-purple-100 text-purple-800";
-      case "agency":
+      case "agencies":
         return "bg-orange-100 text-orange-800";
-      case "admin":
+      case "admins":
         return "bg-blue-100 text-blue-800";
       default: // user
         return "bg-gray-100 text-gray-800";
