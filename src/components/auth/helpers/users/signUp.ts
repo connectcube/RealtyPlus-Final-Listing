@@ -4,7 +4,13 @@ import {
   signInWithPopup,
   signInWithRedirect,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { auth, fireDataBase } from "@/lib/firebase";
 
 interface UserCredentials {
@@ -38,9 +44,24 @@ export default async function userSignUp(
           phone: user.phoneNumber || "",
           createdAt: new Date(),
           authProvider: "google",
-          role:"user"
+          role: "user",
         });
-
+        // Add activity
+        const activityCollectionRef = collection(
+          fireDataBase,
+          "recentActivities"
+        );
+        await addDoc(activityCollectionRef, {
+          activity: {
+            action: "User Signed In",
+            doer: `${user.displayName?.split(" ")[0] || ""} ${
+              user.displayName?.split(" ")[1] || ""
+            }`,
+            doerRef: docRef,
+          },
+          type: "user",
+          doneAt: serverTimestamp(),
+        });
         return user;
       } catch (popupError: any) {
         // If popup fails due to COOP or other popup-related issues, fall back to redirect
@@ -74,7 +95,7 @@ export default async function userSignUp(
         firstName,
         lastName,
         phone,
-        userType:"user",
+        userType: "user",
         createdAt: new Date(),
         authProvider: "email",
       });

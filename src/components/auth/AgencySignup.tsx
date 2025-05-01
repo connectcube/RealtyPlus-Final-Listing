@@ -114,6 +114,7 @@ const AgencySignup = () => {
         setIsLoading(true);
         console.log("Data from component", data);
         const user = await agencySignUp(data);
+
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
@@ -129,12 +130,12 @@ const AgencySignup = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto py-10 px-4 md:px-6">
-        <Card className="max-w-4xl mx-auto bg-white shadow-lg">
-          <CardHeader className="space-y-1 text-center bg-realtyplus text-white rounded-t-lg py-6">
-            <CardTitle className="text-2xl font-bold">
+      <main className="flex-grow mx-auto px-4 md:px-6 py-10 container">
+        <Card className="bg-white shadow-lg mx-auto max-w-4xl">
+          <CardHeader className="space-y-1 bg-realtyplus py-6 rounded-t-lg text-white text-center">
+            <CardTitle className="font-bold text-2xl">
               Agency Registration
             </CardTitle>
             <CardDescription className="text-gray-100">
@@ -148,11 +149,11 @@ const AgencySignup = () => {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">
+                  <h3 className="pb-2 border-b font-semibold text-lg">
                     Company Information
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="companyName"
@@ -201,7 +202,7 @@ const AgencySignup = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="businessRegistrationNumber"
@@ -249,7 +250,7 @@ const AgencySignup = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="address"
@@ -308,7 +309,7 @@ const AgencySignup = () => {
                         <FormControl>
                           <Textarea
                             placeholder="Tell us about your agency"
-                            className="resize-none h-24"
+                            className="h-24 resize-none"
                             {...field}
                           />
                         </FormControl>
@@ -317,11 +318,11 @@ const AgencySignup = () => {
                     )}
                   />
 
-                  <h3 className="text-lg font-semibold border-b pb-2 mt-6">
+                  <h3 className="mt-6 pb-2 border-b font-semibold text-lg">
                     Primary Contact Information
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
                     <FormField
                       control={form.control}
                       name="firstName"
@@ -365,7 +366,7 @@ const AgencySignup = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="email"
@@ -402,11 +403,11 @@ const AgencySignup = () => {
                     />
                   </div>
 
-                  <h3 className="text-lg font-semibold border-b pb-2 mt-6">
+                  <h3 className="mt-6 pb-2 border-b font-semibold text-lg">
                     Account Security
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="password"
@@ -448,7 +449,7 @@ const AgencySignup = () => {
                     control={form.control}
                     name="termsAccepted"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mt-6">
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-6 p-4 border rounded-md">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
@@ -479,10 +480,10 @@ const AgencySignup = () => {
                 <CardFooter className="flex justify-center px-0 pt-4">
                   <Button
                     type="submit"
-                    className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
+                    className="bg-realtyplus hover:bg-realtyplus-dark w-full md:w-auto"
                   >
                     {isLoading ? (
-                      <span className="flex gap-2 items-center justify-center">
+                      <span className="flex justify-center items-center gap-2">
                         Registering you in...{" "}
                         <Loader className="animate-spin" />{" "}
                       </span>

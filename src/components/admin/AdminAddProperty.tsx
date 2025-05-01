@@ -302,6 +302,21 @@ const AdminAddProperty = () => {
           },
         ],
       });
+      // Add activity
+      const activityCollectionRef = collection(
+        fireDataBase,
+        "recentActivities"
+      );
+      await addDoc(activityCollectionRef, {
+        activity: {
+          action: "created",
+          doer: `${user.firstName} ${user.lastName}`,
+          doerRef: adminDocRef,
+        },
+        type: "property",
+        doneAt: serverTimestamp(),
+        listingId: newListingRef,
+      });
 
       toast.success("Property listed successfully!");
       navigate(`/property/${newListingRef.id}`);

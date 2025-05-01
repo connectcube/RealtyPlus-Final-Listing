@@ -1,6 +1,12 @@
 import { auth, fireDataBase } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 
 export default async function agentSignUp(credentials) {
   const {
@@ -37,7 +43,7 @@ export default async function agentSignUp(credentials) {
     bio,
     createdAt: serverTimestamp(),
     authProvider: "email",
-    userType:"agents",
+    userType: "agents",
     myListings: [],
     myAgents: [],
     subscription: {
@@ -45,9 +51,19 @@ export default async function agentSignUp(credentials) {
       plan: "free",
       isActive: true,
       listingsTotal: 0,
-      renewalDate:serverTimestamp()
+      renewalDate: serverTimestamp(),
     },
   });
-
+  // Add activity
+  const activityCollectionRef = collection(fireDataBase, "recentActivities");
+  await addDoc(activityCollectionRef, {
+    activity: {
+      action: "New Agent Signed Up",
+      doer: `${firstName} ${lastName}`,
+      doerRef: docRef,
+    },
+    type: "agent",
+    doneAt: serverTimestamp(),
+  });
   return user;
 }

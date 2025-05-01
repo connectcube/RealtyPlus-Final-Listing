@@ -288,7 +288,21 @@ const AddProperty = () => {
         ],
         "subscription.listingsUsed": increment(1),
       });
-
+      // Add activity
+      const activityCollectionRef = collection(
+        fireDataBase,
+        "recentActivities"
+      );
+      await addDoc(activityCollectionRef, {
+        activity: {
+          action: "New Property Createds",
+          doer: `${user.firstName} ${user.lastName}`,
+          doerRef: posterDocRef,
+        },
+        type: "property",
+        doneAt: serverTimestamp(),
+        listingId: newListingRef,
+      });
       toast.success("Property listed successfully!");
       navigate(`/property/${newListingRef.id}`);
     } catch (error) {
