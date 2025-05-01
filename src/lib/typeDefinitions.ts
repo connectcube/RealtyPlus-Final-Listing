@@ -171,3 +171,13 @@ export type SearchFiltersProps = {
   listingType: string;
   propertyCategory: string;
 };
+export type RecentActivity = {
+  action: ACTION;
+  doneAt: Timestamp;
+  type: "property" | "agent" | "subscription" | "user" | "transaction";
+};
+interface ACTION {
+  doer: string;
+  doerRef: DocumentReference;
+  action: string;
+}

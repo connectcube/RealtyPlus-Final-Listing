@@ -16,6 +16,10 @@ import {
   doc,
   getCountFromServer,
   getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
 } from "firebase/firestore";
 import { ADMIN } from "@/lib/typeDefinitions";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -29,6 +33,24 @@ export default function AdminDashboard() {
     agents: 0,
     agencies: 0,
   });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const formatTimestamp = (timestamp: any) => {
+    if (!timestamp) return "";
+
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return "Just now";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 172800) return "Yesterday";
+
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
       try {
@@ -64,6 +86,7 @@ export default function AdminDashboard() {
             const propertiesCol = collection(fireDataBase, "listings");
             const agentsCol = collection(fireDataBase, "agents");
             const agenciesCol = collection(fireDataBase, "agencies");
+            // With query and limit
 
             // Get the count from each collection
             const [
@@ -99,10 +122,36 @@ export default function AdminDashboard() {
     const unsubscribe = onAuthStateChanged(auth, checkAdminStatus);
     return () => unsubscribe();
   }, []);
+  useEffect(() => {
+    const fetchRecentActivities = async () => {
+      try {
+        const recentActivitiesRef = collection(
+          fireDataBase,
+          "recentActivities"
+        );
+        const q = query(
+          recentActivitiesRef,
+          orderBy("doneAt", "desc"),
+          limit(10) // Get last 10 activities
+        );
+        const recentActivitiesSnapshot = await getDocs(q);
 
-  if (!admin) {
-    return <LoadingSpinner />;
-  }
+        const activities = recentActivitiesSnapshot.docs.map((doc) => ({
+          uid: doc.id,
+          action: doc.data().activity.action,
+          user: doc.data().activity.doer,
+          time: formatTimestamp(doc.data().doneAt),
+          type: doc.data().type,
+        }));
+
+        setRecentActivities(activities);
+        console.log(activities);
+      } catch (error) {
+        console.error("Error fetching recent activities:", error);
+      }
+    };
+    fetchRecentActivities();
+  }, []);
   const stats = [
     {
       name: "Total Users",
@@ -145,40 +194,6 @@ export default function AdminDashboard() {
       icon: <TrendingUp className="w-8 h-8" />,
       color: "bg-pink-500",
       path: "/admin/analytics",
-    },
-  ];
-
-  // Mock data for recent activities
-  const recentActivities = [
-    {
-      action: "New property listed",
-      user: "James Banda",
-      time: "2 hours ago",
-      type: "property",
-    },
-    {
-      action: "New agent registered",
-      user: "Mulenga Chipimo",
-      time: "5 hours ago",
-      type: "agent",
-    },
-    {
-      action: "Property sold",
-      user: "Lusaka Realty Ltd",
-      time: "Yesterday",
-      type: "property",
-    },
-    {
-      action: "Subscription renewed",
-      user: "Zambia Homes Agency",
-      time: "2 days ago",
-      type: "subscription",
-    },
-    {
-      action: "User account created",
-      user: "Chanda Mutale",
-      time: "3 days ago",
-      type: "user",
     },
   ];
 
@@ -270,7 +285,7 @@ export default function AdminDashboard() {
             <h3 className="mb-4 font-semibold text-lg">Quick Actions</h3>
             <div className="gap-3 grid grid-cols-2">
               <Link
-                to="/admin/properties/add"
+                to={`/admin/list-property/${admin.uid}`}
                 className="flex flex-col justify-center items-center bg-blue-50 hover:bg-blue-100 p-4 rounded-lg text-center transition-colors"
               >
                 <Home className="mb-2 w-8 h-8 text-blue-600" />
