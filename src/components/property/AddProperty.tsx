@@ -301,7 +301,7 @@ const AddProperty = () => {
         },
         type: "property",
         doneAt: serverTimestamp(),
-        listingId: newListingRef,
+        TargetRef: newListingRef,
       });
       toast.success("Property listed successfully!");
       navigate(`/property/${newListingRef.id}`);

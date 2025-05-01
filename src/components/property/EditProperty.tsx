@@ -20,7 +20,14 @@ import Header from "../layout/Header";
 import Footer from "../layout/Footer";
 import { LISTING, NearbyPlace } from "@/lib/typeDefinitions";
 import { useZustand } from "@/lib/zustand";
-import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { fireDataBase, fireStorage } from "@/lib/firebase";
 import {
   deleteObject,
@@ -325,6 +332,21 @@ const EditProperty = () => {
         updatedAt: serverTimestamp(),
       });
 
+      // Add activity
+      const activityCollectionRef = collection(
+        fireDataBase,
+        "recentActivities"
+      );
+      await addDoc(activityCollectionRef, {
+        activity: {
+          action: "Property Details Updated",
+          doer: `${user.firstName} ${user.lastName}`,
+          doerRef: doc(fireDataBase, user.userType, user.uid),
+        },
+        type: "property",
+        doneAt: serverTimestamp(),
+        TargetRef: listingRef,
+      });
       toast.success("Property updated successfully!");
       navigate(`/property/${id}`);
     } catch (error) {

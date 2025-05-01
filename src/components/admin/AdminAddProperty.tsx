@@ -309,13 +309,13 @@ const AdminAddProperty = () => {
       );
       await addDoc(activityCollectionRef, {
         activity: {
-          action: "created",
+          action: "New property created",
           doer: `${user.firstName} ${user.lastName}`,
           doerRef: adminDocRef,
         },
         type: "property",
         doneAt: serverTimestamp(),
-        listingId: newListingRef,
+        TargetRef: newListingRef,
       });
 
       toast.success("Property listed successfully!");
