@@ -49,19 +49,6 @@ export type USER = {
   social?: SOCIAL;
   totalSales?: string;
 };
-export type ADMIN = {
-  uid: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  adminType: "super admin" | "content admin" | "user admin" | "custom";
-  userType?: "admin" | "agent" | "agency" | "user";
-  createdAt: Timestamp | null;
-  isApproved: boolean;
-  permissions: ADMINPERMISSIONS;
-  status: "Active" | "Inactive" | "Suspended";
-  myListings: myListings[];
-};
 
 interface ADMINPERMISSIONS {
   userRead: boolean;
@@ -148,6 +135,19 @@ interface myAgents {
   position: string;
   ref: DocumentReference;
 }
+export type ADMIN = {
+  uid: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  adminType: "super admin" | "content admin" | "user admin" | "custom";
+  userType?: "admin" | "agent" | "agency" | "user";
+  createdAt: Timestamp | null;
+  isApproved: boolean;
+  permissions: ADMINPERMISSIONS;
+  status: "Active" | "Inactive" | "Suspended";
+  myListings?: myListings[];
+};
 export type Subscription = {
   listingsUsed: number;
   plan: string;
