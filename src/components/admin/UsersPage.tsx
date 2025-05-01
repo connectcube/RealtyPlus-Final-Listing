@@ -128,7 +128,7 @@ export default function UsersPage() {
             firstName: userData.firstName || "",
             lastName: userData.lastName || "",
             email: userData.email || "",
-            userType: "user",
+            userType: "users",
             status: userData.status || "Active",
             createdAt: userData.createdAt || null,
           } as USER);
@@ -142,7 +142,7 @@ export default function UsersPage() {
             firstName: agentData.firstName || "",
             lastName: agentData.lastName || "",
             email: agentData.email || "",
-            userType: "agent",
+            userType: "agents",
             status: agentData.status || "Active",
             createdAt: agentData.createdAt || null,
           } as USER);
@@ -156,7 +156,7 @@ export default function UsersPage() {
             firstName: agencyData.firstName || "",
             lastName: agencyData.lastName || "",
             email: agencyData.email || "",
-            userType: "agency",
+            userType: "agencies",
             status: agencyData.status || "Active",
             createdAt: agencyData.createdAt || null,
           } as USER);
@@ -316,6 +316,17 @@ export default function UsersPage() {
     }
   };
 
+  const getRedirectionPath = (user, id) => {
+    console.log(user, id);
+    switch (user) {
+      case "agents":
+        return `/agent/${id}`;
+      case "agencies":
+        return `/agency/${id}`;
+      case "admin":
+        return `/admin/${id}`;
+    }
+  };
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -415,9 +426,14 @@ export default function UsersPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {user.userType !== "user" && (
+                              {user.userType !== "users" && (
                                 <DropdownMenuItem>
-                                  <Link to={`/agent/${user.uid}`}>
+                                  <Link
+                                    to={getRedirectionPath(
+                                      user.userType,
+                                      user.uid
+                                    )}
+                                  >
                                     View Details
                                   </Link>
                                 </DropdownMenuItem>
