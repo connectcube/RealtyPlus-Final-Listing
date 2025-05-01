@@ -175,6 +175,7 @@ export type RecentActivity = {
   action: ACTION;
   doneAt: Timestamp;
   type: "property" | "agent" | "subscription" | "user" | "transaction";
+  targetRef?: DocumentReference;
 };
 interface ACTION {
   doer: string;
