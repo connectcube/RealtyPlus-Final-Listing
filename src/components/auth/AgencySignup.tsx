@@ -114,7 +114,6 @@ const AgencySignup = () => {
         setIsLoading(true);
         console.log("Data from component", data);
         const user = await agencySignUp(data);
-
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
