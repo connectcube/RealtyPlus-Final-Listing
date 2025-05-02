@@ -53,7 +53,7 @@ const subscriptionPackages: SubscriptionPackage[] = [
     id: "elite",
     name: "Elite Package",
     tier: "elite",
-    price: 150,
+    price: 350,
     currency: "K",
     listingsPerMonth: 100,
     description: "For established agencies with high volume listings",
