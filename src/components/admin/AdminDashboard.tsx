@@ -26,6 +26,16 @@ import {
 import { ADMIN } from "@/lib/typeDefinitions";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LoadingSpinner } from "../globalScreens/Loader";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { Button } from "../ui/button";
 
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<ADMIN | null>(null);
@@ -240,7 +250,7 @@ const RecentActivities = ({ admin }: { admin: ADMIN }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const ITEMS_PER_PAGE = 5;
-
+  const [filterType, setFilterType] = useState("all");
   const [recentActivities, setRecentActivities] = useState([]);
   const formatTimestamp = (timestamp: any) => {
     if (!timestamp) return "";
@@ -441,9 +451,48 @@ const RecentActivities = ({ admin }: { admin: ADMIN }) => {
       }
     }
   };
+  // Add this before the return statement
+  const getFilteredActivities = () => {
+    if (filterType === "all") {
+      return filterResults(); // Use your existing filterResults function
+    } else {
+      return recentActivities.filter(
+        (activity) => activity.type === filterType
+      );
+    }
+  };
+
   return (
     <Card className="p-6">
       <h3 className="mb-4 font-semibold text-lg">Recent Activity</h3>
+      <div className="flex justify-end my-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              Filter:{" "}
+              {filterType === "all"
+                ? "All"
+                : filterType.charAt(0).toUpperCase() + filterType.slice(1)}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setFilterType("all")}>
+              All
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilterType("property")}>
+              Property
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilterType("agent")}>
+              Users
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilterType("subscription")}>
+              Subscription
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <div className="space-y-4">
         {isLoading ? (
           // Add loading state UI
@@ -456,7 +505,7 @@ const RecentActivities = ({ admin }: { admin: ADMIN }) => {
           </div>
         ) : (
           <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
+            {getFilteredActivities().map((activity, index) => (
               <div
                 key={index}
                 className="flex items-start pb-4 last:pb-0 last:border-0 border-b"
