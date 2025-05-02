@@ -90,6 +90,7 @@ const EditProperty = () => {
     },
     nearbyPlaces: [] as NearbyPlace[],
     propertyCategory: "commercial",
+    status: "inActive",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
