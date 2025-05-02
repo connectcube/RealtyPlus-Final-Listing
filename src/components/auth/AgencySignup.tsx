@@ -117,7 +117,7 @@ const AgencySignup = () => {
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
-          navigate("/login");
+          navigate("/subscription");
         }
       }
     } catch (error) {

@@ -50,8 +50,9 @@ export default async function agentSignUp(credentials) {
       listingsUsed: 0,
       plan: "free",
       isActive: true,
-      listingsTotal: 0,
+      listingsTotal: 20,
       renewalDate: serverTimestamp(),
+      startDate: serverTimestamp(),
     },
   });
   // Add activity

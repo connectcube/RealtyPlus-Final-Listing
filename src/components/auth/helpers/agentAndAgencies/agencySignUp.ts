@@ -53,12 +53,13 @@ export default async function agencySignUp(credentials) {
     userType: "agencies",
     myListings: [],
     subscription: {
-      plan: "",
+      plan: "sme",
       agentsTotal: 0,
       agentsUsed: 0,
-      listingsTotal: 0,
+      listingsTotal: 50,
       listingsUsed: 0,
       renewalDate: serverTimestamp(),
+      startDate: serverTimestamp(),
       isActive: false,
     },
   });

@@ -104,7 +104,7 @@ const AgentSignup = () => {
         if (user) {
           toast.success("Signin successfull");
           setIsLoading(false);
-          navigate("/login");
+          navigate("/subscription");
         }
       }
     } catch (error) {
@@ -115,10 +115,10 @@ const AgentSignup = () => {
   };
 
   return (
-    <div className="container mx-auto py-10 px-4 md:px-6 bg-gray-50 min-h-screen">
-      <Card className="max-w-3xl mx-auto bg-white shadow-lg">
-        <CardHeader className="space-y-1 text-center bg-realtyplus text-white rounded-t-lg py-6">
-          <CardTitle className="text-2xl font-bold">
+    <div className="bg-gray-50 mx-auto px-4 md:px-6 py-10 min-h-screen container">
+      <Card className="bg-white shadow-lg mx-auto max-w-3xl">
+        <CardHeader className="space-y-1 bg-realtyplus py-6 rounded-t-lg text-white text-center">
+          <CardTitle className="font-bold text-2xl">
             Agent Registration
           </CardTitle>
           <CardDescription className="text-gray-100">
@@ -129,7 +129,7 @@ const AgentSignup = () => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="agentType"
@@ -171,7 +171,7 @@ const AgentSignup = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -201,7 +201,7 @@ const AgentSignup = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="email"
@@ -235,7 +235,7 @@ const AgentSignup = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="password"
@@ -273,7 +273,7 @@ const AgentSignup = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="address"
@@ -329,7 +329,7 @@ const AgentSignup = () => {
                       <FormControl>
                         <Textarea
                           placeholder="Tell us about yourself or your agency"
-                          className="resize-none h-24"
+                          className="h-24 resize-none"
                           {...field}
                         />
                       </FormControl>
@@ -342,7 +342,7 @@ const AgentSignup = () => {
                   control={form.control}
                   name="termsAccepted"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -373,10 +373,10 @@ const AgentSignup = () => {
               <CardFooter className="flex justify-center px-0 pt-4">
                 <Button
                   type="submit"
-                  className="w-full md:w-auto bg-realtyplus hover:bg-realtyplus-dark"
+                  className="bg-realtyplus hover:bg-realtyplus-dark w-full md:w-auto"
                 >
                   {isLoading ? (
-                    <span className="flex gap-2 items-center justify-center">
+                    <span className="flex justify-center items-center gap-2">
                       Registering you in... <Loader className="animate-spin" />{" "}
                     </span>
                   ) : (
