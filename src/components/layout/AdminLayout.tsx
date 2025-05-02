@@ -109,30 +109,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       name: "Users",
       path: "/admin/users",
       icon: <Users className="w-5 h-5" />,
-      toShow:
-        currentUser.permissions.userRead && currentUser.permissions.userWrite,
+      toShow: !admin
+        ? true
+        : currentUser.permissions.userRead && currentUser.permissions.userWrite,
     },
     {
       name: "Properties",
       path: "/admin/properties",
       icon: <Home className="w-5 h-5" />,
-      toShow:
-        currentUser.permissions.listingRead &&
-        currentUser.permissions.listingWrite,
+      toShow: !admin
+        ? true
+        : currentUser.permissions.listingRead &&
+          currentUser.permissions.listingWrite,
     },
     {
       name: "Agents",
       path: "/admin/agents",
       icon: <UserCog className="w-5 h-5" />,
-      toShow:
-        currentUser.permissions.userRead && currentUser.permissions.userWrite,
+      toShow: !admin
+        ? true
+        : currentUser.permissions.userRead && currentUser.permissions.userWrite,
     },
     {
       name: "Agencies",
       path: "/admin/agencies",
       icon: <Building2 className="w-5 h-5" />,
-      toShow:
-        currentUser.permissions.userRead && currentUser.permissions.userWrite,
+      toShow: !admin
+        ? true
+        : currentUser.permissions.userRead && currentUser.permissions.userWrite,
     },
     {
       name: "Admin Management",
@@ -145,6 +149,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       name: "Settings",
       path: "/admin/settings",
       icon: <Settings className="w-5 h-5" />,
+      toShow: false,
       requiredPermission: true,
     },
   ];
