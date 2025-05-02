@@ -6,6 +6,7 @@ import {
   doc,
   serverTimestamp,
   setDoc,
+  Timestamp,
 } from "firebase/firestore";
 
 export default async function agencySignUp(credentials) {
@@ -60,6 +61,9 @@ export default async function agencySignUp(credentials) {
       listingsUsed: 0,
       renewalDate: serverTimestamp(),
       startDate: serverTimestamp(),
+      endDate: Timestamp.fromMillis(
+        Timestamp.now().toMillis() + 30 * 24 * 60 * 60 * 1000
+      ),
       isActive: false,
     },
   });
