@@ -164,7 +164,11 @@ export default function AdminDashboard() {
   ];
 
   return !admin ? (
-    <LoadingSpinner />
+    <AdminLayout>
+      <div className="place-content-center grid w-full h-[100svh]">
+        <LoadingSpinner /> From admin layout
+      </div>
+    </AdminLayout>
   ) : (
     <AdminLayout>
       <div className="space-y-6">

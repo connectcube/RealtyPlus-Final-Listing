@@ -25,7 +25,24 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation();
   const [admin, setAdmin] = useState<ADMIN | null>(null);
-
+  const [currentUser, setCurrentUser] = useState({
+    id: "",
+    name: "",
+    email: "",
+    adminRole: "Admin",
+    permissions: {
+      userRead: false,
+      userWrite: false,
+      listingRead: false,
+      listingWrite: false,
+      agentRead: false,
+      agentWrite: false,
+      agencyRead: false,
+      agencyWrite: false,
+      adminManagement: false,
+      subscriptionManagement: false,
+    },
+  });
   useEffect(() => {
     const checkAdminStatus = async (user: any) => {
       try {
@@ -54,6 +71,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ...adminData,
           uid: adminSnapshot.id,
         });
+        setCurrentUser({
+          id: adminSnapshot.id || "",
+          name: `${adminData.firstName} ${adminData.lastName}`,
+          email: adminData.email,
+          adminRole: adminData.adminType,
+          permissions: adminData.permissions,
+        });
       } catch (error) {
         console.error("Error checking admin status:", error);
         await signOut(auth);
@@ -65,23 +89,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return () => unsubscribe();
   }, []);
 
-  if (!admin) {
-    return (
-      <div className="place-content-center grid w-full h-[100svh]">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-  // Simulate current user as Super Admin for this demo
-  const currentUser = {
-    id: admin.uid || "",
-    name: `${admin.firstName} ${admin.lastName}`,
-    email: admin.email,
-    adminRole: admin.adminType,
-    permissions: admin.permissions,
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
-  // Define all possible nav items
   const allNavItems = [
     {
       name: "Dashboard",
@@ -132,14 +148,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       requiredPermission: true,
     },
   ];
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
   return (
     <div className="flex bg-gray-100 h-screen">
       {/* Sidebar */}
@@ -213,7 +221,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          {!admin ? (
+            <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            children
+          )}
+        </main>
       </div>
     </div>
   );

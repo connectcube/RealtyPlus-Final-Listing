@@ -40,6 +40,7 @@ import { auth, fireDataBase, fireStorage } from "@/lib/firebase";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { deleteObject, ref } from "firebase/storage";
+import { LoadingSpinner } from "../globalScreens/Loader";
 
 export default function PropertiesPage() {
   const uid = auth.currentUser.uid;
@@ -183,8 +184,8 @@ export default function PropertiesPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex justify-center items-center h-screen">
-          <div className="border-gray-900 border-b-2 rounded-full w-8 h-8 animate-spin"></div>
+        <div className="place-content-center grid w-full h-[100svh]">
+          <LoadingSpinner /> From admin layout
         </div>
       </AdminLayout>
     );

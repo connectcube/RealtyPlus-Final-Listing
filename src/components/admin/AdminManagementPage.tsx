@@ -383,7 +383,13 @@ export default function AdminManagementPage() {
   };
 
   if (!admin) {
-    return <LoadingSpinner />;
+    return (
+      <AdminLayout>
+        <div className="place-content-center grid w-full h-[100svh]">
+          <LoadingSpinner /> From admin layout
+        </div>
+      </AdminLayout>
+    );
   }
   return (
     <AdminLayout>
