@@ -106,6 +106,7 @@ export type LISTING = {
   nearbyPlaces: NearbyPlace[];
   company?: string;
   createdAt: Timestamp | null;
+  status: string;
 };
 export type FEATURES = {
   swimmingPool: boolean;

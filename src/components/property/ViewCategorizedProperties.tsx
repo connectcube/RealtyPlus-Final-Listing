@@ -37,6 +37,7 @@ const MemoizedPropertyCard = memo(
     isFavorite,
     yearBuilt,
     viewCount,
+    status,
   }: any) => (
     <PropertyCard
       id={id}
@@ -54,6 +55,7 @@ const MemoizedPropertyCard = memo(
       onFavorite={onFavorite}
       isFavorite={isFavorite}
       viewCount={viewCount}
+      status={status}
     />
   )
 );
@@ -315,6 +317,7 @@ export default function ViewCategorizedProperties() {
                       isFavorite={() => handleCheckFav(property.uid)}
                       onClick={() => console.log(property.uid)}
                       viewCount={property.viewCount}
+                      status={property.status}
                     />
                   ))}
                 </div>

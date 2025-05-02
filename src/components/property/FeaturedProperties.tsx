@@ -235,6 +235,7 @@ const FeaturedProperties = ({
                 isFavorite={() => handleCheckFav(property.uid)}
                 onClick={handlePropertyClick}
                 viewCount={property.viewCount}
+                status={property.status}
               />
             ))}
           </div>

@@ -84,6 +84,7 @@ const AddProperty = () => {
     postedBy: null,
     nearbyPlaces: [] as NearbyPlace[],
     propertyCategory: "newDevelopment",
+    status: "active",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);

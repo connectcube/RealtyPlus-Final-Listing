@@ -155,6 +155,7 @@ const ViewPropertiesByPoster = () => {
                 onFavorite={handleFavClick}
                 isFavorite={() => handleCheckFav(property.uid)}
                 onClick={() => console.log(property.uid)}
+                status={property.status}
               />
             ))}
           </div>

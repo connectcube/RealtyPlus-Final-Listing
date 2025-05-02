@@ -49,6 +49,8 @@ interface PropertyCardProps {
   onFavorite?: (id: string) => void;
   onClick?: (id: string) => void;
   viewCount?: number;
+  isActive?: boolean;
+  status?: string;
 }
 
 const PropertyCard = ({
@@ -68,6 +70,8 @@ const PropertyCard = ({
   onFavorite = () => {},
   onClick = () => {},
   viewCount = 0,
+  isActive = false,
+  status = "active",
 }: PropertyCardProps) => {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -80,9 +84,14 @@ const PropertyCard = ({
   const isFavorited = isFavorite();
   return (
     <Card
-      className="flex flex-col bg-white hover:shadow-lg h-full overflow-hidden transition-all duration-300 cursor-pointer"
-      onClick={handleCardClick}
+      className={`relative flex flex-col bg-white hover:shadow-lg h-full overflow-hidden transition-all duration-300 ${
+        status === "active" ? "cursor-pointer" : "grayscale filter"
+      } `}
+      onClick={status === "active" && handleCardClick}
     >
+      {status !== "active" && (
+        <div className="top-0 z-[999] absolute grayscale w-full h-full filter"></div>
+      )}
       <div className="relative">
         <div className="top-2 right-2 z-10 absolute">
           <TooltipProvider>
