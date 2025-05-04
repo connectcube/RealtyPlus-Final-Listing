@@ -94,41 +94,6 @@ const EditProperty = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverPhotoIndex, setCoverPhotoIndex] = useState<number>(0);
-  useEffect(() => {
-    const fetchPropertyData = async () => {
-      try {
-        const propertyDocRef = doc(fireDataBase, "listings", id as string);
-        const propertyDoc = await getDoc(propertyDocRef);
-
-        if (propertyDoc.exists()) {
-          const propertyData = propertyDoc.data();
-          if (propertyData) {
-            setFormData({
-              ...formData,
-              ...propertyData,
-            });
-            // Convert image URLs to ExistingImage objects
-            const existingImages: ExistingImage[] = propertyData.images.map(
-              (url: string, index: number) => ({
-                url,
-                path: `listings-images/${id}/${index}`, // Adjust path pattern to match your storage structure
-                isExisting: true,
-              })
-            );
-            setUploadedImages(existingImages);
-            setCoverPhotoIndex(propertyData.coverPhotoIndex || 0);
-          }
-        } else {
-          toast.error("Property not found");
-        }
-      } catch (error) {
-        console.error("Error fetching property data:", error);
-        toast.error("Failed to fetch property data. Please try again.");
-      }
-    };
-
-    fetchPropertyData();
-  }, [id]);
   const handleInputChange = (field: string, value: any) => {
     // Array of fields that should be converted to numbers
     const numericFields = [
@@ -183,7 +148,6 @@ const EditProperty = () => {
 
   type ImageItem = ExistingImage | NewImage;
 
-  // Modify the useEffect that fetches property data
   useEffect(() => {
     const fetchPropertyData = async () => {
       try {
@@ -327,6 +291,7 @@ const EditProperty = () => {
       // Update the listing document
       const listingRef = doc(fireDataBase, "listings", id as string);
       await updateDoc(listingRef, {
+        uid: id,
         ...formData,
         images: imageUrls,
         coverPhotoIndex,
