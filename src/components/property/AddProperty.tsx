@@ -229,7 +229,9 @@ const AddProperty = () => {
         coverPhotoIndex: coverPhotoIndex,
         viewCount: 0,
       });
-
+      await updateDoc(newListingRef, {
+        uid: newListingRef.id,
+      });
       // Upload images with better error handling
       const imageUrls = await Promise.all(
         uploadedImages.map(async (image, index) => {
