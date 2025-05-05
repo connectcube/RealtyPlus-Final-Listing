@@ -152,25 +152,44 @@ const FeaturedProperties = ({
     <section id="featured-properties" className="bg-gray-50 py-12">
       <div className="mx-auto px-4 container">
         <div className="mb-10 text-center">
-          <h2 className="mb-3 font-bold text-gray-900 text-3xl">{title}</h2>
+          <h2 className="gap-4text-gray-900 mb-3 font-bold text-3xl">
+            {title}
+          </h2>
           <p className="mx-auto max-w-2xl text-gray-600">{subtitle}</p>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex sm:flex-row flex-col items-center gap-4 mb-6">
           <Tabs
             defaultValue="all"
-            className="w-full max-w-lg"
+            className="w-fit sm:max-w-lg"
             onValueChange={setActiveTab}
           >
-            <TabsList className="flex justify-between w-full">
-              <TabsTrigger value="all">All Properties</TabsTrigger>
-              <TabsTrigger value="standalone">Houses</TabsTrigger>
-              <TabsTrigger value="apartment">Apartments</TabsTrigger>
-              <TabsTrigger value="semi-detached">Semi-Detached</TabsTrigger>
+            <TabsList className="flex w-full">
+              <TabsTrigger value="all" className="flex-1 text-xs sm:text-sm">
+                All Properties
+              </TabsTrigger>
+              <TabsTrigger
+                value="standalone"
+                className="flex-1 text-xs sm:text-sm"
+              >
+                Houses
+              </TabsTrigger>
+              <TabsTrigger
+                value="apartment"
+                className="flex-1 text-xs sm:text-sm"
+              >
+                Apartments
+              </TabsTrigger>
+              <TabsTrigger
+                value="semi-detached"
+                className="flex-1 text-xs sm:text-sm"
+              >
+                Semi-Detached
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <div className="flex space-x-2">
+          <div className="hidden sm:flex self-center sm:self-end space-x-2 sm:ml-auto">
             <Button
               variant={viewMode === "grid" ? "default" : "outline"}
               size="icon"
@@ -212,7 +231,7 @@ const FeaturedProperties = ({
           <div
             className={
               viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
                 : "space-y-4"
             }
           >

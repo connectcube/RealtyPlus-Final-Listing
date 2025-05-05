@@ -166,7 +166,7 @@ const HeroSection = ({
 
   return (
     <section
-      className="relative bg-cover bg-center h-[600px]"
+      className="relative bg-cover bg-center py-6"
       style={{ backgroundImage: `url('${backgroundImage}')` }}
     >
       <div className="absolute inset-0 bg-black bg-opacity-60"></div>
@@ -312,7 +312,7 @@ const HomePagePropertiesModal = ({
     <div
       className={`modal ${
         isOpen ? "open" : ""
-      } fixed inset-0 z-[1000] w-full h-full bg-black/50 flex items-center justify-center backdrop-blur overflow-y-auto p-4`}
+      } fixed inset-0 z-[6500] w-full h-full bg-black/50 flex items-center justify-center backdrop-blur overflow-y-auto p-4`}
     >
       <div className="relative bg-white mx-auto rounded-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto modal-content">
         {/* Header Section */}

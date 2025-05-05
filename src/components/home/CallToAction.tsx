@@ -22,18 +22,19 @@ const CallToAction = ({
 }: CallToActionProps) => {
   const { user } = useZustand();
   return (
-    <section className="py-16 bg-realtyplus text-white">
-      <div className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl font-bold mb-6">{title}</h2>
-        <p className="text-xl mb-8 max-w-2xl mx-auto">{description}</p>
-        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-          <Button className="bg-white text-realtyplus hover:bg-gray-100 text-lg py-6 px-8">
+    <section className="bg-realtyplus py-16 w-[100svw] text-white">
+      {" "}
+      <div className="mx-auto px-4 text-center container">
+        <h2 className="mb-6 font-bold text-3xl">{title}</h2>
+        <p className="mx-auto mb-8 max-w-2xl text-xl">{description}</p>
+        <div className="flex sm:flex-row flex-col justify-center gap-3 sm:gap-4">
+          <Button className="bg-white hover:bg-gray-100 px-8 py-6 text-realtyplus text-lg">
             <Link to={primaryButtonLink} className="w-full">
               {primaryButtonText}
             </Link>
           </Button>
           {user !== null && user.userType !== "users" && (
-            <Button className="bg-realtyplus-dark hover:bg-realtyplus/90 text-white text-lg py-6 px-8">
+            <Button className="bg-realtyplus-dark hover:bg-realtyplus/90 px-8 py-6 text-white text-lg">
               <Link to={secondaryButtonLink} className="w-full">
                 {secondaryButtonText}
               </Link>

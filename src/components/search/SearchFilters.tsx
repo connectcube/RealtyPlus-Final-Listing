@@ -189,7 +189,7 @@ const SearchFilters = ({
   };
 
   return (
-    <div className={cn("bg-white p-4 rounded-lg shadow-md", className)}>
+    <div className={cn("bg-white p-4 rounded-lg shadow-md w-full", className)}>
       {errors.length > 0 && (
         <div className="bg-red-50 mb-4 p-4 border border-red-200 rounded-md">
           {errors.map((error) => (
@@ -464,7 +464,7 @@ const SearchFilters = ({
 
               <div className="space-y-2">
                 <Label>Amenities</Label>
-                <div className="gap-2 grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4">
+                <div className="gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                   {[
                     "swimmingPool",
                     "garden",

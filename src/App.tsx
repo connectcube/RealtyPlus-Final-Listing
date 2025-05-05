@@ -7,6 +7,7 @@ import AdminLogin from "./components/admin/auth/AdminLogin";
 import EditProperty from "./components/property/EditProperty";
 import AdminProfile from "./components/admin/AdminProfile.";
 import AdminAddProperty from "./components/admin/AdminAddProperty";
+import { LoadingSpinner } from "./components/globalScreens/Loader";
 // Lazy load agent and subscription components
 const PropertyDetail = lazy(
   () => import("./components/property/PropertyDetail")
@@ -71,7 +72,7 @@ const AdminManagementPage = lazy(
 
 function App() {
   return (
-    <Suspense fallback={<p>Loading...</p>}>
+    <Suspense fallback={<LoadingSpinner />}>
       <>
         <ToastContainer />
         <Routes>

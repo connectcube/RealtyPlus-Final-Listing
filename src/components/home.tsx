@@ -22,9 +22,9 @@ import ContactSection from "./home/ContactSection";
 
 function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 min-h-screen overflow-x-hidden">
       <Header />
-      <main className="flex-grow">
+      <main className="flex flex-col flex-grow gap-2">
         {/* Hero Section */}
         <HeroSection />
 
