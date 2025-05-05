@@ -312,9 +312,9 @@ const HomePagePropertiesModal = ({
     <div
       className={`modal ${
         isOpen ? "open" : ""
-      } fixed inset-0 z-[6500] w-full h-full bg-black/50 flex items-center justify-center backdrop-blur overflow-y-auto p-4`}
+      } fixed inset-0 z-50 w-full h-full bg-black/50 flex items-center justify-center backdrop-blur overflow-y-auto p-4`}
     >
-      <div className="relative bg-white mx-auto rounded-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto modal-content">
+      <div className="z-50 relative bg-white mx-auto rounded-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto modal-content">
         {/* Header Section */}
         <div className="top-0 z-10 sticky flex justify-between items-center bg-white p-4 border-b">
           <h2 className="font-semibold text-2xl">Property Details</h2>

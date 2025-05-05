@@ -1,18 +1,6 @@
-import React from "react";
 import Header from "./layout/Header";
 import Footer from "./layout/Footer";
 import FeaturedProperties from "./property/FeaturedProperties";
-import SearchFilters from "./search/SearchFilters";
-import { Button } from "./ui/button";
-import {
-  ArrowRight,
-  Home as HomeIcon,
-  Building,
-  MapPin,
-  Phone,
-  Mail,
-} from "lucide-react";
-import { Link } from "react-router-dom";
 import HeroSection from "./home/HeroSection";
 import PropertyCategories from "./home/PropertyCategories";
 import WhyChooseUs from "./home/WhyChooseUs";
