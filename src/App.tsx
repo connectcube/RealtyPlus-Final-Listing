@@ -9,6 +9,7 @@ import AdminProfile from "./components/admin/AdminProfile.";
 import AdminAddProperty from "./components/admin/AdminAddProperty";
 import { LoadingSpinner } from "./components/globalScreens/Loader";
 import GlobalSearch from "./components/search/GlobalSearch";
+import SavedPropertiesPage from "./components/property/SavedProperties";
 // Lazy load agent and subscription components
 const PropertyDetail = lazy(
   () => import("./components/property/PropertyDetail")
@@ -93,6 +94,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/search" element={<GlobalSearch />} />
+          <Route path="/saved-properties" element={<SavedPropertiesPage />} />
           {/* User authentication routes */}
           <Route path="/login" element={<UserLogin />} />
           <Route path="/register" element={<UserSignup />} />

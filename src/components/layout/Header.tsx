@@ -11,6 +11,10 @@ import {
   Bell,
   Home,
   MapPinIcon,
+  ChevronLeft,
+  ChevronRight,
+  Bed,
+  Bath,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -533,7 +537,10 @@ const Header = ({ className }: HeaderProps = {}) => {
 const SavedPropertiesDropDown = ({ user, setUser }) => {
   const [savedProperties, setSavedProperties] = React.useState<LISTING[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const navigate = useNavigate(); // Assuming you're using react-router
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const itemsPerPage = 4; // Show 4 items per page
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     const fetchSavedProperties = async () => {
@@ -553,9 +560,14 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
         });
 
         const properties = await Promise.all(propertiesPromises);
-        setSavedProperties(
-          properties.filter((prop): prop is LISTING => prop !== null)
+        const validProperties = properties.filter(
+          (prop): prop is LISTING => prop !== null
         );
+        setSavedProperties(validProperties);
+
+        // Calculate total pages
+        setTotalPages(Math.ceil(validProperties.length / itemsPerPage));
+
         setIsLoading(false);
         console.log(properties);
       } catch (error) {
@@ -613,100 +625,192 @@ const SavedPropertiesDropDown = ({ user, setUser }) => {
     }
   };
 
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return savedProperties.slice(startIndex, endIndex);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Pagination component
+  const Pagination = () => {
+    return (
+      <div className="flex justify-center items-center mt-3 pt-3 border-gray-100 border-t">
+        <button
+          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className={`p-1 rounded-md ${
+            currentPage === 1
+              ? "text-gray-300 cursor-not-allowed"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <div className="mx-2 text-gray-600 text-sm">
+          Page {currentPage} of {totalPages}
+        </div>
+
+        <button
+          onClick={() =>
+            handlePageChange(Math.min(totalPages, currentPage + 1))
+          }
+          disabled={currentPage === totalPages}
+          className={`p-1 rounded-md ${
+            currentPage === totalPages
+              ? "text-gray-300 cursor-not-allowed"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
-      <div className="p-3 divide-y divide-gray-100 w-[320px] max-h-[500px] overflow-y-auto">
-        <LoadingSpinner />
+      <div className="p-4 w-[350px] max-h-[550px] overflow-hidden">
+        <div className="flex justify-center items-center h-40">
+          <LoadingSpinner />
+        </div>
       </div>
     );
   }
 
   if (!savedProperties.length) {
     return (
-      <div className="p-6 text-center">
-        <div className="mb-2 text-gray-400">
-          <Heart className="mx-auto w-12 h-12" />{" "}
-          {/* Import from your icon library */}
+      <div className="p-6 w-[350px] text-center">
+        <div className="mb-3 text-gray-300">
+          <Heart className="mx-auto w-16 h-16" />
         </div>
-        <p className="text-gray-600">No saved properties yet</p>
-        <button
+        <p className="mb-2 font-medium text-gray-700">
+          No saved properties yet
+        </p>
+        <p className="mb-4 text-gray-500 text-sm">
+          Properties you save will appear here
+        </p>
+        <Button
           onClick={() => navigate("/properties")}
-          className="mt-3 text-blue-600 hover:text-blue-700 text-sm"
+          className="bg-realtyplus hover:bg-realtyplus-dark text-white"
+          size="sm"
         >
           Browse Properties
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="p-3 divide-y divide-gray-100 w-[320px] max-h-[500px] overflow-y-auto">
-      <div className="flex justify-between items-center mb-2 pb-2">
+    <div className="p-4 w-[350px] max-h-[550px] overflow-hidden">
+      <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold text-gray-800">Saved Properties</h3>
-        <span className="text-gray-500 text-sm">
-          {savedProperties.length} items
-        </span>
+        <Badge variant="outline" className="border-realtyplus text-realtyplus">
+          {savedProperties.length}{" "}
+          {savedProperties.length === 1 ? "property" : "properties"}
+        </Badge>
       </div>
 
-      {savedProperties.map((property) => (
-        <div
-          key={property.uid}
-          onClick={() => handlePropertyClick(property.uid)}
-          className="group hover:bg-gray-50 p-3 rounded-lg w-full text-wrap transition-all cursor-pointer"
-        >
-          <div className="flex items-start gap-3">
-            <div className="relative">
-              <img
-                src={property.images[property.coverPhotoIndex]}
-                alt={property.title}
-                className="rounded-lg w-20 h-20 object-cover"
-              />
-              <span className="top-1 right-1 absolute bg-blue-600 px-2 py-1 rounded text-white text-xs">
-                {property.propertyCategory}
-              </span>
-            </div>
-
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <h3 className="font-medium group-hover:text-blue-600 text-sm truncate">
-                  {property.title}
-                </h3>
-                <button
-                  onClick={(e) => handleRemoveFavorite(property.uid, e)}
-                  className="hover:bg-gray-100 opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity"
-                >
-                  <X className="w-4 h-4 text-gray-500" />{" "}
-                  {/* Import from your icon library */}
-                </button>
+      <div className="space-y-3 mb-2">
+        {getCurrentPageItems().map((property) => (
+          <div
+            key={property.uid}
+            onClick={() => handlePropertyClick(property.uid)}
+            className="group bg-white hover:bg-gray-50 shadow-sm border border-gray-200 rounded-xl overflow-hidden transition-all cursor-pointer"
+          >
+            <div className="flex">
+              {/* Property Image */}
+              <div className="relative w-1/3">
+                <img
+                  src={
+                    property.images[property.coverPhotoIndex] ||
+                    "/placeholder-property.jpg"
+                  }
+                  alt={property.title}
+                  className="w-full h-full object-cover"
+                  style={{ aspectRatio: "1/1" }}
+                />
+                <Badge className="top-2 left-2 absolute bg-realtyplus">
+                  {property.listingType === "rent" ? "For Rent" : "For Sale"}
+                </Badge>
               </div>
 
-              <div className="flex items-center gap-2 mt-1 text-gray-600 text-xs">
-                <span className="flex items-center">
-                  <Home className="mr-1 w-3 h-3" />{" "}
-                  {/* Import from your icon library */}
-                  {property.propertyType}
-                </span>
-                <span>•</span>
-                <span className="flex items-center">
-                  <MapPinIcon className="mr-1 w-3 h-3" />{" "}
-                  {/* Import from your icon library */}
-                  {property.address}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center mt-2">
-                <div className="font-semibold text-blue-600 text-sm">
-                  K {property.price.toLocaleString()}
+              {/* Property Details */}
+              <div className="flex-1 p-3 w-2/3">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium group-hover:text-realtyplus text-sm line-clamp-1">
+                    {property.title}
+                  </h3>
+                  <button
+                    onClick={(e) => handleRemoveFavorite(property.uid, e)}
+                    className="hover:bg-gray-200 p-1 rounded-full transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
                 </div>
-                <span className="text-gray-500 text-xs">
-                  Added {new Date().toLocaleDateString()}
-                </span>
+
+                <div className="mt-1 font-bold text-realtyplus">
+                  K {property.price.toLocaleString()}
+                  {property.listingType === "rent" && (
+                    <span className="font-normal text-gray-500 text-xs">
+                      /month
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 mt-2 text-gray-600 text-xs">
+                  {property.bedrooms > 0 && (
+                    <span className="flex items-center">
+                      <Bed className="mr-1 w-3 h-3" />
+                      {property.bedrooms}
+                    </span>
+                  )}
+
+                  {property.bathrooms > 0 && (
+                    <span className="flex items-center">
+                      <Bath className="mr-1 w-3 h-3" />
+                      {property.bathrooms}
+                    </span>
+                  )}
+
+                  <span className="flex items-center">
+                    <Home className="mr-1 w-3 h-3" />
+                    {property.propertyType}
+                  </span>
+                </div>
+
+                <div className="flex items-center mt-2 text-gray-500 text-xs">
+                  <MapPin className="mr-1 w-3 h-3" />
+                  <span className="truncate">{property.address}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && <Pagination />}
+
+      {/* View All Button */}
+      <div className="mt-3 text-center">
+        <Button
+          variant="outline"
+          size="sm"
+          className="hover:bg-realtyplus border-realtyplus w-full text-realtyplus hover:text-white"
+          onClick={() => navigate("/saved-properties")}
+        >
+          View All Saved Properties
+        </Button>
+      </div>
     </div>
   );
 };
+
 export default Header;
