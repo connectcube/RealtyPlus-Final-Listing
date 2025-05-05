@@ -424,7 +424,14 @@ const SavedPropertiesPage = () => {
       </>
     );
   }
-
+  if (!user) {
+    return (
+      <>
+        <Header />
+        <div className="mx-auto px-4 py-16 container">Kindly log in first</div>
+      </>
+    );
+  }
   return (
     <>
       <Header />
