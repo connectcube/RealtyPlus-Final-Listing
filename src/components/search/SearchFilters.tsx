@@ -84,15 +84,15 @@ const SearchFilters = ({
   // Set different price ranges based on listing type
   const priceRanges = {
     sale: {
-      min: 10,
-      max: 5000000,
-      default: [10, 5000000],
+      min: 50000,
+      max: 20000000,
+      default: [50000, 20000000],
       step: 1000,
     },
     rent: {
-      min: 100,
-      max: 50000,
-      default: [100, 50000],
+      min: 500,
+      max: 1000000,
+      default: [500, 1000000],
       step: 100,
     },
   };
