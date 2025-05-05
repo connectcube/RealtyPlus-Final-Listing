@@ -30,6 +30,7 @@ import { LISTING } from "@/lib/typeDefinitions";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { LoadingSpinner } from "../globalScreens/Loader";
+import { debounce } from "lodash";
 
 interface HeaderProps {
   className?: string;
@@ -46,6 +47,7 @@ const Header = ({ className }: HeaderProps = {}) => {
   const [isFavOpen, setIsFavOpen] = React.useState(false);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState("");
   const { user, clearUser, setUser } = useZustand();
   const navigate = useNavigate();
   const useCurrentPath = () => {
@@ -103,7 +105,25 @@ const Header = ({ className }: HeaderProps = {}) => {
       return "a User";
     }
   };
-  //if()
+  const debouncedSearch = React.useCallback(
+    debounce((value: string) => {
+      setSearchTerm(value);
+
+      navigate(`/search?q=${value}`);
+    }, 1000),
+    []
+  );
+
+  // Update the handleSearchTerm function
+  const handleSearchTerm = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    debouncedSearch(value);
+  };
+  React.useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
   return (
     <>
       {/* Top Bar */}
@@ -241,7 +261,8 @@ const Header = ({ className }: HeaderProps = {}) => {
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="Search properties..."
+                  placeholder="Search properties, Agents or Agencies"
+                  onChange={handleSearchTerm}
                   className="focus:ring-opacity-50 py-2 pr-4 pl-10 border-gray-300 focus:border-realtyplus rounded-full focus:ring focus:ring-realtyplus/20 w-full sm:w-64"
                 />
                 <Search className="top-1/2 left-3 absolute w-5 h-5 text-gray-400 -translate-y-1/2 transform" />
