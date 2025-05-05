@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   collection,
@@ -16,24 +16,10 @@ import { fireDataBase } from "@/lib/firebase";
 import { LISTING, USER } from "@/lib/typeDefinitions";
 import { LoadingSpinner } from "../globalScreens/Loader";
 import { Button } from "../ui/button";
-import {
-  Search,
-  MapPin,
-  Home,
-  DollarSign,
-  Bed,
-  Bath,
-  Calendar,
-  User,
-  Building,
-  Briefcase,
-  Phone,
-  Mail,
-} from "lucide-react";
+import { Search, MapPin, Home, Bed, Bath, Phone, Mail } from "lucide-react";
 
 import { Badge } from "../ui/badge";
-import SearchFilters from "./SearchFilters";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "../layout/Header";
 
 export default function GlobalSearch() {
@@ -115,40 +101,47 @@ export default function GlobalSearch() {
   // Function to fetch properties
   const fetchProperties = async (isLoadMore = false) => {
     try {
+      console.log("🔍 fetchProperties called with:", {
+        searchQuery,
+        isLoadMore,
+      });
       if (!isLoadMore) setLoading(true);
 
       // Create a base query for properties
       let q;
       const lowerSearchQuery = searchQuery.toLowerCase();
+      console.log("Search query (lowercase):", lowerSearchQuery);
 
+      // For Firestore, we need to check if the data is stored in lowercase
+      // If not, we'll need to rely more on client-side filtering
       if (searchQuery) {
-        // First, try to get documents where title starts with the search query
+        // Get a broader range of results to filter client-side
         q = query(
           collection(fireDataBase, "listings"),
-          orderBy("title"),
-          // Use lowercase for case-insensitive search if your data is stored in lowercase
-          startAt(lowerSearchQuery),
-          endAt(lowerSearchQuery + "\uf8ff"),
-          limit(20) // Fetch more to filter client-side
+          // We'll get more results and filter client-side for case-insensitive matching
+          limit(50)
         );
+        console.log("Using broader query for case-insensitive search");
       } else {
         q = query(
           collection(fireDataBase, "listings"),
           orderBy("createdAt", "desc"),
           limit(8)
         );
+        console.log("Using default createdAt query");
       }
 
       // Add pagination for load more
       if (isLoadMore && propertyLastVisible) {
+        console.log(
+          "Adding pagination with lastVisible:",
+          propertyLastVisible.id
+        );
         if (searchQuery) {
           q = query(
             collection(fireDataBase, "listings"),
-            orderBy("title"),
-            startAt(lowerSearchQuery),
-            endAt(lowerSearchQuery + "\uf8ff"),
             startAfter(propertyLastVisible),
-            limit(20) // Fetch more to filter client-side
+            limit(50)
           );
         } else {
           q = query(
@@ -160,108 +153,147 @@ export default function GlobalSearch() {
         }
       }
 
+      console.log("Executing Firestore query for properties...");
       const querySnapshot = await getDocs(q);
+      console.log(`Raw query returned ${querySnapshot.docs.length} documents`);
 
       let propertyResults = querySnapshot.docs.map((doc) => {
         return { uid: doc.id, ...(doc.data() as LISTING) };
       });
+      console.log("Mapped property results:", propertyResults.length);
 
-      // Client-side filtering for partial matches if search query exists
+      // Client-side filtering for case-insensitive matches if search query exists
       if (searchQuery) {
-        propertyResults = propertyResults.filter((property) =>
-          property.title.toLowerCase().includes(lowerSearchQuery)
+        const beforeFilter = propertyResults.length;
+        propertyResults = propertyResults.filter((property) => {
+          // Case-insensitive search on title
+          const titleLower = property.title?.toLowerCase() || "";
+          // Also search in address and description if available
+          const addressLower = property.address?.toLowerCase() || "";
+          const descriptionLower = property.description?.toLowerCase() || "";
+
+          return (
+            titleLower.includes(lowerSearchQuery) ||
+            addressLower.includes(lowerSearchQuery) ||
+            descriptionLower.includes(lowerSearchQuery)
+          );
+        });
+        console.log(
+          `Client-side filtering: ${beforeFilter} → ${propertyResults.length} results`
         );
 
         // Limit results after filtering
+        const beforeLimit = propertyResults.length;
         propertyResults = propertyResults.slice(0, 8);
+        console.log(
+          `After limiting: ${beforeLimit} → ${propertyResults.length} results`
+        );
       }
 
       // Check if we have more results
-      setHasMoreProperties(querySnapshot.docs.length === 8);
+      setHasMoreProperties(propertyResults.length === 8);
+      console.log("Has more properties:", propertyResults.length === 8);
 
       // Set the last visible document for pagination
       if (querySnapshot.docs.length > 0) {
-        setPropertyLastVisible(
-          querySnapshot.docs[querySnapshot.docs.length - 1]
-        );
+        const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+        console.log("Setting last visible document:", lastDoc.id);
+        setPropertyLastVisible(lastDoc);
       } else {
+        console.log("No last visible document to set");
         setPropertyLastVisible(null);
       }
 
       if (isLoadMore) {
-        setProperties((prev) => [...prev, ...propertyResults]);
+        console.log("Loading more - appending to existing properties");
+        setProperties((prev) => {
+          const newState = [...prev, ...propertyResults];
+          console.log(
+            `Properties state updated: ${prev.length} → ${newState.length}`
+          );
+          return newState;
+        });
       } else {
+        console.log(
+          "Setting properties state with",
+          propertyResults.length,
+          "items"
+        );
         setProperties(propertyResults);
       }
     } catch (err) {
       console.error("Error fetching property results:", err);
       setError("Failed to fetch property results. Please try again.");
     } finally {
-      if (!isLoadMore) setLoading(false);
+      if (!isLoadMore) {
+        console.log("Finished loading properties");
+        setLoading(false);
+      }
     }
   };
 
   // Function to fetch agents
   const fetchAgents = async (isLoadMore = false) => {
     try {
+      console.log("🔍 fetchAgents called with:", { searchQuery, isLoadMore });
       if (!isLoadMore) setLoading(true);
 
       const lowerSearchQuery = searchQuery.toLowerCase();
+      console.log("Search query (lowercase):", lowerSearchQuery);
+
       let agentResults: USER[] = [];
       const agentIds = new Set();
 
       if (searchQuery) {
-        // Try to get more results for client-side filtering
-        const queries = [
-          // Query for firstName starting with search query
-          query(
-            collection(fireDataBase, "agents"),
-            orderBy("firstName"),
-            startAt(lowerSearchQuery),
-            endAt(lowerSearchQuery + "\uf8ff"),
-            limit(20)
-          ),
-          // Query for lastName starting with search query
-          query(
-            collection(fireDataBase, "agents"),
-            orderBy("lastName"),
-            startAt(lowerSearchQuery),
-            endAt(lowerSearchQuery + "\uf8ff"),
-            limit(20)
-          ),
-        ];
+        // Get a broader range of results to filter client-side
+        const agentsQuery = query(
+          collection(fireDataBase, "agents"),
+          limit(50)
+        );
 
-        // Execute all queries in parallel
-        const snapshots = await Promise.all(queries.map((q) => getDocs(q)));
+        console.log("Executing broader Firestore query for agents...");
+        const snapshot = await getDocs(agentsQuery);
+        console.log(`Query returned ${snapshot.docs.length} agents`);
 
-        // Process results from all queries
-        snapshots.forEach((snapshot) => {
-          snapshot.docs.forEach((doc) => {
-            if (!agentIds.has(doc.id)) {
-              agentIds.add(doc.id);
-              agentResults.push({ uid: doc.id, ...(doc.data() as USER) });
-            }
-          });
+        snapshot.docs.forEach((doc) => {
+          agentResults.push({ uid: doc.id, ...(doc.data() as USER) });
         });
 
-        // Client-side filtering for partial matches
-        agentResults = agentResults.filter(
-          (agent) =>
-            agent.firstName.toLowerCase().includes(lowerSearchQuery) ||
-            agent.lastName.toLowerCase().includes(lowerSearchQuery)
+        // Client-side filtering for case-insensitive matches
+        const beforeFilter = agentResults.length;
+        agentResults = agentResults.filter((agent) => {
+          const firstNameLower = agent.firstName?.toLowerCase() || "";
+          const lastNameLower = agent.lastName?.toLowerCase() || "";
+          const emailLower = agent.email?.toLowerCase() || "";
+
+          return (
+            firstNameLower.includes(lowerSearchQuery) ||
+            lastNameLower.includes(lowerSearchQuery) ||
+            emailLower.includes(lowerSearchQuery)
+          );
+        });
+        console.log(
+          `Client-side filtering: ${beforeFilter} → ${agentResults.length} results`
         );
 
         // Limit results after filtering
+        const beforeLimit = agentResults.length;
         agentResults = agentResults.slice(0, 8);
+        console.log(
+          `After limiting: ${beforeLimit} → ${agentResults.length} results`
+        );
       } else {
         // If no search query, just get the first 8 agents
+        console.log("Using default firstName query for agents");
         const firstNameQuery = query(
           collection(fireDataBase, "agents"),
           orderBy("firstName"),
           limit(8)
         );
 
+        console.log("Executing Firestore query for agents...");
         const snapshot = await getDocs(firstNameQuery);
+        console.log(`Query returned ${snapshot.docs.length} agents`);
 
         snapshot.docs.forEach((doc) => {
           agentResults.push({ uid: doc.id, ...(doc.data() as USER) });
@@ -270,9 +302,14 @@ export default function GlobalSearch() {
 
       // Check if we have more results
       setHasMoreAgents(agentResults.length === 8);
+      console.log("Has more agents:", agentResults.length === 8);
 
       // Set the last visible document for pagination (simplified)
       if (agentResults.length > 0) {
+        console.log(
+          "Getting last visible agent document for:",
+          agentResults[agentResults.length - 1].uid
+        );
         // This is simplified and might need adjustment for proper pagination
         const lastDoc = await getDocs(
           query(
@@ -282,86 +319,102 @@ export default function GlobalSearch() {
         );
 
         if (!lastDoc.empty) {
+          console.log("Setting agent last visible document");
           setAgentLastVisible(lastDoc.docs[0]);
+        } else {
+          console.log("No agent last visible document found");
         }
       } else {
+        console.log("No agents to set last visible");
         setAgentLastVisible(null);
       }
 
       if (isLoadMore) {
-        setAgents((prev) => [...prev, ...agentResults]);
+        console.log("Loading more - appending to existing agents");
+        setAgents((prev) => {
+          const newState = [...prev, ...agentResults];
+          console.log(
+            `Agents state updated: ${prev.length} → ${newState.length}`
+          );
+          return newState;
+        });
       } else {
+        console.log("Setting agents state with", agentResults.length, "items");
         setAgents(agentResults);
       }
     } catch (err) {
       console.error("Error fetching agent results:", err);
       setError("Failed to fetch agent results. Please try again.");
     } finally {
-      if (!isLoadMore) setLoading(false);
+      if (!isLoadMore) {
+        console.log("Finished loading agents");
+        setLoading(false);
+      }
     }
   };
 
   // Function to fetch agencies
   const fetchAgencies = async (isLoadMore = false) => {
     try {
+      console.log("🔍 fetchAgencies called with:", { searchQuery, isLoadMore });
       if (!isLoadMore) setLoading(true);
 
       const lowerSearchQuery = searchQuery.toLowerCase();
+      console.log("Search query (lowercase):", lowerSearchQuery);
+
       let agencyResults: USER[] = [];
       const agencyIds = new Set();
 
       if (searchQuery) {
-        // Try to get more results for client-side filtering
-        const queries = [
-          // Query for firstName starting with search query
-          query(
-            collection(fireDataBase, "agencies"),
-            orderBy("firstName"),
-            startAt(lowerSearchQuery),
-            endAt(lowerSearchQuery + "\uf8ff"),
-            limit(20)
-          ),
-          // Query for lastName starting with search query
-          query(
-            collection(fireDataBase, "agencies"),
-            orderBy("lastName"),
-            startAt(lowerSearchQuery),
-            endAt(lowerSearchQuery + "\uf8ff"),
-            limit(20)
-          ),
-        ];
+        // Get a broader range of results to filter client-side
+        const agenciesQuery = query(
+          collection(fireDataBase, "agencies"),
+          limit(50)
+        );
 
-        // Execute all queries in parallel
-        const snapshots = await Promise.all(queries.map((q) => getDocs(q)));
+        console.log("Executing broader Firestore query for agencies...");
+        const snapshot = await getDocs(agenciesQuery);
+        console.log(`Query returned ${snapshot.docs.length} agencies`);
 
-        // Process results from all queries
-        snapshots.forEach((snapshot) => {
-          snapshot.docs.forEach((doc) => {
-            if (!agencyIds.has(doc.id)) {
-              agencyIds.add(doc.id);
-              agencyResults.push({ uid: doc.id, ...(doc.data() as USER) });
-            }
-          });
+        snapshot.docs.forEach((doc) => {
+          agencyResults.push({ uid: doc.id, ...(doc.data() as USER) });
         });
 
-        // Client-side filtering for partial matches
-        agencyResults = agencyResults.filter(
-          (agency) =>
-            agency.firstName.toLowerCase().includes(lowerSearchQuery) ||
-            agency.lastName.toLowerCase().includes(lowerSearchQuery)
+        // Client-side filtering for case-insensitive matches
+        const beforeFilter = agencyResults.length;
+        agencyResults = agencyResults.filter((agency) => {
+          const firstNameLower = agency.firstName?.toLowerCase() || "";
+          const lastNameLower = agency.lastName?.toLowerCase() || "";
+          const emailLower = agency.email?.toLowerCase() || "";
+
+          return (
+            firstNameLower.includes(lowerSearchQuery) ||
+            lastNameLower.includes(lowerSearchQuery) ||
+            emailLower.includes(lowerSearchQuery)
+          );
+        });
+        console.log(
+          `Client-side filtering: ${beforeFilter} → ${agencyResults.length} results`
         );
 
         // Limit results after filtering
+        const beforeLimit = agencyResults.length;
         agencyResults = agencyResults.slice(0, 8);
+        console.log(
+          `After limiting: ${beforeLimit} → ${agencyResults.length} results`
+        );
       } else {
         // If no search query, just get the first 8 agencies
+        console.log("Using default firstName query for agencies");
         const firstNameQuery = query(
           collection(fireDataBase, "agencies"),
           orderBy("firstName"),
           limit(8)
         );
 
+        console.log("Executing Firestore query for agencies...");
         const snapshot = await getDocs(firstNameQuery);
+        console.log(`Query returned ${snapshot.docs.length} agencies`);
 
         snapshot.docs.forEach((doc) => {
           agencyResults.push({ uid: doc.id, ...(doc.data() as USER) });
@@ -370,9 +423,14 @@ export default function GlobalSearch() {
 
       // Check if we have more results
       setHasMoreAgencies(agencyResults.length === 8);
+      console.log("Has more agencies:", agencyResults.length === 8);
 
       // Set the last visible document for pagination (simplified)
       if (agencyResults.length > 0) {
+        console.log(
+          "Getting last visible agency document for:",
+          agencyResults[agencyResults.length - 1].uid
+        );
         // This is simplified and might need adjustment for proper pagination
         const lastDoc = await getDocs(
           query(
@@ -382,36 +440,43 @@ export default function GlobalSearch() {
         );
 
         if (!lastDoc.empty) {
+          console.log("Setting agency last visible document");
           setAgencyLastVisible(lastDoc.docs[0]);
+        } else {
+          console.log("No agency last visible document found");
         }
       } else {
+        console.log("No agencies to set last visible");
         setAgencyLastVisible(null);
       }
 
       if (isLoadMore) {
-        setAgencies((prev) => [...prev, ...agencyResults]);
+        console.log("Loading more - appending to existing agencies");
+        setAgencies((prev) => {
+          const newState = [...prev, ...agencyResults];
+          console.log(
+            `Agencies state updated: ${prev.length} → ${newState.length}`
+          );
+          return newState;
+        });
       } else {
+        console.log(
+          "Setting agencies state with",
+          agencyResults.length,
+          "items"
+        );
         setAgencies(agencyResults);
       }
     } catch (err) {
       console.error("Error fetching agency results:", err);
       setError("Failed to fetch agency results. Please try again.");
     } finally {
-      if (!isLoadMore) setLoading(false);
+      if (!isLoadMore) {
+        console.log("Finished loading agencies");
+        setLoading(false);
+      }
     }
   };
-
-  useEffect(() => {
-    if (activeTab === "all") {
-      fetchAllSearchResults();
-    } else if (activeTab === "properties") {
-      fetchProperties();
-    } else if (activeTab === "agents") {
-      fetchAgents();
-    } else if (activeTab === "agencies") {
-      fetchAgencies();
-    }
-  }, [searchQuery, activeTab]);
 
   return (
     <>
