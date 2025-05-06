@@ -139,7 +139,7 @@ const Footer = ({ className }: FooterProps = {}) => {
             <ul className="space-y-2">
               <li>
                 <Link
-                  to="/properties?type=residential"
+                  to="/properties?propertyCategory=residential"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
                   Residential
@@ -147,7 +147,7 @@ const Footer = ({ className }: FooterProps = {}) => {
               </li>
               <li>
                 <Link
-                  to="/properties?type=commercial"
+                  to="/properties?propertyCategory=commercial"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
                   Commercial
@@ -155,7 +155,7 @@ const Footer = ({ className }: FooterProps = {}) => {
               </li>
               <li>
                 <Link
-                  to="/properties?type=land"
+                  to="/properties?propertyCategory=land"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
                   Land
@@ -163,7 +163,7 @@ const Footer = ({ className }: FooterProps = {}) => {
               </li>
               <li>
                 <Link
-                  to="/properties?type=rental"
+                  to="/rent"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
                   Rental
@@ -171,7 +171,7 @@ const Footer = ({ className }: FooterProps = {}) => {
               </li>
               <li>
                 <Link
-                  to="/properties?type=new-developments"
+                  to="/properties?propertyCategory=newDevelopment"
                   className="text-slate-300 hover:text-white transition-colors"
                 >
                   New Developments
