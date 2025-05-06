@@ -9,6 +9,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useZustand } from "@/lib/zustand";
 
 interface FooterProps {
   className?: string;
@@ -16,17 +17,17 @@ interface FooterProps {
 
 const Footer = ({ className }: FooterProps = {}) => {
   const currentYear = new Date().getFullYear();
-
+  const { user } = useZustand();
   return (
     <footer
       className={cn("bg-slate-900 text-white py-8 px-4 md:px-8", className)}
     >
-      <div className="container mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+      <div className="mx-auto container">
+        <div className="gap-6 md:gap-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
           {/* Company Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">RealtyZambia</h3>
-            <p className="text-slate-300 mb-4">
+            <h3 className="mb-4 font-bold text-xl">RealtyZambia</h3>
+            <p className="mb-4 text-slate-300">
               Your trusted platform for finding the perfect property in Zambia.
             </p>
             <div className="flex space-x-4">
@@ -53,7 +54,7 @@ const Footer = ({ className }: FooterProps = {}) => {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Quick Links</h3>
+            <h3 className="mb-4 font-bold text-xl">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -87,14 +88,16 @@ const Footer = ({ className }: FooterProps = {}) => {
                   Agent Signup
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/agent/dashboard"
-                  className="text-slate-300 hover:text-white transition-colors"
-                >
-                  Agent Dashboard
-                </Link>
-              </li>
+              {user && user.userType === "agents" && (
+                <li>
+                  <Link
+                    to="/agent/dashboard"
+                    className="text-slate-300 hover:text-white transition-colors"
+                  >
+                    Agent Dashboard
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   to="/agent/subscription"
@@ -132,7 +135,7 @@ const Footer = ({ className }: FooterProps = {}) => {
 
           {/* Property Types */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Property Types</h3>
+            <h3 className="mb-4 font-bold text-xl">Property Types</h3>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -179,27 +182,27 @@ const Footer = ({ className }: FooterProps = {}) => {
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Contact Us</h3>
+            <h3 className="mb-4 font-bold text-xl">Contact Us</h3>
             <ul className="space-y-3">
               <li className="flex items-center">
-                <MapPin className="mr-2 h-5 w-5 text-slate-400" />
+                <MapPin className="mr-2 w-5 h-5 text-slate-400" />
                 <span className="text-slate-300">
                   123 Cairo Road, Lusaka, Zambia
                 </span>
               </li>
               <li className="flex items-center">
-                <Phone className="mr-2 h-5 w-5 text-slate-400" />
+                <Phone className="mr-2 w-5 h-5 text-slate-400" />
                 <span className="text-slate-300">+260 97 1234567</span>
               </li>
               <li className="flex items-center">
-                <Mail className="mr-2 h-5 w-5 text-slate-400" />
+                <Mail className="mr-2 w-5 h-5 text-slate-400" />
                 <span className="text-slate-300">info@realtyzambia.com</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-slate-700 mt-8 pt-6 text-center text-slate-400">
+        <div className="mt-8 pt-6 border-slate-700 border-t text-slate-400 text-center">
           <p>&copy; {currentYear} RealtyZambia. All rights reserved.</p>
         </div>
       </div>
